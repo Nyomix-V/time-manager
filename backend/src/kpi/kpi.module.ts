@@ -16,7 +16,7 @@ import {
 import { User } from '../entities/user.entity';
 import { Branch } from '../entities/branch.entity';
 import { Clock } from '../entities/clock.entity';
-import { Role } from '../entities/enums';
+import { Role, hasGlobalScope } from '../entities/enums';
 import { WorkingTimesService } from '../workingtimes/workingtimes.service';
 import { WorkingTimesModule } from '../workingtimes/workingtimes.module';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth/guards';
@@ -48,12 +48,9 @@ export class KpiService {
 
   // Report scoped to the actor: manager -> own branch, admin -> everyone.
   async report(actor: AuthUser, from?: Date, to?: Date) {
-    const users =
-      actor.role === Role.ADMIN
-        ? await this.users.find()
-        : await this.users.find({
-            where: { branchId: actor.branchId ?? undefined },
-          });
+    const users = hasGlobalScope(actor.role)
+    ? await this.users.find()
+    : await this.users.find({ where: { branchId: actor.branchId ?? undefined } });
 
     let timeFilter;
     if (from && to) timeFilter = Between(from, to);
@@ -101,7 +98,7 @@ export class KpiController {
   constructor(private readonly kpi: KpiService) {}
 
   @Get('report')
-  @Roles(Role.MANAGER, Role.ADMIN)
+  @Roles(Role.MANAGER, Role.ADMIN, Role.DIRECTEUR)
   report(
     @CurrentUser() actor: AuthUser,
     @Query('from') from?: string,

@@ -31,6 +31,7 @@ async function main() {
     { firstName: 'Alex', lastName: 'Admin', email: 'admin@trinity.io', role: Role.ADMIN, branchId: undefined },
     { firstName: 'Mandy', lastName: 'Manager', email: 'manager@trinity.io', role: Role.MANAGER, branchId: branch.id },
     { firstName: 'Emma', lastName: 'Employee', email: 'employee@trinity.io', role: Role.EMPLOYEE, branchId: branch.id },
+    { firstName: 'Diane', lastName: 'Directeur', email: 'directeur@trinity.io', role: Role.DIRECTEUR, branchId: undefined },
   ];
 
   for (const u of seedUsers) {

@@ -21,7 +21,7 @@ export class UsersController {
   constructor(private readonly users: UsersService) {}
 
   @Get()
-  @Roles(Role.MANAGER, Role.ADMIN) // managers (own branch) + admins (all)
+  @Roles(Role.MANAGER, Role.ADMIN, Role.DIRECTEUR)
   findAll(@CurrentUser() actor: AuthUser) {
     return this.users.findAll(actor);
   }

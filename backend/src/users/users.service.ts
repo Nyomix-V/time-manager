@@ -2,7 +2,7 @@ import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
-import { Role } from '../entities/enums';
+import { Role, hasGlobalScope } from '../entities/enums';
 import { AuthService } from '../auth/auth.service';
 import { CreateUserDto, UpdateUserDto } from './dto';
 import { AuthUser, assertCanActOnUser, assertCanManageBranch } from '../auth/scope';
@@ -18,7 +18,7 @@ export class UsersService {
   // Soft-deleted rows are excluded automatically (@DeleteDateColumn).
   // passwordHash never returned (select:false on the column).
   findAll(actor: AuthUser) {
-    if (actor.role === Role.ADMIN) return this.users.find();
+    if (hasGlobalScope(actor.role)) return this.users.find(); // admin + directeur
     return this.users.find({ where: { branchId: actor.branchId ?? undefined } });
   }
 
