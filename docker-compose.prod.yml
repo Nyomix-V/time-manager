@@ -1,0 +1,77 @@
+# =============================================================
+#  Time Manager — PRODUCTION compose
+#  Differences vs dev (what the keynote should defend):
+#   - images built from optimized multistage "prod" targets (no dev deps)
+#   - NO source-code bind mounts (immutable images)
+#   - NO hot reload
+#   - secrets injected via environment / .env.prod, never committed
+#   - restart policies + web served as static files by nginx
+#   - exposes 80/443 (TLS terminates at the proxy)
+# =============================================================
+services:
+
+  database:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [backend_net]
+
+  backend:
+    build:
+      context: ./backend
+      target: prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@database:3306/${MYSQL_DATABASE}
+      DB_SYNC: "false"                           # prod: use migrations, not auto-sync
+      JWT_SECRET: ${JWT_SECRET}
+      MS_CLIENT_ID: ${MS_CLIENT_ID}
+      MS_CLIENT_SECRET: ${MS_CLIENT_SECRET}
+      MS_TENANT_ID: ${MS_TENANT_ID}
+    depends_on:
+      database:
+        condition: service_healthy
+    networks: [backend_net, frontend_net]
+
+  # In prod the web app is built to static files and served BY nginx,
+  # so there is no separate "web" runtime container.
+  web-build:
+    build:
+      context: ./frontend-web
+      target: prod                               # outputs /app/dist
+    volumes:
+      - web_dist:/app/dist
+    networks: [frontend_net]
+
+  reverse-proxy:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./reverse-proxy/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - web_dist:/usr/share/nginx/html:ro        # serves the built web app
+      # - ./reverse-proxy/certs:/etc/nginx/certs:ro   # TLS certs (prod)
+    depends_on: [backend, web-build]
+    networks: [frontend_net]
+
+networks:
+  backend_net:
+  frontend_net:
+
+volumes:
+  db_data:
+  web_dist:

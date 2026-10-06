@@ -1,0 +1,100 @@
+# =============================================================
+#  Time Manager — DEV compose
+#  One public door (nginx) -> backend / web.  DB stays private.
+#  Launch:  docker compose up --build
+# =============================================================
+services:
+
+  database:
+    image: mysql:8
+    container_name: tm_database
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-timemanager}
+      MYSQL_USER: ${MYSQL_USER:-timemanager}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-devpassword}
+    volumes:
+      - db_data:/var/lib/mysql                   # <- persistence (required by subject)
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [backend_net]
+
+  backend:
+    build:
+      context: ./backend
+      target: dev                                # multistage: dev target
+    container_name: tm_backend
+    environment:
+      DATABASE_URL: mysql://${MYSQL_USER:-timemanager}:${MYSQL_PASSWORD:-devpassword}@database:3306/${MYSQL_DATABASE:-timemanager}
+      DB_SYNC: "true"                            # dev: TypeORM auto-creates tables
+      JWT_SECRET: ${JWT_SECRET:-dev_change_me}
+      MS_CLIENT_ID: ${MS_CLIENT_ID:-}
+      MS_CLIENT_SECRET: ${MS_CLIENT_SECRET:-}
+      MS_TENANT_ID: ${MS_TENANT_ID:-common}
+    volumes:
+      - ./backend:/app                           # hot reload in dev
+      - /app/node_modules
+    depends_on:
+      database:
+        condition: service_healthy               # wait for DB to be ready
+    networks: [backend_net, frontend_net]
+
+  web:
+    build:
+      context: ./frontend-web
+      target: dev
+    container_name: tm_web
+    environment:
+      VITE_API_URL: /api                         # same origin -> no CORS headache
+    volumes:
+      - ./frontend-web:/app
+      - /app/node_modules
+    networks: [frontend_net]
+
+  reverse-proxy:
+    image: nginx:1.27-alpine
+    container_name: tm_proxy
+    ports:
+      - "8080:80"                                # <- the ONLY public port
+    volumes:
+      - ./reverse-proxy/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [backend, web]
+    networks: [frontend_net]
+
+  # --- phpMyAdmin: DB admin UI for DEV only (inspect tables, run SQL) ---
+  # NOT a backend: it never serves the app. Open http://localhost:8081
+  # Log in with MYSQL_USER / MYSQL_PASSWORD from your .env.
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: tm_phpmyadmin
+    ports:
+      - "8081:80"                                # separate port, dev convenience
+    environment:
+      PMA_HOST: database                         # points straight at the db service
+      PMA_PORT: 3306
+    depends_on:
+      database:
+        condition: service_healthy
+    networks: [backend_net]
+
+  # --- Mobile APK builder: heavy, isolated behind a profile ---
+  # Run only when you need it:  docker compose --profile mobile up mobile-builder
+  mobile-builder:
+    build:
+      context: ./mobile
+    container_name: tm_mobile_builder
+    profiles: ["mobile"]
+    volumes:
+      - ./mobile/artifacts:/output               # the .apk lands here
+    environment:
+      EXPO_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://10.0.2.2:8080/api}
+
+networks:
+  backend_net:
+  frontend_net:
+
+volumes:
+  db_data:
