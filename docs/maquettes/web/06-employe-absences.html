@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>06 · Absences — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="employe" data-active="Absences"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Absences</h1>
+          <p class="sub">Justifiez une absence ou un oubli de pointage. Votre manager la valide.</p>
+        </div>
+      </header>
+
+      <div class="row">
+        <section class="card" aria-labelledby="new">
+          <h2 id="new">Justifier une absence</h2>
+          <div class="field">
+            <span class="label">Motif <span class="req">*</span></span>
+            <div class="radio-group">
+              <span class="chip on">Arrêt maladie</span><span class="chip">Rendez-vous médical</span><span class="chip">Congé</span><span class="chip">Oubli de pointage</span><span class="chip">Autre</span>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Du <span class="req">*</span></label><div class="input"><i data-i="calendar"></i>08/10/2026</div></div>
+            <div class="field"><label>Au <span class="req">*</span></label><div class="input"><i data-i="calendar"></i>10/10/2026</div></div>
+          </div>
+          <div class="field"><label>Commentaire</label><div class="input textarea placeholder">Précisez si besoin (facultatif)…</div></div>
+          <div class="field">
+            <span class="label">Justificatif</span>
+            <div class="dropzone"><i data-i="upload"></i><strong style="color:var(--text)">Glissez un fichier ou cliquez pour parcourir</strong>PDF, JPG ou PNG · 5 Mo max</div>
+            <span class="hint">Pour un arrêt maladie, seul l'avis d'arrêt est demandé : ne joignez pas d'informations médicales.</span>
+          </div>
+          <div class="actions"><a class="btn btn-secondary" href="#">Annuler</a><a class="btn btn-primary" href="#">Envoyer la demande</a></div>
+        </section>
+
+        <section class="card flush" aria-labelledby="mine">
+          <div class="card-head between"><h2 id="mine">Mes demandes</h2><span class="hint">4 demandes</span></div>
+          <table>
+            <thead><tr><th>Motif</th><th>Dates</th><th>Statut</th></tr></thead>
+            <tbody>
+              <tr><td>Rendez-vous médical</td><td>24 sept.</td><td><span class="badge b-success">Validée</span></td></tr>
+              <tr><td>Oubli de pointage</td><td>12 sept.</td><td><span class="badge b-success">Validée</span></td></tr>
+              <tr><td>Congé</td><td>18 – 22 août</td><td><span class="badge b-success">Validée</span></td></tr>
+              <tr><td>Autre</td><td>2 juil.</td><td><span class="badge b-danger">Refusée</span></td></tr>
+            </tbody>
+          </table>
+          <div class="alert alert-warning" style="margin:16px;"><i data-i="info"></i><span><strong>Refusée le 3 juil.</strong> — « Merci de joindre la convocation. »</span></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

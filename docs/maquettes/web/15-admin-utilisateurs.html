@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>15 · Utilisateurs — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="admin" data-active="Utilisateurs"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Utilisateurs</h1>
+          <p class="sub">612 comptes · 15 managers · 2 administrateurs</p>
+        </div>
+        <a class="btn btn-secondary" href="#"><i data-i="plus"></i>Ajouter un manager</a>
+        <a class="btn btn-primary" href="#"><i data-i="plus"></i>Ajouter un salarié</a>
+      </header>
+
+      <div class="toolbar">
+        <div class="input search placeholder"><i data-i="search"></i>Rechercher un nom, un email…</div>
+        <div class="input select" style="width:190px">Toutes les branches</div>
+        <div class="input select" style="width:170px">Tous les rôles</div>
+        <div class="input select" style="width:170px">Comptes actifs</div>
+      </div>
+
+      <section class="card flush" aria-label="Liste des utilisateurs">
+        <table>
+          <thead><tr><th>Utilisateur</th><th>Rôle</th><th>Branche</th><th>Équipe</th><th>Connexion</th><th>Dernier pointage</th><th class="num">Actions</th></tr></thead>
+          <tbody>
+            <tr><td><div class="person"><div class="avatar sm">KB</div><div><strong>Karim Benali</strong><span>karim.benali@trinity-market.com</span></div></div></td><td><span class="badge b-info no-dot">Manager</span></td><td>Finance</td><td class="muted">3 équipes</td><td><span class="inline small"><span class="ms-logo"><i></i><i></i><i></i><i></i></span>Microsoft</span></td><td>Auj. 08:40</td><td><div class="actions"><a class="icon-btn" href="#" aria-label="Voir"><i data-i="eye"></i></a><a class="icon-btn" href="#" aria-label="Modifier"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer"><i data-i="trash"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">LM</div><div><strong>Léa Martin</strong><span>lea.martin@trinity-market.com</span></div></div></td><td><span class="badge b-neutral no-dot">Employé</span></td><td>Finance</td><td>Comptabilité</td><td><span class="inline small"><span class="ms-logo"><i></i><i></i><i></i><i></i></span>Microsoft</span></td><td>Auj. 08:57</td><td><div class="actions"><a class="icon-btn" href="#" aria-label="Voir"><i data-i="eye"></i></a><a class="icon-btn" href="#" aria-label="Modifier"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer"><i data-i="trash"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">MN</div><div><strong>Mehdi Naceri</strong><span>mehdi.naceri@trinity-market.com</span></div></div></td><td><span class="badge b-info no-dot">Manager</span></td><td>IT</td><td class="muted">2 équipes</td><td><span class="small">Email</span></td><td>Auj. 09:01</td><td><div class="actions"><a class="icon-btn" href="#" aria-label="Voir"><i data-i="eye"></i></a><a class="icon-btn" href="#" aria-label="Modifier"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer"><i data-i="trash"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">EG</div><div><strong>Emma Girard</strong><span>emma.girard@trinity-market.com</span></div></div></td><td><span class="badge b-neutral no-dot">Employé</span></td><td>Service client</td><td>Support N1</td><td><span class="small">Email</span></td><td>Auj. 07:58</td><td><div class="actions"><a class="icon-btn" href="#" aria-label="Voir"><i data-i="eye"></i></a><a class="icon-btn" href="#" aria-label="Modifier"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer"><i data-i="trash"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">PL</div><div><strong>Paul Lambert</strong><span>paul.lambert@trinity-market.com</span></div></div></td><td><span class="badge b-neutral no-dot">Employé</span></td><td>Opérations</td><td>Logistique</td><td><span class="inline small"><span class="ms-logo"><i></i><i></i><i></i><i></i></span>Microsoft</span></td><td>Ven. 17:32</td><td><div class="actions"><a class="icon-btn" href="#" aria-label="Voir"><i data-i="eye"></i></a><a class="icon-btn" href="#" aria-label="Modifier"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer"><i data-i="trash"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">AR</div><div><strong>Amandine Rey</strong><span>amandine.rey@trinity-market.com</span></div></div></td><td><span class="badge b-info no-dot">Manager</span></td><td>RH</td><td class="muted">1 équipe</td><td><span class="small">Email</span></td><td>Auj. 08:30</td><td><div class="actions"><a class="icon-btn" href="#" aria-label="Voir"><i data-i="eye"></i></a><a class="icon-btn" href="#" aria-label="Modifier"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer"><i data-i="trash"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">JD</div><div><strong>Julien Dupont</strong><span>julien.dupont@trinity-market.com</span></div></div></td><td><span class="badge b-neutral no-dot">Employé</span></td><td>IT</td><td>Infrastructure</td><td><span class="badge b-warning no-dot">Invitation envoyée</span></td><td class="muted">—</td><td><div class="actions"><a class="icon-btn" href="#" aria-label="Voir"><i data-i="eye"></i></a><a class="icon-btn" href="#" aria-label="Modifier"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer"><i data-i="trash"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">SD</div><div><strong>Sophie Durand</strong><span>sophie.durand@trinity-market.com</span></div></div></td><td><span class="badge b-success no-dot">Admin</span></td><td class="muted">Toutes</td><td class="muted">—</td><td><span class="inline small"><span class="ms-logo"><i></i><i></i><i></i><i></i></span>Microsoft</span></td><td>Auj. 08:15</td><td><div class="actions"><a class="icon-btn" href="#" aria-label="Voir"><i data-i="eye"></i></a><a class="icon-btn" href="#" aria-label="Modifier"><i data-i="edit"></i></a></div></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination"><span>1 – 8 sur 612</span><div class="inline"><a class="btn btn-secondary" href="#">Précédent</a><a class="btn btn-secondary" href="#">Suivant</a></div></div>
+      </section>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

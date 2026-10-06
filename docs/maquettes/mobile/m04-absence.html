@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M04 · Justifier une absence — Time Manager mobile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="mobile-page">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>5G ▮▮▮</span></div>
+    <header class="m-header"><h1 class="grow">Justifier une absence</h1></header>
+    <main class="m-content">
+      <div class="field">
+        <span class="label">Motif <span class="req">*</span></span>
+        <div class="radio-group"><span class="chip on">Arrêt maladie</span><span class="chip">Rendez-vous médical</span><span class="chip">Congé</span><span class="chip">Oubli de pointage</span><span class="chip">Autre</span></div>
+      </div>
+      <div class="grid-2" style="gap:12px">
+        <div class="field"><label>Du <span class="req">*</span></label><div class="input"><i data-i="calendar"></i>08/10</div></div>
+        <div class="field"><label>Au <span class="req">*</span></label><div class="input"><i data-i="calendar"></i>10/10</div></div>
+      </div>
+      <div class="field"><label>Commentaire</label><div class="input placeholder" style="min-height:70px;align-items:flex-start">Facultatif…</div></div>
+      <div class="field">
+        <span class="label">Justificatif</span>
+        <div class="dropzone" style="padding:16px"><i data-i="upload"></i><strong style="color:var(--text)">Prendre une photo ou choisir un fichier</strong>PDF, JPG ou PNG · 5 Mo max</div>
+      </div>
+      <a class="btn btn-primary btn-block" style="padding:15px;font-size:16px;margin-top:auto" href="#">Envoyer la demande</a>
+    </main>
+    <nav class="tabbar" data-role="employe" data-active="Absences"></nav>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>13 · Absences à valider — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="manager" data-active="Absences à valider"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Absences à valider</h1>
+          <p class="sub">Les absences validées sont exclues du calcul des retards et des heures manquantes.</p>
+        </div>
+        <div class="tabs"><span class="on">En attente (3)</span><span>Traitées</span></div>
+      </header>
+
+      <section class="card flush" aria-label="Demandes en attente">
+        <table>
+          <thead><tr><th>Salarié</th><th>Motif</th><th>Dates</th><th>Justificatif</th><th>Envoyée le</th><th class="num">Décision</th></tr></thead>
+          <tbody>
+            <tr><td><div class="person"><div class="avatar sm">LB</div><div><strong>Lucas Bernard</strong><span>Trésorerie</span></div></div></td><td>Arrêt maladie</td><td>6 – 8 oct. <span class="hint">(3 jours)</span></td><td><a class="link inline" href="#"><i data-i="file"></i>avis-arret.pdf</a></td><td class="muted">6 oct. 08:12</td><td><div class="actions"><a class="btn btn-secondary" href="#"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#"><i data-i="checkmark"></i>Valider</a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">TP</div><div><strong>Thomas Petit</strong><span>Contrôle de gestion</span></div></div></td><td>Oubli de pointage</td><td>2 oct. <span class="hint">(départ 16:47)</span></td><td class="muted">—</td><td class="muted">3 oct. 09:30</td><td><div class="actions"><a class="btn btn-secondary" href="#"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#"><i data-i="checkmark"></i>Valider</a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">IM</div><div><strong>Inès Moreau</strong><span>Comptabilité</span></div></div></td><td>Rendez-vous médical</td><td>9 oct. <span class="hint">(matin)</span></td><td><a class="link inline" href="#"><i data-i="file"></i>convocation.jpg</a></td><td class="muted">2 oct. 17:45</td><td><div class="actions"><a class="btn btn-secondary" href="#"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#"><i data-i="checkmark"></i>Valider</a></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="row">
+        <section class="card" aria-labelledby="refuse">
+          <h2 id="refuse">Refuser la demande de Thomas Petit</h2>
+          <div class="field"><label>Motif du refus <span class="req">*</span></label><div class="input textarea">Le badge montre un départ à 16:00, merci de vérifier l'heure indiquée.</div><span class="hint">Le salarié verra ce message dans ses demandes.</span></div>
+          <div class="actions"><a class="btn btn-secondary" href="#">Annuler</a><a class="btn btn-danger" href="#">Confirmer le refus</a></div>
+        </section>
+        <section class="card">
+          <h2>Ce mois-ci</h2>
+          <div class="grid-2">
+            <div class="kpi stack" style="gap:4px"><span class="tiny muted">Demandes validées</span><strong style="font-size:24px">11</strong></div>
+            <div class="kpi stack" style="gap:4px"><span class="tiny muted">Demandes refusées</span><strong style="font-size:24px">2</strong></div>
+            <div class="kpi stack" style="gap:4px"><span class="tiny muted">Jours d'absence</span><strong style="font-size:24px">17</strong></div>
+            <div class="kpi stack" style="gap:4px"><span class="tiny muted">Délai moyen de réponse</span><strong style="font-size:24px">6 h</strong></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

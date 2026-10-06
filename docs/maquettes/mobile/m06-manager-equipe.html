@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M06 · Mon équipe (manager) — Time Manager mobile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="mobile-page">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>5G ▮▮▮</span></div>
+    <header class="m-header">
+      <div class="grow"><p class="sub" style="margin:0">Branche Finance</p><h1>Mon équipe</h1></div>
+      <div class="input select small" style="min-height:36px;padding:6px 10px">Mois</div>
+    </header>
+    <main class="m-content">
+      <div class="alert alert-warning" role="alert"><i data-i="alert"></i><span><strong>2 salariés</strong> ont dépassé 3 retards ce mois-ci.</span></div>
+
+      <div class="grid-2" style="gap:12px">
+        <section class="card kpi" style="padding:14px"><span class="label">Moy. hebdo</span><span class="value">34 h 50</span><span class="delta down">−25 min</span></section>
+        <section class="card kpi" style="padding:14px"><span class="label">Ponctualité</span><span class="value">91 %</span><span class="delta down">−3 pts</span></section>
+      </div>
+
+      <section class="card" style="gap:4px">
+        <div class="between"><h2>Aujourd'hui</h2><span class="hint">18 présents sur 24</span></div>
+        <div>
+          <a class="list-item" href="m07-manager-salarie.html"><div class="avatar sm">TP</div><div class="grow"><strong>Thomas Petit</strong><div class="hint">5 retards ce mois</div></div><span class="badge b-warning">09:18</span></a>
+          <a class="list-item" href="#"><div class="avatar sm">HG</div><div class="grow"><strong>Hugo Garcia</strong><div class="hint">4 retards ce mois</div></div><span class="badge b-success">09:04</span></a>
+          <a class="list-item" href="#"><div class="avatar sm">LM</div><div class="grow"><strong>Léa Martin</strong><div class="hint">Comptabilité</div></div><span class="badge b-success">08:57</span></a>
+          <a class="list-item" href="#"><div class="avatar sm">LB</div><div class="grow"><strong>Lucas Bernard</strong><div class="hint">Trésorerie</div></div><span class="badge b-info">Absent</span></a>
+          <a class="list-item" href="#"><div class="avatar sm">CL</div><div class="grow"><strong>Chloé Laurent</strong><div class="hint">Trésorerie</div></div><span class="badge b-neutral">—</span></a>
+        </div>
+      </section>
+    </main>
+    <nav class="tabbar" data-role="manager" data-active="Équipe"></nav>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

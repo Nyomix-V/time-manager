@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M03 · Mes heures — Time Manager mobile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="mobile-page">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>5G ▮▮▮</span></div>
+    <header class="m-header"><h1 class="grow">Mes heures</h1></header>
+    <main class="m-content">
+      <div class="tabs" style="display:flex"><span class="grow" style="text-align:center">Semaine</span><span class="on grow" style="text-align:center">Mois</span><span class="grow" style="text-align:center">Période</span></div>
+      <div class="input" style="justify-content:center"><i data-i="calendar"></i>Septembre 2026</div>
+
+      <div class="grid-2" style="gap:12px">
+        <section class="card kpi" style="padding:14px"><span class="label">Total</span><span class="value">151 h 30</span></section>
+        <section class="card kpi" style="padding:14px"><span class="label">Moy. / semaine</span><span class="value">35 h 20</span></section>
+        <section class="card kpi" style="padding:14px"><span class="label">Moy. / jour</span><span class="value">6 h 53</span></section>
+        <section class="card kpi" style="padding:14px"><span class="label">Retards</span><span class="value">1</span></section>
+      </div>
+
+      <section class="card" style="gap:6px">
+        <h2>Détail par jour</h2>
+        <div>
+          <div class="list-item"><div class="grow"><strong>Lun 29</strong><div class="hint">08:55 → 16:45</div></div><strong>7 h 05</strong></div>
+          <div class="list-item"><div class="grow"><strong>Ven 26</strong><div class="hint">08:58 → 16:30</div></div><strong>6 h 47</strong></div>
+          <div class="list-item"><div class="grow"><strong>Jeu 25</strong><div class="hint">08:50 → 17:20</div></div><strong>7 h 45</strong></div>
+          <div class="list-item"><div class="grow"><strong>Mer 24</strong><div class="hint">Absence justifiée</div></div><span class="badge b-info no-dot">Absence</span></div>
+        </div>
+      </section>
+    </main>
+    <nav class="tabbar" data-role="employe" data-active="Mes heures"></nav>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

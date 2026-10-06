@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Maquettes — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+  <style>
+    body { background: var(--bg); padding: 40px; }
+    .wrap { max-width: 1560px; margin: 0 auto; display: flex; flex-direction: column; gap: 36px; }
+    .group h2 { font-size: 18px; margin-bottom: 4px; }
+    .group > p { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+    .shots { display: flex; flex-wrap: wrap; gap: 20px; }
+    .shot { display: flex; flex-direction: column; gap: 8px; font-size: 13px; font-weight: 600; }
+    .shot span { color: var(--muted); font-weight: 400; }
+    .thumb { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+    .thumb iframe { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; pointer-events: none; }
+    .web .thumb { width: 576px; height: 360px; }
+    .web .thumb iframe { width: 1440px; height: 900px; transform: scale(0.4); }
+    .mob .thumb { width: 220px; height: 450px; background: #E4E7EE; }
+    .mob .thumb iframe { width: 440px; height: 900px; transform: scale(0.5); }
+    .shot:hover .thumb { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo" style="color:var(--text);padding:0 0 8px"><i data-i="clock"></i>Time Manager · Maquettes</div>
+      <p class="sub">17 écrans web (1440 × 900) et 7 écrans mobiles (390 × 844). Cliquez sur un écran pour l'ouvrir en taille réelle.</p>
+    </header>
+    <div id="groups"></div>
+  </div>
+
+  <script>
+    const GROUPS = [
+      ["Web · Commun", "web", [["01-connexion", "Connexion"], ["02-mot-de-passe-oublie", "Mot de passe oublié"], ["03-mon-profil", "Mon profil"]]],
+      ["Web · Employé", "web", [["04-employe-accueil", "Accueil et pointage"], ["05-employe-mes-heures", "Mes heures"], ["06-employe-absences", "Absences"]]],
+      ["Web · Manager", "web", [["07-manager-dashboard", "Dashboard équipe"], ["08-manager-salaries", "Salariés"], ["09-manager-ajouter-salarie", "Ajouter un salarié"], ["10-manager-fiche-salarie", "Fiche salarié"], ["11-manager-suppression", "Confirmation de suppression"], ["12-manager-equipes", "Équipes"], ["13-manager-absences", "Absences à valider"]]],
+      ["Web · Admin", "web", [["14-admin-dashboard", "Dashboard global"], ["15-admin-utilisateurs", "Utilisateurs"], ["16-admin-branches", "Branches et équipes"], ["17-admin-pointages", "Pointages"]]],
+      ["Mobile", "mobile", [["m01-connexion", "Connexion"], ["m02-accueil", "Pointage"], ["m03-mes-heures", "Mes heures"], ["m04-absence", "Justifier une absence"], ["m05-profil", "Profil"], ["m06-manager-equipe", "Manager · Mon équipe"], ["m07-manager-salarie", "Manager · Fiche salarié"]]],
+    ];
+    document.getElementById("groups").innerHTML = GROUPS.map(([title, dir, screens]) => `
+      <section class="group ${dir === "web" ? "web" : "mob"}" style="margin-bottom:36px">
+        <h2>${title}</h2>
+        <div class="shots">${screens.map(([file, label]) => `
+          <a class="shot" href="${dir}/${file}.html">
+            <div class="thumb"><iframe src="${dir}/${file}.html" loading="lazy" tabindex="-1" title="${label}"></iframe></div>
+            ${label}<span>${file}.html</span>
+          </a>`).join("")}
+        </div>
+      </section>`).join("");
+  </script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

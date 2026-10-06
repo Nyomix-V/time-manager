@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>10 · Fiche salarié — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="manager" data-active="Salariés"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <p class="breadcrumb"><a href="08-manager-salaries.html">Salariés</a> / Thomas Petit</p>
+          <div class="inline" style="gap:16px">
+            <div class="avatar lg">TP</div>
+            <div>
+              <h1>Thomas Petit</h1>
+              <p class="sub">Contrôle de gestion · thomas.petit@trinity-market.com · +33 6 22 41 87 03</p>
+            </div>
+            <span class="badge b-warning">En retard aujourd'hui · 09:18</span>
+          </div>
+        </div>
+        <div class="tabs"><span>Semaine</span><span class="on">Mois</span><span>Personnalisée</span></div>
+        <a class="btn btn-secondary" href="#"><i data-i="edit"></i>Modifier</a>
+        <a class="icon-btn danger" href="11-manager-suppression.html" aria-label="Supprimer Thomas Petit"><i data-i="trash"></i></a>
+      </header>
+
+      <div class="grid-4">
+        <section class="card kpi"><span class="label">Moyenne par jour</span><span class="value">6 h 41</span><span class="delta down">−19 min vs objectif</span></section>
+        <section class="card kpi"><span class="label">Moyenne par semaine</span><span class="value">33 h 25</span><span class="delta down">−1 h 35 vs 35 h</span></section>
+        <section class="card kpi"><span class="label">Retards (septembre)</span><span class="value">5</span><span class="delta down">Seuil de 3 dépassé</span></section>
+        <section class="card kpi"><span class="label">Retard moyen</span><span class="value">14 min</span><span class="delta muted">Sur les 5 retards</span></section>
+      </div>
+
+      <div class="row">
+        <section class="card" aria-labelledby="c">
+          <div class="between">
+            <h2 id="c">Heures par jour · semaine 40</h2>
+            <div class="legend"><span><i style="background:var(--primary)"></i>À l'heure</span><span><i style="background:#F59F00"></i>Retard</span></div>
+          </div>
+          <div class="chart" role="img" aria-label="Heures par jour : lundi 6 h 40 avec retard, mardi 7 h 05, mercredi 6 h 30 avec retard, jeudi 7 h 10, vendredi 6 h 15">
+            <div class="target" style="bottom:77.7%"><span>7 h</span></div>
+            <div class="col"><div class="bar warn" style="height:74%"></div></div>
+            <div class="col"><div class="bar" style="height:78.7%"></div></div>
+            <div class="col"><div class="bar warn" style="height:72%"></div></div>
+            <div class="col"><div class="bar" style="height:79.6%"></div></div>
+            <div class="col"><div class="bar" style="height:69%"></div></div>
+          </div>
+          <div class="chart-x"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span></div>
+        </section>
+
+        <section class="card flush" aria-labelledby="p">
+          <div class="card-head between"><h2 id="p">Derniers pointages</h2><a class="link" href="#">Historique complet →</a></div>
+          <table>
+            <thead><tr><th>Jour</th><th>Arrivée</th><th>Départ</th><th class="num">Total</th></tr></thead>
+            <tbody>
+              <tr class="highlight"><td>Lun 6</td><td>09:18 <span class="badge b-warning no-dot">+18 min</span></td><td class="muted">en cours</td><td class="num muted">—</td></tr>
+              <tr><td>Ven 3</td><td>08:59</td><td>16:00</td><td class="num">6 h 15</td></tr>
+              <tr><td>Jeu 2</td><td>08:52</td><td>16:47</td><td class="num">7 h 10</td></tr>
+              <tr class="highlight"><td>Mer 1</td><td>09:21 <span class="badge b-warning no-dot">+21 min</span></td><td>16:36</td><td class="num">6 h 30</td></tr>
+              <tr><td>Mar 30</td><td>08:55</td><td>16:45</td><td class="num">7 h 05</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

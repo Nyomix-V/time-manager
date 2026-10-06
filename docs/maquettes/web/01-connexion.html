@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>01 · Connexion — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <section class="auth-brand">
+      <div class="logo"><i data-i="clock"></i>Time Manager</div>
+      <p>Pointez vos heures, suivez votre temps de travail et pilotez vos équipes au même endroit.</p>
+      <ul>
+        <li><i data-i="checkmark"></i>Pointage d'arrivée et de départ en un clic</li>
+        <li><i data-i="checkmark"></i>Tableaux de bord et KPI par équipe</li>
+        <li><i data-i="checkmark"></i>Conforme RGPD et droit du travail</li>
+      </ul>
+    </section>
+
+    <main class="auth-area">
+      <form class="card auth-card" aria-labelledby="title">
+        <div>
+          <h1 id="title">Connexion</h1>
+          <p class="sub">Connectez-vous avec le compte créé par votre manager.</p>
+        </div>
+
+        <div class="field">
+          <label for="email">Adresse email</label>
+          <div class="input focus" id="email"><i data-i="mail"></i>lea.martin@trinity-market.com</div>
+        </div>
+        <div class="field">
+          <div class="between">
+            <label for="pwd">Mot de passe</label>
+            <a class="link" href="02-mot-de-passe-oublie.html">Mot de passe oublié ?</a>
+          </div>
+          <div class="input" id="pwd"><i data-i="lock"></i>••••••••••<span class="grow"></span><i data-i="eye"></i></div>
+        </div>
+
+        <a class="btn btn-primary btn-block" href="04-employe-accueil.html">Se connecter</a>
+        <div class="divider">ou</div>
+        <a class="btn btn-secondary btn-block" href="04-employe-accueil.html">
+          <span class="ms-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          Se connecter avec Microsoft
+        </a>
+
+        <p class="hint" style="text-align:center">Pas encore de compte ? Il est créé par votre manager.</p>
+      </form>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

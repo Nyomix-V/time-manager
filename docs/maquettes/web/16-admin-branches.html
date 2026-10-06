@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>16 · Branches et équipes — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .branch { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-top: 1px solid var(--border); font-size: 14px; }
+    .branch:first-of-type { border-top: none; }
+    .branch.on { background: var(--primary-soft); box-shadow: inset 3px 0 0 var(--primary); }
+    .branch .ic { color: var(--muted); }
+    .branch.on .ic, .branch.on strong { color: var(--primary); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="admin" data-active="Branches &amp; équipes"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Branches &amp; équipes</h1>
+          <p class="sub">Organisation de l'entreprise : branches, équipes et managers responsables.</p>
+        </div>
+        <a class="btn btn-primary" href="#"><i data-i="plus"></i>Ajouter une branche</a>
+      </header>
+
+      <div class="row">
+        <section class="card flush" style="max-width:320px" aria-label="Branches">
+          <a class="branch" href="#"><i data-i="building"></i><div class="grow"><strong>RH</strong><div class="hint">72 personnes · 2 équipes</div></div></a>
+          <a class="branch on" href="#" aria-current="true"><i data-i="building"></i><div class="grow"><strong>Finance</strong><div class="hint">64 personnes · 3 équipes</div></div></a>
+          <a class="branch" href="#"><i data-i="building"></i><div class="grow"><strong>IT</strong><div class="hint">118 personnes · 4 équipes</div></div></a>
+          <a class="branch" href="#"><i data-i="building"></i><div class="grow"><strong>Opérations</strong><div class="hint">172 personnes · 6 équipes</div></div></a>
+          <a class="branch" href="#"><i data-i="building"></i><div class="grow"><strong>Service client</strong><div class="hint">186 personnes · 5 équipes</div></div></a>
+        </section>
+
+        <div class="stack w-2" style="gap:24px">
+          <section class="card">
+            <div class="between">
+              <div><h2 style="font-size:20px">Finance</h2><p class="sub">Comptabilité, contrôle de gestion et trésorerie.</p></div>
+              <div class="inline"><a class="btn btn-secondary" href="#"><i data-i="edit"></i>Modifier</a><a class="icon-btn danger" href="#" aria-label="Supprimer la branche Finance"><i data-i="trash"></i></a></div>
+            </div>
+            <div class="grid-4" style="gap:16px">
+              <div class="stack" style="gap:2px"><span class="tiny muted">Effectif</span><strong style="font-size:20px">64</strong></div>
+              <div class="stack" style="gap:2px"><span class="tiny muted">Managers</span><strong style="font-size:20px">1</strong></div>
+              <div class="stack" style="gap:2px"><span class="tiny muted">Moyenne hebdo</span><strong style="font-size:20px">34 h 50</strong></div>
+              <div class="stack" style="gap:2px"><span class="tiny muted">Ponctualité</span><strong style="font-size:20px">91 %</strong></div>
+            </div>
+          </section>
+
+          <section class="card flush" aria-labelledby="t">
+            <div class="card-head between"><h2 id="t">Équipes de la branche</h2><a class="btn btn-secondary" href="#"><i data-i="plus"></i>Nouvelle équipe</a></div>
+            <table>
+              <thead><tr><th>Équipe</th><th>Manager</th><th class="num">Membres</th><th class="num">Ponctualité</th><th class="num">Actions</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Comptabilité</strong><div class="hint">Tenue des comptes, clôtures mensuelles</div></td><td><div class="person"><div class="avatar sm">KB</div><strong>Karim Benali</strong></div></td><td class="num">9</td><td class="num up">96 %</td><td><div class="actions"><a class="icon-btn" href="#" aria-label="Modifier"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer"><i data-i="trash"></i></a></div></td></tr>
+                <tr><td><strong>Contrôle de gestion</strong><div class="hint">Budgets et reporting</div></td><td><div class="person"><div class="avatar sm">KB</div><strong>Karim Benali</strong></div></td><td class="num">7</td><td class="num down">82 %</td><td><div class="actions"><a class="icon-btn" href="#" aria-label="Modifier"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer"><i data-i="trash"></i></a></div></td></tr>
+                <tr><td><strong>Trésorerie</strong><div class="hint">Flux et relations bancaires</div></td><td><span class="badge b-warning no-dot">Sans manager</span></td><td class="num">8</td><td class="num up">94 %</td><td><div class="actions"><a class="icon-btn" href="#" aria-label="Modifier"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer"><i data-i="trash"></i></a></div></td></tr>
+              </tbody>
+            </table>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

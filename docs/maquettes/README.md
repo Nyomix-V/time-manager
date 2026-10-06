@@ -1,0 +1,71 @@
+# Time Manager — Maquettes
+
+Maquettes cliquables de l'application Time Manager (projet T-DEV-700) : **17 écrans web** et **7 écrans mobiles**, construits à partir des user stories.
+
+## Lancer la maquette
+
+### Méthode simple
+
+1. Ouvrez le dossier `docs/maquettes/` (ou dézippez l'archive si on vous l'a envoyée).
+2. Double-cliquez sur **`index.html`**, il s'ouvre dans votre navigateur.
+3. Cliquez sur un écran pour l'ouvrir en grand. Les menus fonctionnent, donc vous pouvez naviguer entre les écrans.
+
+> Il faut une connexion internet pour charger la police Inter. Sans connexion, la maquette s'affiche quand même, avec une police système.
+
+### Si les miniatures de l'index restent blanches
+
+Certains navigateurs bloquent les aperçus quand on ouvre un fichier en local. Dans ce cas, lancez un petit serveur depuis le dossier dézippé.
+
+Avec Python :
+
+```bash
+python -m http.server 5500
+```
+
+Ou avec Node.js :
+
+```bash
+npx serve -l 5500
+```
+
+Puis ouvrez <http://localhost:5500> dans le navigateur.
+
+## Les écrans
+
+| Rôle | Écrans |
+|---|---|
+| **Commun** | Connexion (email ou Microsoft), mot de passe oublié, mon profil |
+| **Employé** | Accueil et pointage, mes heures, justifier une absence |
+| **Manager** | Dashboard équipe (KPI, alertes de retards), salariés, ajout d'un salarié, fiche salarié, suppression protégée, équipes, absences à valider |
+| **Admin** | Dashboard global, utilisateurs, branches et équipes, pointages |
+| **Mobile** | Connexion, pointage, mes heures, absence, profil, et côté manager : mon équipe, fiche salarié |
+
+Les écrans web font 1440 × 900 et s'adaptent à la taille de la fenêtre. Les écrans mobiles font 390 × 844.
+
+## Organisation des fichiers
+
+```
+maquettes/
+├── index.html      → page d'accueil avec tous les écrans
+├── web/            → écrans du site (01 à 17)
+├── mobile/         → écrans de l'application (m01 à m07)
+└── assets/
+    ├── style.css   → couleurs, composants (boutons, cartes, tableaux…)
+    └── app.js      → menus, barre d'onglets mobile et icônes
+```
+
+Les couleurs sont définies en haut de `assets/style.css` (`--primary`, `--danger`…) : modifiez-les à cet endroit pour changer tout le thème.
+
+## Importer dans Figma
+
+1. Installez l'extension Chrome **html.to.design**.
+2. Ouvrez un écran dans Chrome (avec le serveur local de la section précédente).
+3. Lancez l'extension, puis importez le fichier généré dans Figma.
+
+La version gratuite de l'extension limite le nombre d'imports.
+
+## À savoir
+
+- Les noms, les heures et les chiffres sont **fictifs**.
+- C'est une maquette : les boutons et les formulaires ne font rien, seule la navigation fonctionne.
+- KPI retenus : moyenne d'heures par semaine, taux de ponctualité, heures supplémentaires et taux d'absence.

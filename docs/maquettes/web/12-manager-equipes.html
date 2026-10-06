@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>12 · Équipes — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .team-card h2 { font-size: 18px; }
+    .avatars { display: flex; }
+    .avatars .avatar { width: 32px; height: 32px; font-size: 11px; border: 2px solid #fff; margin-left: -8px; }
+    .avatars .avatar:first-child { margin-left: 0; }
+    .avatars .more { background: var(--bg); color: var(--muted); }
+    .stat { display: flex; flex-direction: column; gap: 2px; }
+    .stat strong { font-size: 18px; }
+    .new-team { border-style: dashed; align-items: center; justify-content: center; text-align: center; color: var(--muted); }
+    .new-team .icon-btn { width: 48px; height: 48px; color: var(--primary); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="manager" data-active="Équipes"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Équipes</h1>
+          <p class="sub">Les équipes de la branche Finance dont vous êtes responsable.</p>
+        </div>
+        <a class="btn btn-primary" href="#"><i data-i="plus"></i>Créer une équipe</a>
+      </header>
+
+      <div class="grid-3">
+        <section class="card team-card">
+          <div class="between"><h2>Comptabilité</h2><div class="inline"><a class="icon-btn" href="#" aria-label="Modifier Comptabilité"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer Comptabilité"><i data-i="trash"></i></a></div></div>
+          <p class="sub">Tenue des comptes, clôtures mensuelles et paiement des fournisseurs.</p>
+          <div class="person"><div class="avatar sm">KB</div><div><strong>Karim Benali</strong><span>Manager</span></div></div>
+          <div class="between"><div class="avatars"><div class="avatar">LM</div><div class="avatar">IM</div><div class="avatar">SR</div><div class="avatar">JL</div><div class="avatar more">+5</div></div><span class="small muted">9 membres</span></div>
+          <div class="grid-2" style="border-top:1px solid var(--border);padding-top:16px">
+            <div class="stat"><span class="tiny muted">Moyenne hebdo</span><strong>35 h 10</strong></div>
+            <div class="stat"><span class="tiny muted">Ponctualité</span><strong class="up">96 %</strong></div>
+          </div>
+        </section>
+
+        <section class="card team-card">
+          <div class="between"><h2>Contrôle de gestion</h2><div class="inline"><a class="icon-btn" href="#" aria-label="Modifier Contrôle de gestion"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer Contrôle de gestion"><i data-i="trash"></i></a></div></div>
+          <p class="sub">Budgets, reporting mensuel et suivi des indicateurs financiers.</p>
+          <div class="person"><div class="avatar sm">KB</div><div><strong>Karim Benali</strong><span>Manager</span></div></div>
+          <div class="between"><div class="avatars"><div class="avatar">TP</div><div class="avatar">HG</div><div class="avatar">AM</div><div class="avatar">EB</div><div class="avatar more">+3</div></div><span class="small muted">7 membres</span></div>
+          <div class="grid-2" style="border-top:1px solid var(--border);padding-top:16px">
+            <div class="stat"><span class="tiny muted">Moyenne hebdo</span><strong>33 h 50</strong></div>
+            <div class="stat"><span class="tiny muted">Ponctualité</span><strong class="down">82 %</strong></div>
+          </div>
+        </section>
+
+        <section class="card team-card">
+          <div class="between"><h2>Trésorerie</h2><div class="inline"><a class="icon-btn" href="#" aria-label="Modifier Trésorerie"><i data-i="edit"></i></a><a class="icon-btn danger" href="#" aria-label="Supprimer Trésorerie"><i data-i="trash"></i></a></div></div>
+          <p class="sub">Gestion des flux de trésorerie et relations bancaires.</p>
+          <div class="person"><div class="avatar sm">KB</div><div><strong>Karim Benali</strong><span>Manager</span></div></div>
+          <div class="between"><div class="avatars"><div class="avatar">LB</div><div class="avatar">CL</div><div class="avatar">NF</div><div class="avatar more">+5</div></div><span class="small muted">8 membres</span></div>
+          <div class="grid-2" style="border-top:1px solid var(--border);padding-top:16px">
+            <div class="stat"><span class="tiny muted">Moyenne hebdo</span><strong>35 h 25</strong></div>
+            <div class="stat"><span class="tiny muted">Ponctualité</span><strong class="up">94 %</strong></div>
+          </div>
+        </section>
+      </div>
+
+      <div class="row">
+        <section class="card" aria-labelledby="edit-title">
+          <h2 id="edit-title">Modifier l'équipe « Contrôle de gestion »</h2>
+          <div class="grid-2">
+            <div class="field"><label>Nom de l'équipe <span class="req">*</span></label><div class="input">Contrôle de gestion</div></div>
+            <div class="field"><label>Manager</label><div class="input select">Karim Benali</div></div>
+          </div>
+          <div class="field"><label>Description</label><div class="input">Budgets, reporting mensuel et suivi des indicateurs financiers.</div></div>
+          <div class="field"><label>Membres</label><div class="input"><span class="badge b-info no-dot">Thomas Petit ✕</span><span class="badge b-info no-dot">Hugo Garcia ✕</span><span class="badge b-info no-dot">+5</span><span class="muted small">Ajouter un salarié…</span></div></div>
+          <div class="actions"><a class="btn btn-secondary" href="#">Annuler</a><a class="btn btn-primary" href="#">Enregistrer</a></div>
+        </section>
+        <section class="card new-team" style="max-width:360px">
+          <span class="icon-btn"><i data-i="plus"></i></span>
+          <h2 style="color:var(--text)">Nouvelle équipe</h2>
+          <p class="small">Regroupez des salariés pour suivre leurs KPI ensemble.</p>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>
