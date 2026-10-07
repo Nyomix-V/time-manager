@@ -1,7 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-import { apiRequest } from '@/lib/api';
+import { api } from '@/api';
+import { setApiToken, setUnauthorizedHandler } from '@/lib/api';
 import { sessionFromToken, type Session } from './session';
 
 // Le jeton est rangé dans le stockage chiffré du téléphone (Keystore Android), jamais en clair.
@@ -20,28 +21,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Au lancement : reprend la session si un jeton encore valide est stocké.
-  useEffect(() => {
-    SecureStore.getItemAsync(TOKEN_KEY)
-      .then((token) => setSession(token ? sessionFromToken(token) : null))
-      .finally(() => setIsLoading(false));
-  }, []);
-
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { access_token } = await apiRequest<{ access_token: string }>('/auth/login', {
-      method: 'POST',
-      body: { email, password },
-    });
-    const next = sessionFromToken(access_token);
-    if (!next) throw new Error('Jeton de connexion invalide.');
-    await SecureStore.setItemAsync(TOKEN_KEY, access_token);
+  const applySession = useCallback((next: Session | null) => {
+    setApiToken(next?.token ?? null);
     setSession(next);
   }, []);
 
+  // Au lancement : reprend la session si un jeton encore valide est stocké.
+  useEffect(() => {
+    SecureStore.getItemAsync(TOKEN_KEY)
+      .then((token) => applySession(token ? sessionFromToken(token) : null))
+      .finally(() => setIsLoading(false));
+  }, [applySession]);
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const { access_token } = await api.auth.login(email, password);
+      const next = sessionFromToken(access_token);
+      if (!next) throw new Error('Jeton de connexion invalide.');
+      await SecureStore.setItemAsync(TOKEN_KEY, access_token);
+      applySession(next);
+    },
+    [applySession],
+  );
+
   const signOut = useCallback(async () => {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
-    setSession(null);
-  }, []);
+    applySession(null);
+  }, [applySession]);
+
+  // Jeton refusé par l'API (expiré, ou ancienne session du mode démo) : retour à la connexion.
+  useEffect(() => {
+    setUnauthorizedHandler(() => void signOut());
+    return () => setUnauthorizedHandler(null);
+  }, [signOut]);
 
   const value = useMemo(() => ({ session, isLoading, signIn, signOut }), [session, isLoading, signIn, signOut]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

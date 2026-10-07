@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/auth/AuthProvider';
 import { Badge, Button } from '@/components/ui';
 import { MOCK } from '@/lib/config';
-import { MOCK_ACCOUNTS, MOCK_PASSWORD } from '@/lib/mock';
+import { MOCK_ACCOUNTS, MOCK_PASSWORD } from '@/mock/data';
 import { colors, radius, space } from '@/theme/tokens';
 
 // Maquette : docs/maquettes/mobile/m01-connexion.html

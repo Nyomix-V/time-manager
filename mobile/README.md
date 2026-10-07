@@ -68,29 +68,39 @@ adb install -r mobile/artifacts/time-manager.apk
 
 ```
 src/
-├── app/                 → écrans (Expo Router : un fichier = un écran)
-│   ├── _layout.tsx      → connexion obligatoire (Stack.Protected)
+├── app/                   → écrans (Expo Router : un fichier = un écran)
+│   ├── _layout.tsx        → connexion obligatoire (Stack.Protected)
 │   ├── login.tsx
-│   └── (tabs)/          → onglets, selon le rôle
-│       ├── index.tsx    → pointage (branché sur l'API)
-│       ├── heures.tsx, absences.tsx, profil.tsx
-│       └── equipe.tsx, demandes.tsx   → manager et directeur
-├── auth/                → session (jeton JWT dans le stockage chiffré du téléphone)
-├── components/ui.tsx    → boutons, cartes, badges
-├── lib/api.ts           → appels à l'API
-└── theme/tokens.ts      → couleurs des maquettes
+│   └── (tabs)/            → onglets, selon le rôle
+│       ├── index.tsx      → pointage (arrivée, pause, départ, planning du jour)
+│       ├── heures.tsx     → mes heures (semaine, mois, période)
+│       ├── absences.tsx   → nouvelle demande / historique
+│       ├── profil.tsx     → infos, demandes au responsable, mot de passe
+│       ├── equipe/        → manager et directeur : présence en direct, fiche salarié
+│       └── demandes.tsx   → manager et directeur : valider / refuser
+├── api/                   → types et fonctions d'accès aux données (seul endroit à adapter au backend)
+├── domain/                → calculs d'heures, libellés, droits affichés
+├── mock/                  → faux backend du mode démo (données + routes)
+├── components/            → composants des maquettes (ui, data, forms, Sheet)
+├── hooks/                 → chargement des données, heure en direct
+├── auth/                  → session (jeton JWT dans le stockage chiffré du téléphone)
+└── theme/tokens.ts        → couleurs des maquettes
 ```
+
+Le contrat d'API attendu du backend (routes, formats, droits) est décrit dans [API.md](API.md).
 
 ## État actuel
 
-| Fonctionnalité | État |
-|---|---|
-| Connexion email / mot de passe | Branchée (`POST /auth/login`) |
-| Connexion Microsoft | Bouton présent, désactivé : routes backend à faire |
-| Pointage arrivée / départ | Branché (`GET` et `POST /clocks/:userId`) |
-| Pause | Bouton présent, désactivé : route backend à faire |
-| Mes heures, absences, équipe, demandes | Écrans à développer |
-| Profil | Email, rôle et déconnexion |
-| Mode démo | Connexion et pointage simulés (`EXPO_PUBLIC_MOCK=1`) |
+Tous les écrans des maquettes sont développés et fonctionnent en **mode démo**. Pour le vrai backend, il manque des routes : voir [API.md](API.md).
+
+| Écran | Rôles | Routes du backend |
+|---|---|---|
+| Connexion | tous | ✅ existe (Microsoft : à faire) |
+| Pointage avec pauses, planning du jour | sauf admin | 🟡 pauses et planning à ajouter |
+| Mes heures | employé | 🟡 filtre de dates à ajouter |
+| Absences (demande, historique) | sauf admin | 🟡 type, justificatif, motif de refus à ajouter |
+| Profil, demandes au responsable, mot de passe | tous | 🆕 à créer |
+| Équipe : présence en direct, KPI, fiche salarié | manager, directeur | 🟡 présence, équipes, plannings à ajouter |
+| Demandes à valider | manager, directeur | 🟡 / 🆕 |
 
 **Sécurité :** le HTTP non chiffré est autorisé (`usesCleartextTraffic` dans `app.json`) pour joindre l'API de développement. En production, passez l'API en HTTPS et retirez ce réglage.

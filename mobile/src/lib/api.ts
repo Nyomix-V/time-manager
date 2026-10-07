@@ -1,6 +1,6 @@
-// Client HTTP de l'API Time Manager.
+// Client HTTP de l'API Time Manager. En mode démo, les requêtes vont au faux backend (src/mock).
+import { mockRequest } from '@/mock/server';
 import { API_URL, MOCK } from './config';
-import { mockRequest } from './mock';
 
 export class ApiError extends Error {
   constructor(
@@ -11,16 +11,48 @@ export class ApiError extends Error {
   }
 }
 
+// Jeton de la session en cours, fourni par AuthProvider.
+let authToken: string | null = null;
+export const setApiToken = (token: string | null) => {
+  authToken = token;
+};
+
+// Appelé quand l'API refuse le jeton (expiré, révoqué) : AuthProvider déconnecte et renvoie à l'écran de connexion.
+let onUnauthorized: (() => void) | null = null;
+export const setUnauthorizedHandler = (handler: (() => void) | null) => {
+  onUnauthorized = handler;
+};
+
+async function withSessionCheck<T>(request: Promise<T>): Promise<T> {
+  try {
+    return await request;
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401 && authToken) onUnauthorized?.();
+    throw e;
+  }
+}
+
 type RequestOptions = {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
-  token?: string | null;
+  query?: Record<string, string | undefined>;
 };
 
-export async function apiRequest<T>(path: string, { method = 'GET', body, token }: RequestOptions = {}): Promise<T> {
+const toQueryString = (query: RequestOptions['query'] = {}) => {
+  const pairs = Object.entries(query).filter((entry): entry is [string, string] => entry[1] !== undefined);
+  return pairs.length ? `?${pairs.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')}` : '';
+};
+
+export function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  return withSessionCheck(send<T>(path, options));
+}
+
+async function send<T>(path: string, { method = 'GET', body, query }: RequestOptions): Promise<T> {
+  const url = `${path}${toQueryString(query)}`;
+
   if (MOCK) {
     try {
-      return await mockRequest<T>(path, method, body);
+      return await mockRequest<T>(url, method, body, authToken);
     } catch (e) {
       throw new ApiError((e as { status?: number }).status ?? 500, e instanceof Error ? e.message : String(e));
     }
@@ -28,12 +60,12 @@ export async function apiRequest<T>(path: string, { method = 'GET', body, token 
 
   let response: Response;
   try {
-    response = await fetch(`${API_URL}${path}`, {
+    response = await fetch(`${API_URL}${url}`, {
       method,
       headers: {
         Accept: 'application/json',
         ...(body !== undefined && { 'Content-Type': 'application/json' }),
-        ...(token && { Authorization: `Bearer ${token}` }),
+        ...(authToken && { Authorization: `Bearer ${authToken}` }),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
@@ -50,3 +82,5 @@ export async function apiRequest<T>(path: string, { method = 'GET', body, token 
 
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T);
 }
+
+export const errorMessage = (e: unknown) => (e instanceof Error ? e.message : String(e));
