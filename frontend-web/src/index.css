@@ -1,0 +1,54 @@
+@import 'tailwindcss';
+/* Self-hosted font: no request to Google Fonts (GDPR: no visitor IP sent to a third party). */
+@import '@fontsource-variable/inter';
+
+/* Design tokens taken from docs/maquettes/assets/style.css (same names as the Figma variables). */
+@theme {
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+
+  --color-primary: #3b5bdb;
+  --color-primary-hover: #2f4ac0;
+  --color-primary-soft: #edf2ff;
+  --color-primary-light: #bac8ff;
+  --color-bg: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-border: #dee2ea;
+  --color-text: #1a1d29;
+  --color-muted: #5c6378;
+  /* success/warning darkened vs the mockups (#2b8a3e, #b35c00): 4.1 and 4.3:1 on their soft
+     background failed WCAG AA (4.5:1) for small text, as reported by axe. */
+  --color-success: #2b7a3b;
+  --color-success-soft: #ebfbee;
+  --color-warning: #a35200;
+  --color-warning-soft: #fff4e6;
+  --color-warning-bar: #f59f00;
+  --color-danger: #c92a2a;
+  --color-danger-soft: #fff5f5;
+  --color-sidebar: #141a33;
+  --color-sidebar-text: #aeb5cc;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+}
+
+@layer base {
+  html {
+    color: var(--color-text);
+    background: var(--color-bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Visible keyboard focus everywhere (WCAG 2.4.7). */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
