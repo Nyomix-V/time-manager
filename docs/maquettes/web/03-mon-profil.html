@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>03 · Mon profil — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="employe" data-active="Mon profil"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Mon profil</h1>
+          <p class="sub">Consultez vos informations et gérez la sécurité de votre compte.</p>
+        </div>
+      </header>
+
+      <div class="row">
+        <section class="card" aria-labelledby="info">
+          <div class="inline" style="gap:16px">
+            <div class="avatar lg">LM</div>
+            <div class="grow">
+              <h2 id="info">Informations personnelles</h2>
+              <p class="sub">Gérées par votre manager, votre directeur ou un administrateur.</p>
+            </div>
+            <span class="badge b-neutral"><i data-i="lock"></i>Lecture seule</span>
+          </div>
+          <div class="grid-2">
+            <div class="field"><span class="label">Prénom</span><div class="input readonly" aria-readonly="true">Léa</div></div>
+            <div class="field"><span class="label">Nom</span><div class="input readonly" aria-readonly="true">Martin</div></div>
+          </div>
+          <div class="field"><span class="label">Adresse email</span><div class="input readonly" aria-readonly="true"><i data-i="mail"></i>lea.martin@trinity-market.com</div></div>
+          <div class="field"><span class="label">Téléphone</span><div class="input readonly" aria-readonly="true"><i data-i="phone"></i>+33 6 12 34 56 78</div></div>
+          <div class="grid-2">
+            <div class="field"><span class="label">Branche</span><div class="input readonly" aria-readonly="true">Finance</div></div>
+            <div class="field"><span class="label">Équipe</span><div class="input readonly" aria-readonly="true">Comptabilité</div></div>
+          </div>
+          <div class="alert alert-warning" data-state="pending" role="status"><i data-i="clock"></i><span class="grow"><strong>Demande en attente</strong> · Téléphone → +33 6 98 76 54 32, envoyée le 5 oct. à Karim Benali. Vous pourrez en faire une nouvelle dès qu'elle sera acceptée ou refusée.</span></div>
+          <div class="between">
+            <div class="inline small"><span class="ms-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Compte Microsoft lié <span class="badge b-success">Actif</span></div>
+            <a class="btn btn-primary" href="#" data-open="modal-modif" data-state="idle"><i data-i="edit"></i>Demander une modification</a>
+            <span class="btn btn-primary" aria-disabled="true" data-state="pending" title="Une demande est déjà en attente"><i data-i="edit"></i>Demander une modification</span>
+          </div>
+        </section>
+
+        <section class="card" aria-labelledby="sec">
+          <div>
+            <h2 id="sec">Sécurité</h2>
+            <p class="sub">Changez votre mot de passe régulièrement.</p>
+          </div>
+          <div class="field"><label>Mot de passe actuel</label><div class="input"><i data-i="lock"></i>••••••••••</div></div>
+          <div class="field"><label>Nouveau mot de passe</label><div class="input focus"><i data-i="lock"></i>••••••••••••</div>
+            <div class="progress ok" aria-label="Robustesse : forte"><div style="width:80%"></div></div>
+            <span class="hint">Robustesse : forte</span>
+          </div>
+          <div class="field"><label>Confirmer le mot de passe</label><div class="input"><i data-i="lock"></i>••••••••••••</div></div>
+          <p class="hint">12 caractères minimum, avec une majuscule, un chiffre et un caractère spécial.</p>
+          <div class="actions"><a class="btn btn-secondary" href="#">Mettre à jour le mot de passe</a></div>
+        </section>
+      </div>
+
+      <section class="card danger-zone" aria-labelledby="del">
+        <div class="between">
+          <div>
+            <h2 id="del">Supprimer mon compte</h2>
+            <p class="sub">La suppression est validée par votre manager. Vos données personnelles sont alors supprimées (RGPD) ; vos pointages sont conservés de façon anonyme pour les obligations légales.</p>
+            <p class="hint" data-state="pending" style="margin-top:6px">Indisponible : une demande est déjà en attente de réponse.</p>
+          </div>
+          <a class="btn btn-danger" href="#" data-open="modal-suppr" data-state="idle"><i data-i="trash"></i>Demander la suppression</a>
+          <span class="btn btn-danger" aria-disabled="true" data-state="pending" title="Une demande est déjà en attente"><i data-i="trash"></i>Demander la suppression</span>
+        </div>
+      </section>
+    </main>
+
+    <div class="overlay" id="modal-modif" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mm-title">
+        <div class="modal-head">
+          <div class="modal-icon info"><i data-i="edit"></i></div>
+          <div class="grow"><h2 id="mm-title">Demander une modification</h2><p class="sub">Votre manager la valide ou la refuse. Une seule demande à la fois : vous pourrez en faire une autre après sa réponse.</p></div>
+          <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
+        </div>
+        <div class="field"><label>Information à modifier <span class="req">*</span></label><div class="input select">Téléphone</div></div>
+        <div class="grid-2">
+          <div class="field"><span class="label">Valeur actuelle</span><div class="input readonly">+33 6 12 34 56 78</div></div>
+          <div class="field"><label>Nouvelle valeur <span class="req">*</span></label><div class="input focus">+33 6 98 76 54 32</div></div>
+        </div>
+        <div class="field"><label>Commentaire</label><div class="input textarea placeholder" style="min-height:70px">Facultatif…</div></div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-close>Annuler</a><a class="btn btn-primary" href="#" data-close>Envoyer la demande</a></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="modal-suppr" hidden>
+      <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="ms-title">
+        <div class="modal-head">
+          <div class="modal-icon"><i data-i="trash"></i></div>
+          <div class="grow"><h2 id="ms-title">Demander la suppression de mon compte</h2><p class="sub">Karim Benali (votre manager) recevra la demande. En attendant sa réponse, vous ne pourrez pas faire d'autre demande.</p></div>
+        </div>
+        <div class="field"><label>Motif</label><div class="input select">Départ de l'entreprise</div></div>
+        <div class="alert alert-danger"><i data-i="alert"></i><span>Une fois validée, la suppression est <strong>irréversible</strong>.</span></div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-close>Annuler</a><a class="btn btn-danger" href="#" data-close>Envoyer la demande</a></div>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

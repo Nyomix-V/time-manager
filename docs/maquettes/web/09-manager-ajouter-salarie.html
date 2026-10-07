@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>09 · Ajouter un salarié — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="manager" data-active="Salariés"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <p class="breadcrumb"><a href="08-manager-salaries.html">Salariés</a> / Nouveau salarié</p>
+          <h1>Ajouter un salarié</h1>
+          <p class="sub">Le salarié reçoit un email pour activer son compte et choisir son mot de passe.</p>
+        </div>
+      </header>
+
+      <div class="row">
+        <form class="card w-2" aria-label="Nouveau salarié">
+          <h2>Identité</h2>
+          <div class="grid-2">
+            <div class="field"><label>Prénom <span class="req">*</span></label><div class="input">Julie</div></div>
+            <div class="field"><label>Nom <span class="req">*</span></label><div class="input">Lefèvre</div></div>
+            <div class="field"><label>Adresse email professionnelle <span class="req">*</span></label><div class="input error"><i data-i="mail"></i>julie.lefevre@gmail.com</div><span class="hint error">Utilisez une adresse @trinity-market.com.</span></div>
+            <div class="field"><label>Téléphone</label><div class="input"><i data-i="phone"></i>+33 6 45 78 12 90</div></div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field"><span class="label">Branche</span><div class="input readonly"><i data-i="lock"></i>Finance (votre branche)</div></div>
+            <div class="field"><label>Équipe <span class="req">*</span></label><div class="input select">Comptabilité</div></div>
+          </div>
+
+          <h2 style="margin-top:4px">Planning</h2>
+          <div class="field">
+            <span class="label">Jours travaillés <span class="req">*</span></span>
+            <div class="days" role="group" aria-label="Jours travaillés">
+              <span class="on" aria-pressed="true">Lun</span><span class="on" aria-pressed="true">Mar</span><span class="on" aria-pressed="true">Mer</span><span class="on" aria-pressed="true">Jeu</span><span class="on" aria-pressed="true">Ven</span><span aria-pressed="false">Sam</span><span aria-pressed="false">Dim</span>
+            </div>
+          </div>
+          <div class="grid-3" style="gap:16px">
+            <div class="field"><label>Heure d'arrivée <span class="req">*</span></label><div class="input"><i data-i="clock"></i>09:00</div></div>
+            <div class="field"><label>Travail par jour <span class="req">*</span></label><div class="input select">7 h 00</div></div>
+            <div class="field"><label>Temps de pause <span class="req">*</span></label><div class="input select"><i data-i="coffee"></i>45 min</div></div>
+          </div>
+          <div class="computed" aria-live="polite">
+            <div>Fin de journée prévue<strong>16:45</strong></div>
+            <div>Heures par semaine<strong>35 h</strong></div>
+            <div class="grow small" style="align-self:center">Calculé automatiquement par le serveur, non saisi.</div>
+          </div>
+
+          <div class="actions"><a class="btn btn-secondary" href="08-manager-salaries.html">Annuler</a><a class="btn btn-primary" href="#">Créer le salarié</a></div>
+        </form>
+
+        <aside class="stack">
+          <section class="card">
+            <h2>Et ensuite ?</h2>
+            <div class="timeline">
+              <div class="tl-item"><span class="tl-dot done"></span><div><h3>Création du compte</h3><p class="hint">Rôle Employé, rattaché à votre branche.</p></div></div>
+              <div class="tl-item"><span class="tl-dot"></span><div><h3>Email d'activation</h3><p class="hint">Lien valable 48 h pour choisir un mot de passe.</p></div></div>
+              <div class="tl-item"><span class="tl-dot pending"></span><div><h3>Première connexion</h3><p class="hint">Par email et mot de passe, ou avec Microsoft.</p></div></div>
+            </div>
+          </section>
+          <div class="alert alert-info"><i data-i="shield"></i><span>Un manager crée des employés dans sa branche. Le directeur peut aussi créer des managers ; l'administrateur, dans toutes les branches.</span></div>
+        </aside>
+      </div>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

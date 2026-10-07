@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>08 · Salariés — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="manager" data-active="Salariés"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Salariés</h1>
+          <p class="sub">Tous les salariés de l'entreprise (612). Modification et suppression depuis la fiche.</p>
+        </div>
+        <span class="live" aria-live="polite">Actualisé à 14:32 · mise à jour auto chaque minute</span>
+        <a class="btn btn-primary" href="09-manager-ajouter-salarie.html"><i data-i="plus"></i>Ajouter un salarié</a>
+      </header>
+
+      <div class="toolbar">
+        <div class="input search placeholder"><i data-i="search"></i>Rechercher un nom, un email…</div>
+        <details class="dropdown" id="filtre">
+          <summary class="input select" style="width:230px" aria-label="Filtrer par équipe">Toutes les équipes</summary>
+          <div class="menu" role="listbox">
+            <a href="#" role="option" aria-selected="true">Toutes les équipes <span class="hint">612</span></a>
+            <a href="#" role="option">Mes équipes <span class="hint">24</span></a>
+            <a href="#" role="option">Sans équipe <span class="hint">7</span></a>
+            <span class="group-label">Mes équipes</span>
+            <a href="#" role="option">Comptabilité <span class="hint">9</span></a>
+            <a href="#" role="option">Contrôle de gestion <span class="hint">7</span></a>
+            <a href="#" role="option">Trésorerie <span class="hint">8</span></a>
+          </div>
+        </details>
+        <div class="input select" style="width:180px">Tous les statuts</div>
+        <span class="grow"></span><span class="small muted">548 en poste · 31 en pause · 17 absents</span>
+              </div>
+
+      <section class="card flush" aria-label="Liste des salariés">
+        <table>
+          <thead><tr><th>Salarié</th><th>Équipe</th><th>Statut actuel</th><th class="num">Pause</th><th class="num">Heures / sem.</th><th class="num">Retards / mois</th><th class="num">Fiche</th></tr></thead>
+          <tbody>
+            <tr><td><div class="person"><div class="avatar sm">LM</div><strong>Léa Martin</strong></div></td><td>Comptabilité</td><td><span class="badge b-success">En poste · depuis 08:57</span></td><td class="num">45 min</td><td class="num">4 h 50</td><td class="num">1</td><td><div class="actions"><a class="icon-btn" href="10-manager-fiche-salarie.html" aria-label="Ouvrir la fiche de Léa Martin"><i data-i="eye"></i></a></div></td></tr>
+            <tr class="highlight"><td><div class="person"><div class="avatar sm">TP</div><strong>Thomas Petit</strong></div></td><td>Contrôle de gestion</td><td><span class="badge b-warning">En poste · retard 09:18</span></td><td class="num muted">—</td><td class="num">4 h 14</td><td class="num"><span class="badge b-danger no-dot">5</span></td><td><div class="actions"><a class="icon-btn" href="10-manager-fiche-salarie.html" aria-label="Ouvrir la fiche de Thomas Petit"><i data-i="eye"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">IM</div><strong>Inès Moreau</strong></div></td><td>Comptabilité</td><td><span class="badge b-info">En pause · depuis 14:20</span></td><td class="num">12 min <span class="hint">en cours</span></td><td class="num">5 h 02</td><td class="num">2</td><td><div class="actions"><a class="icon-btn" href="10-manager-fiche-salarie.html" aria-label="Ouvrir la fiche d'Inès Moreau"><i data-i="eye"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">LB</div><strong>Lucas Bernard</strong></div></td><td>Trésorerie</td><td><span class="badge b-neutral">Absent · justifié</span></td><td class="num muted">—</td><td class="num">—</td><td class="num">0</td><td><div class="actions"><a class="icon-btn" href="10-manager-fiche-salarie.html" aria-label="Ouvrir la fiche de Lucas Bernard"><i data-i="eye"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">CL</div><strong>Chloé Laurent</strong></div></td><td>Trésorerie</td><td><span class="badge b-neutral">Pas encore pointé · prévu 14:00</span></td><td class="num muted">—</td><td class="num">—</td><td class="num">0</td><td><div class="actions"><a class="icon-btn" href="10-manager-fiche-salarie.html" aria-label="Ouvrir la fiche de Chloé Laurent"><i data-i="eye"></i></a></div></td></tr>
+            <tr class="highlight"><td><div class="person"><div class="avatar sm">HG</div><strong>Hugo Garcia</strong></div></td><td>Contrôle de gestion</td><td><span class="badge b-success">En poste · depuis 09:04</span></td><td class="num">1 h 05 <span class="badge b-warning no-dot">+20 min</span></td><td class="num">4 h 40</td><td class="num"><span class="badge b-danger no-dot">4</span></td><td><div class="actions"><a class="icon-btn" href="10-manager-fiche-salarie.html" aria-label="Ouvrir la fiche d'Hugo Garcia"><i data-i="eye"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">EG</div><strong>Emma Girard</strong></div></td><td>Support N1 <span class="hint">· Service client</span></td><td><span class="badge b-success">En poste · depuis 07:58</span></td><td class="num">30 min</td><td class="num">5 h 50</td><td class="num">0</td><td><div class="actions"><a class="icon-btn" href="10-manager-fiche-salarie.html" aria-label="Ouvrir la fiche d'Emma Girard"><i data-i="eye"></i></a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">JD</div><strong>Julien Dupont</strong></div></td><td><span class="badge b-neutral no-dot">Sans équipe</span> <span class="hint">· IT</span></td><td><span class="badge b-neutral">Compte non activé</span></td><td class="num muted">—</td><td class="num">—</td><td class="num">—</td><td><div class="actions"><a class="icon-btn" href="10-manager-fiche-salarie.html" aria-label="Ouvrir la fiche de Julien Dupont"><i data-i="eye"></i></a></div></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination"><span>1 – 8 sur 612</span><div class="inline"><a class="btn btn-secondary" href="#">Précédent</a><a class="btn btn-secondary" href="#">Suivant</a></div></div>
+      </section>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>12 · Équipes — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .team-card h2 { font-size: 18px; }
+    .avatars { display: flex; }
+    .avatars .avatar { width: 32px; height: 32px; font-size: 11px; border: 2px solid #fff; margin-left: -8px; }
+    .avatars .avatar:first-child { margin-left: 0; }
+    .avatars .more { background: var(--bg); color: var(--muted); }
+    .stat { display: flex; flex-direction: column; gap: 2px; }
+    .stat strong { font-size: 18px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="manager" data-active="Équipes"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Équipes</h1>
+          <p class="sub">Cliquez sur une équipe pour voir ses membres et la modifier.</p>
+        </div>
+        <a class="btn btn-primary" href="#" data-open="modal-new"><i data-i="plus"></i>Créer une équipe</a>
+      </header>
+
+      <div class="grid-3">
+        <a class="card team-card" href="#" data-open="modal-team" aria-label="Ouvrir l'équipe Comptabilité">
+          <div class="between"><h2>Comptabilité</h2><i data-i="chevron"></i></div>
+          <p class="sub">Tenue des comptes, clôtures mensuelles et paiement des fournisseurs.</p>
+          <div class="person"><div class="avatar sm">KB</div><div><strong>Karim Benali</strong><span>Manager</span></div></div>
+          <div class="between"><div class="avatars"><div class="avatar">LM</div><div class="avatar">IM</div><div class="avatar">SR</div><div class="avatar">JL</div><div class="avatar more">+5</div></div><span class="small muted">9 membres</span></div>
+          <div class="grid-2" style="border-top:1px solid var(--border);padding-top:16px">
+            <div class="stat"><span class="tiny muted">Moyenne hebdo</span><strong>35 h 10</strong></div>
+            <div class="stat"><span class="tiny muted">Ponctualité</span><strong class="up">96 %</strong></div>
+          </div>
+        </a>
+
+        <a class="card team-card" href="#" data-open="modal-team" aria-label="Ouvrir l'équipe Contrôle de gestion">
+          <div class="between"><h2>Contrôle de gestion</h2><i data-i="chevron"></i></div>
+          <p class="sub">Budgets, reporting mensuel et suivi des indicateurs financiers.</p>
+          <div class="person"><div class="avatar sm">KB</div><div><strong>Karim Benali</strong><span>Manager</span></div></div>
+          <div class="between"><div class="avatars"><div class="avatar">TP</div><div class="avatar">HG</div><div class="avatar">AM</div><div class="avatar">EB</div><div class="avatar more">+3</div></div><span class="small muted">7 membres</span></div>
+          <div class="grid-2" style="border-top:1px solid var(--border);padding-top:16px">
+            <div class="stat"><span class="tiny muted">Moyenne hebdo</span><strong>33 h 50</strong></div>
+            <div class="stat"><span class="tiny muted">Ponctualité</span><strong class="down">82 %</strong></div>
+          </div>
+        </a>
+
+        <a class="card team-card" href="#" data-open="modal-team" aria-label="Ouvrir l'équipe Trésorerie">
+          <div class="between"><h2>Trésorerie</h2><i data-i="chevron"></i></div>
+          <p class="sub">Gestion des flux de trésorerie et relations bancaires.</p>
+          <div class="person"><div class="avatar sm">KB</div><div><strong>Karim Benali</strong><span>Manager</span></div></div>
+          <div class="between"><div class="avatars"><div class="avatar">LB</div><div class="avatar">CL</div><div class="avatar">NF</div><div class="avatar more">+5</div></div><span class="small muted">8 membres</span></div>
+          <div class="grid-2" style="border-top:1px solid var(--border);padding-top:16px">
+            <div class="stat"><span class="tiny muted">Moyenne hebdo</span><strong>35 h 25</strong></div>
+            <div class="stat"><span class="tiny muted">Ponctualité</span><strong class="up">94 %</strong></div>
+          </div>
+        </a>
+      </div>
+
+      <div class="alert alert-info"><i data-i="info"></i><span>7 salariés de la branche sont <strong>sans équipe</strong>. Ajoutez-les depuis la fenêtre d'une équipe.</span></div>
+    </main>
+
+    <div class="overlay" id="modal-team" hidden>
+      <div class="modal lg" role="dialog" aria-modal="true" aria-labelledby="mt-title">
+        <div class="modal-head">
+          <div class="modal-icon info"><i data-i="building"></i></div>
+          <div class="grow"><h2 id="mt-title">Contrôle de gestion</h2><p class="sub">7 membres · ponctualité 82 % · moyenne 33 h 50 / semaine</p></div>
+          <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
+        </div>
+        <div class="grid-2">
+          <div class="field"><label>Nom de l'équipe <span class="req">*</span></label><div class="input">Contrôle de gestion</div></div>
+          <div class="field"><label>Manager</label><div class="input select">Karim Benali</div></div>
+        </div>
+        <div class="field"><label>Description</label><div class="input">Budgets, reporting mensuel et suivi des indicateurs financiers.</div></div>
+        <div class="field">
+          <div class="between"><span class="label">Membres (7)</span><div class="input placeholder" style="min-height:34px;padding:6px 10px;width:260px"><i data-i="plus"></i>Ajouter un salarié…</div></div>
+          <div>
+            <div class="member-row"><div class="avatar sm">TP</div><strong class="grow">Thomas Petit</strong><span class="badge b-danger no-dot">5 retards</span><a class="icon-btn" href="#" aria-label="Retirer Thomas Petit de l'équipe"><i data-i="x"></i></a></div>
+            <div class="member-row"><div class="avatar sm">HG</div><strong class="grow">Hugo Garcia</strong><span class="badge b-danger no-dot">4 retards</span><a class="icon-btn" href="#" aria-label="Retirer Hugo Garcia de l'équipe"><i data-i="x"></i></a></div>
+            <div class="member-row"><div class="avatar sm">AM</div><strong class="grow">Alice Masson</strong><a class="icon-btn" href="#" aria-label="Retirer Alice Masson de l'équipe"><i data-i="x"></i></a></div>
+            <div class="member-row"><div class="avatar sm">EB</div><strong class="grow">Elias Brun</strong><a class="icon-btn" href="#" aria-label="Retirer Elias Brun de l'équipe"><i data-i="x"></i></a></div>
+            <div class="member-row muted small" style="justify-content:center">+ 3 autres membres</div>
+          </div>
+        </div>
+        <div class="between">
+          <a class="btn btn-ghost" style="color:var(--danger)" href="#"><i data-i="trash"></i>Supprimer l'équipe</a>
+          <div class="actions"><a class="btn btn-secondary" href="#" data-close>Annuler</a><a class="btn btn-primary" href="#" data-close>Enregistrer</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="modal-new" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mn-title">
+        <div class="modal-head">
+          <div class="modal-icon info"><i data-i="plus"></i></div>
+          <div class="grow"><h2 id="mn-title">Créer une équipe</h2><p class="sub">Regroupez des salariés pour suivre leurs KPI ensemble.</p></div>
+          <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
+        </div>
+        <div class="field"><label>Nom de l'équipe <span class="req">*</span></label><div class="input placeholder">Ex. : Paie</div></div>
+        <div class="field"><label>Description</label><div class="input placeholder">Facultatif…</div></div>
+        <div class="field"><label>Membres</label><div class="input placeholder"><i data-i="search"></i>Rechercher des salariés sans équipe…</div></div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-close>Annuler</a><a class="btn btn-primary" href="#" data-close>Créer l'équipe</a></div>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

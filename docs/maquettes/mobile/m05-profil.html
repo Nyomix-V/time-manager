@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M05 · Profil — Time Manager mobile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="mobile-page">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>5G ▮▮▮</span></div>
+    <header class="m-header"><h1 class="grow">Mon profil</h1></header>
+    <main class="m-content" style="gap:10px">
+      <section class="card" style="flex-direction:row;align-items:center;gap:14px">
+        <div class="avatar lg">LM</div>
+        <div><h2 style="font-size:18px">Léa Martin</h2><p class="sub" style="margin:0">Employée · Finance · Comptabilité</p></div>
+      </section>
+
+      <section class="card" style="gap:0">
+        <div class="list-item"><i data-i="mail"></i><div class="grow"><div class="hint">Email</div>lea.martin@trinity-market.com</div></div>
+        <div class="list-item"><i data-i="phone"></i><div class="grow"><div class="hint">Téléphone</div>+33 6 12 34 56 78</div></div>
+        <div class="list-item"><span class="ms-logo"><i></i><i></i><i></i><i></i></span><div class="grow">Compte Microsoft</div><span class="badge b-success">Lié</span></div>
+      </section>
+
+      <div class="alert alert-warning" role="status" style="font-size:13px"><i data-i="clock"></i><span><strong>Demande en attente</strong> (téléphone, 5 oct.). Nouvelle demande possible après la réponse.</span></div>
+
+      <section class="card" style="gap:0">
+        <span class="list-item" aria-disabled="true"><i data-i="edit"></i><span class="grow">Demander une modification<span class="hint" style="display:block">Indisponible : demande en attente</span></span><i data-i="lock"></i></span>
+        <a class="list-item" href="#"><i data-i="lock"></i><span class="grow">Changer mon mot de passe</span><i data-i="chevron"></i></a>
+        <a class="list-item" href="m01-connexion.html"><i data-i="logout"></i><span class="grow">Se déconnecter</span><i data-i="chevron"></i></a>
+      </section>
+
+      <span class="btn btn-ghost" style="color:var(--danger)" aria-disabled="true"><i data-i="trash"></i>Demander la suppression de mon compte</span>
+    </main>
+    <nav class="tabbar" data-role="employe" data-active="Profil"></nav>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

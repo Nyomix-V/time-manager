@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>17 · Pointages — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="admin" data-active="Pointages"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Pointages</h1>
+          <p class="sub">Heures d'arrivée et de départ des managers et des salariés.</p>
+        </div>
+        <a class="btn btn-secondary" href="#"><i data-i="download"></i>Exporter en CSV</a>
+      </header>
+
+      <div class="toolbar">
+        <div class="input search placeholder"><i data-i="search"></i>Rechercher une personne…</div>
+        <div class="input" style="width:200px"><i data-i="calendar"></i>Lundi 6 oct. 2026</div>
+        <div class="input select" style="width:190px">Toutes les branches</div>
+        <div class="input select" style="width:170px">Tous les rôles</div>
+        <div class="input select" style="width:170px">Tous les statuts</div>
+      </div>
+
+      <div class="grid-4">
+        <section class="card kpi" style="padding:18px"><span class="label">Présents</span><span class="value">548</span></section>
+        <section class="card kpi" style="padding:18px"><span class="label">En retard</span><span class="value" style="color:var(--warning)">23</span></section>
+        <section class="card kpi" style="padding:18px"><span class="label">Absences justifiées</span><span class="value">17</span></section>
+        <section class="card kpi" style="padding:18px"><span class="label">Pointages manquants</span><span class="value" style="color:var(--danger)">6</span></section>
+      </div>
+
+      <section class="card flush" aria-label="Pointages du jour">
+        <table>
+          <thead><tr><th>Personne</th><th>Rôle</th><th>Branche</th><th>Arrivée</th><th>Départ</th><th class="num">Total</th><th>Statut</th></tr></thead>
+          <tbody>
+            <tr><td><div class="person"><div class="avatar sm">KB</div><strong>Karim Benali</strong></div></td><td><span class="badge b-info no-dot">Manager</span></td><td>Finance</td><td>08:40</td><td class="muted">en cours</td><td class="num muted">—</td><td><span class="badge b-success">À l'heure</span></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">TP</div><strong>Thomas Petit</strong></div></td><td><span class="badge b-neutral no-dot">Employé</span></td><td>Finance</td><td>09:18</td><td class="muted">en cours</td><td class="num muted">—</td><td><span class="badge b-warning">Retard +18 min</span></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">EG</div><strong>Emma Girard</strong></div></td><td><span class="badge b-neutral no-dot">Employé</span></td><td>Service client</td><td>07:58</td><td class="muted">en cours</td><td class="num muted">—</td><td><span class="badge b-success">À l'heure</span></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">MN</div><strong>Mehdi Naceri</strong></div></td><td><span class="badge b-info no-dot">Manager</span></td><td>IT</td><td>09:01</td><td class="muted">en cours</td><td class="num muted">—</td><td><span class="badge b-success">À l'heure</span></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">SR</div><strong>Sarah Roux</strong></div></td><td><span class="badge b-neutral no-dot">Employé</span></td><td>Finance</td><td>08:58</td><td>13:00</td><td class="num">4 h 02</td><td><span class="badge b-neutral">Mi-temps</span></td></tr>
+            <tr class="highlight"><td><div class="person"><div class="avatar sm">PL</div><strong>Paul Lambert</strong></div></td><td><span class="badge b-neutral no-dot">Employé</span></td><td>Opérations</td><td class="muted">—</td><td class="muted">—</td><td class="num muted">—</td><td><span class="badge b-danger">Pointage manquant</span></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">LB</div><strong>Lucas Bernard</strong></div></td><td><span class="badge b-neutral no-dot">Employé</span></td><td>Finance</td><td class="muted">—</td><td class="muted">—</td><td class="num muted">—</td><td><span class="badge b-info">Arrêt maladie</span></td></tr>
+          </tbody>
+        </table>
+        <div class="pagination"><span>1 – 7 sur 594</span><div class="inline"><a class="btn btn-secondary" href="#">Précédent</a><a class="btn btn-secondary" href="#">Suivant</a></div></div>
+      </section>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>06 · Absences — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="employe" data-active="Absences"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Absences</h1>
+          <p class="sub">Justifiez une absence ou un oubli de pointage. Votre manager la valide.</p>
+        </div>
+      </header>
+
+      <div class="row">
+        <section class="card" aria-labelledby="new">
+          <h2 id="new">Justifier une absence</h2>
+          <div class="field">
+            <span class="label">Motif <span class="req">*</span></span>
+            <div class="radio-group">
+              <span class="chip on">Arrêt maladie</span><span class="chip">Rendez-vous médical</span><span class="chip">Congé</span><span class="chip">Oubli de pointage</span><span class="chip">Autre</span>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Du <span class="req">*</span></label><div class="input"><i data-i="calendar"></i>08/10/2026</div></div>
+            <div class="field"><label>Au <span class="req">*</span></label><div class="input"><i data-i="calendar"></i>10/10/2026</div></div>
+          </div>
+          <div class="field"><label>Commentaire</label><div class="input textarea placeholder">Précisez si besoin (facultatif)…</div></div>
+          <div class="field">
+            <span class="label">Justificatif</span>
+            <div class="dropzone"><i data-i="upload"></i><strong style="color:var(--text)">Glissez un fichier ou cliquez pour parcourir</strong>PDF, JPG ou PNG · 5 Mo max</div>
+            <span class="hint">Pour un arrêt maladie, seul l'avis d'arrêt est demandé : ne joignez pas d'informations médicales.</span>
+          </div>
+          <div class="actions"><a class="btn btn-secondary" href="#">Annuler</a><a class="btn btn-primary" href="#">Envoyer la demande</a></div>
+        </section>
+
+        <section class="card flush" aria-labelledby="mine">
+          <div class="card-head between"><div><h2 id="mine">Mes demandes</h2><p class="sub">12 derniers mois · cliquez pour voir la réponse</p></div><span class="hint">6 demandes</span></div>
+          <details class="acc">
+            <summary><span>Arrêt maladie</span><span class="muted">8 – 10 oct.</span><span class="badge b-warning">En attente</span><i data-i="chevron" class="chev"></i></summary>
+            <div class="acc-body"><p class="muted">Envoyée le 7 oct. · avis-arret.pdf</p><p>Votre manager n'a pas encore répondu.</p></div>
+          </details>
+          <details class="acc" open>
+            <summary><span>Rendez-vous médical</span><span class="muted">24 sept.</span><span class="badge b-success">Validée</span><i data-i="chevron" class="chev"></i></summary>
+            <div class="acc-body">
+              <p class="muted">Envoyée le 19 sept. · convocation.jpg</p>
+              <div class="reply"><div class="person"><div class="avatar sm">KB</div><div><strong>Karim Benali</strong><span>Validée le 20 sept. à 10:12</span></div></div><p>« OK, bon courage pour le rendez-vous. »</p></div>
+            </div>
+          </details>
+          <details class="acc">
+            <summary><span>Oubli de pointage</span><span class="muted">12 sept.</span><span class="badge b-success">Validée</span><i data-i="chevron" class="chev"></i></summary>
+            <div class="acc-body"><div class="reply"><strong>Karim Benali · 12 sept.</strong><p>Départ corrigé à 16:50.</p></div></div>
+          </details>
+          <details class="acc">
+            <summary><span>Congé</span><span class="muted">18 – 22 août</span><span class="badge b-success">Validée</span><i data-i="chevron" class="chev"></i></summary>
+            <div class="acc-body"><div class="reply"><strong>Karim Benali · 1er août</strong><p>Validé, bonnes vacances !</p></div></div>
+          </details>
+          <details class="acc">
+            <summary><span>Autre</span><span class="muted">2 juil.</span><span class="badge b-danger">Refusée</span><i data-i="chevron" class="chev"></i></summary>
+            <div class="acc-body"><div class="reply"><strong>Karim Benali · 3 juil.</strong><p>« Merci de joindre la convocation. »</p></div></div>
+          </details>
+          <a class="see-all" href="#"><i data-i="plus"></i>Tout voir · 4 demandes de plus d'un an</a>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

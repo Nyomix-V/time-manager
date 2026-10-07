@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M07 · Fiche salarié (manager) — Time Manager mobile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="mobile-page">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>5G ▮▮▮</span></div>
+    <header class="m-header"><a class="back" href="m06-manager-equipe.html"><i data-i="chevron"></i>Mon équipe</a></header>
+    <main class="m-content">
+      <div class="inline" style="gap:14px">
+        <div class="avatar lg">TP</div>
+        <div class="grow"><h1 style="font-size:22px">Thomas Petit</h1><p class="sub" style="margin:0">Contrôle de gestion</p></div>
+        <a class="icon-btn" href="tel:+33622418703" aria-label="Appeler Thomas Petit" style="width:40px;height:40px"><i data-i="phone"></i></a>
+      </div>
+
+      <div class="grid-2" style="gap:12px">
+        <section class="card kpi" style="padding:14px"><span class="label">Moy. / semaine</span><span class="value">33 h 25</span><span class="delta down">−1 h 35</span></section>
+        <section class="card kpi" style="padding:14px"><span class="label">Retards (sept.)</span><span class="value">5</span><span class="delta down">Seuil dépassé</span></section>
+      </div>
+
+      <section class="card" style="gap:8px">
+        <h2>Semaine 40</h2>
+        <div class="chart" style="height:96px;gap:10px" role="img" aria-label="Heures par jour de la semaine 40">
+          <div class="col"><div class="bar warn" style="height:74%"></div></div>
+          <div class="col"><div class="bar" style="height:79%"></div></div>
+          <div class="col"><div class="bar warn" style="height:72%"></div></div>
+          <div class="col"><div class="bar" style="height:80%"></div></div>
+          <div class="col"><div class="bar" style="height:69%"></div></div>
+        </div>
+        <div class="chart-x" style="gap:10px;margin-top:0"><span>L</span><span>M</span><span>M</span><span>J</span><span>V</span></div>
+      </section>
+
+      <section class="card" style="gap:4px">
+        <h2>Derniers pointages</h2>
+        <div>
+          <div class="list-item"><div class="grow"><strong>Lun 6</strong><div class="hint">09:18 → en cours</div></div><span class="badge b-warning no-dot">+18 min</span></div>
+          <div class="list-item"><div class="grow"><strong>Ven 3</strong><div class="hint">08:59 → 16:00</div></div><strong>6 h 15</strong></div>
+          <div class="list-item"><div class="grow"><strong>Jeu 2</strong><div class="hint">08:52 → 16:47</div></div><strong>7 h 10</strong></div>
+        </div>
+      </section>
+    </main>
+    <nav class="tabbar" data-role="manager" data-active="Équipe"></nav>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>13 · Demandes à valider — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="manager" data-active="Demandes à valider"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Demandes à valider</h1>
+          <p class="sub">Absences, modifications d'informations et suppressions de compte envoyées par vos salariés.</p>
+        </div>
+        <div class="tabs"><span class="on">En attente (5)</span><span>Traitées</span></div>
+      </header>
+
+      <div class="tabs" style="align-self:flex-start"><span class="on">Toutes (5)</span><span>Absences (3)</span><span>Modifications (1)</span><span>Suppressions (1)</span></div>
+
+      <section class="card flush" aria-label="Demandes en attente">
+        <table>
+          <thead><tr><th>Salarié</th><th>Type</th><th>Détail</th><th>Envoyée le</th><th class="num">Décision</th></tr></thead>
+          <tbody>
+            <tr><td><div class="person"><div class="avatar sm">LB</div><div><strong>Lucas Bernard</strong><span>Trésorerie</span></div></div></td><td><span class="badge b-info no-dot">Absence</span></td><td>Arrêt maladie · 6 – 8 oct.<a class="link inline tiny" href="#" style="display:flex;margin-top:2px"><i data-i="file"></i>avis-arret.pdf</a></td><td class="muted">6 oct. 08:12</td><td><div class="actions"><a class="btn btn-secondary" href="#" data-open="modal-refus"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#" data-open="modal-valider"><i data-i="checkmark"></i>Valider</a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">TP</div><div><strong>Thomas Petit</strong><span>Contrôle de gestion</span></div></div></td><td><span class="badge b-info no-dot">Absence</span></td><td>Oubli de pointage · 2 oct., départ 16:47</td><td class="muted">3 oct. 09:30</td><td><div class="actions"><a class="btn btn-secondary" href="#" data-open="modal-refus"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#" data-open="modal-valider"><i data-i="checkmark"></i>Valider</a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">IM</div><div><strong>Inès Moreau</strong><span>Comptabilité</span></div></div></td><td><span class="badge b-info no-dot">Absence</span></td><td>Rendez-vous médical · 9 oct. matin<a class="link inline tiny" href="#" style="display:flex;margin-top:2px"><i data-i="file"></i>convocation.jpg</a></td><td class="muted">2 oct. 17:45</td><td><div class="actions"><a class="btn btn-secondary" href="#" data-open="modal-refus"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#" data-open="modal-valider"><i data-i="checkmark"></i>Valider</a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">LM</div><div><strong>Léa Martin</strong><span>Comptabilité</span></div></div></td><td><span class="badge b-warning no-dot">Modification</span></td><td>Téléphone → +33 6 98 76 54 32</td><td class="muted">5 oct. 18:03</td><td><div class="actions"><a class="btn btn-secondary" href="#" data-open="modal-refus"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#" data-open="modal-modif"><i data-i="checkmark"></i>Valider</a></div></td></tr>
+            <tr><td><div class="person"><div class="avatar sm">SR</div><div><strong>Sarah Roux</strong><span>Comptabilité</span></div></div></td><td><span class="badge b-danger no-dot">Suppression</span></td><td>Suppression du compte · départ de l'entreprise</td><td class="muted">1 oct. 11:20</td><td><div class="actions"><a class="btn btn-secondary" href="#" data-open="modal-refus"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#" data-open="modal-suppr"><i data-i="checkmark"></i>Valider</a></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="card">
+        <h2>Ce mois-ci</h2>
+        <div class="grid-4">
+          <div class="stack" style="gap:4px"><span class="tiny muted">Demandes validées</span><strong style="font-size:24px">11</strong></div>
+          <div class="stack" style="gap:4px"><span class="tiny muted">Demandes refusées</span><strong style="font-size:24px">2</strong></div>
+          <div class="stack" style="gap:4px"><span class="tiny muted">Jours d'absence</span><strong style="font-size:24px">17</strong></div>
+          <div class="stack" style="gap:4px"><span class="tiny muted">Délai moyen de réponse</span><strong style="font-size:24px">6 h</strong></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Refus : motif obligatoire -->
+    <div class="overlay" id="modal-refus" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mr-title">
+        <div class="modal-head">
+          <div class="modal-icon"><i data-i="x"></i></div>
+          <div class="grow"><h2 id="mr-title">Refuser la demande</h2><p class="sub">Thomas Petit · Oubli de pointage du 2 oct. (départ 16:47)</p></div>
+          <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
+        </div>
+        <div class="field">
+          <label for="motif">Motif du refus <span class="req">*</span></label>
+          <div class="input textarea focus" id="motif">Le badge montre un départ à 16:00, merci de vérifier l'heure indiquée.</div>
+          <span class="hint">Obligatoire. Le salarié verra ce message dans ses demandes.</span>
+        </div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-close>Annuler</a><a class="btn btn-danger" href="#" data-close>Refuser la demande</a></div>
+      </div>
+    </div>
+
+    <!-- Validation : commentaire facultatif -->
+    <div class="overlay" id="modal-valider" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mv-title">
+        <div class="modal-head">
+          <div class="modal-icon ok"><i data-i="checkmark"></i></div>
+          <div class="grow"><h2 id="mv-title">Valider la demande</h2><p class="sub">Lucas Bernard · Arrêt maladie du 6 au 8 oct. (3 jours)</p></div>
+          <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
+        </div>
+        <a class="link inline" href="#"><i data-i="file"></i>Voir le justificatif · avis-arret.pdf</a>
+        <div class="field"><label for="com">Commentaire pour le salarié</label><div class="input textarea placeholder" id="com" style="min-height:70px">Facultatif…</div></div>
+        <div class="alert alert-info"><i data-i="info"></i><span>Ces 3 jours ne compteront ni comme retards ni comme heures manquantes.</span></div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-close>Annuler</a><a class="btn btn-primary" href="#" data-close>Valider la demande</a></div>
+      </div>
+    </div>
+
+    <!-- Validation d'une modification d'information -->
+    <div class="overlay" id="modal-modif" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mm-title">
+        <div class="modal-head">
+          <div class="modal-icon ok"><i data-i="edit"></i></div>
+          <div class="grow"><h2 id="mm-title">Valider la modification</h2><p class="sub">Léa Martin · demandée le 5 oct.</p></div>
+          <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
+        </div>
+        <div class="card" style="padding:16px;gap:6px">
+          <span class="tiny muted">Téléphone</span>
+          <div class="diff"><span class="old">+33 6 12 34 56 78</span><span class="muted">→</span><span class="new">+33 6 98 76 54 32</span></div>
+        </div>
+        <div class="field"><label>Commentaire pour le salarié</label><div class="input placeholder">Facultatif…</div></div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-close>Annuler</a><a class="btn btn-primary" href="#" data-close>Valider et appliquer</a></div>
+      </div>
+    </div>
+
+    <!-- Validation d'une suppression de compte -->
+    <div class="overlay" id="modal-suppr" hidden>
+      <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="mx-title">
+        <div class="modal-head">
+          <div class="modal-icon"><i data-i="trash"></i></div>
+          <div class="grow"><h2 id="mx-title">Supprimer le compte de Sarah Roux ?</h2><p class="sub">Demande du 1er oct. · motif : départ de l'entreprise.</p></div>
+        </div>
+        <div class="alert alert-danger"><i data-i="alert"></i><span>Action <strong>irréversible</strong>. Les données personnelles sont supprimées ; les pointages sont conservés de façon anonyme.</span></div>
+        <div class="field"><label>Pour confirmer, tapez <strong>SUPPRIMER</strong></label><div class="input placeholder">SUPPRIMER</div></div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-close>Annuler</a><a class="btn btn-danger" href="#" data-close>Supprimer le compte</a></div>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

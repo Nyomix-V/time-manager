@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>14 · Dashboard global — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="admin" data-active="Dashboard global"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Dashboard global</h1>
+          <p class="sub">Trinity Market · 5 branches · 612 utilisateurs actifs</p>
+        </div>
+        <div class="tabs"><span>Semaine</span><span class="on">Mois</span><span>Personnalisée</span></div>
+        <div class="input" style="width:190px"><i data-i="calendar"></i>Septembre 2026</div>
+        <a class="btn btn-secondary" href="#"><i data-i="download"></i>Exporter</a>
+      </header>
+
+      <div class="grid-4">
+        <section class="card kpi"><span class="label"><i data-i="timer"></i>Moyenne hebdo (entreprise)</span><span class="value">35 h 05</span><span class="delta up">+10 min vs août</span></section>
+        <section class="card kpi"><span class="label"><i data-i="trend"></i>Taux de ponctualité</span><span class="value">93 %</span><span class="delta up">+1 pt vs août</span></section>
+        <section class="card kpi"><span class="label"><i data-i="calendar"></i>Taux d'absence</span><span class="value">2,8 %</span><span class="delta muted">Stable</span></section>
+        <section class="card kpi"><span class="label"><i data-i="alert"></i>Alertes de retards</span><span class="value">9</span><span class="delta down">Salariés au-delà du seuil</span></section>
+      </div>
+
+      <div class="row">
+        <section class="card" aria-labelledby="c">
+          <div class="between"><h2 id="c">Moyenne hebdo par branche</h2><div class="legend"><span><i style="background:var(--danger)"></i>35 h</span></div></div>
+          <div class="chart" role="img" aria-label="Moyenne hebdomadaire par branche : RH 34 h 40, Finance 34 h 50, IT 36 h 10, Opérations 35 h 30, Service client 34 h 20">
+            <div class="target" style="bottom:70%"><span>35 h</span></div>
+            <div class="col"><div class="bar" style="height:69.3%"></div></div>
+            <div class="col"><div class="bar" style="height:69.7%"></div></div>
+            <div class="col"><div class="bar" style="height:72.3%"></div></div>
+            <div class="col"><div class="bar" style="height:71%"></div></div>
+            <div class="col"><div class="bar" style="height:68.7%"></div></div>
+          </div>
+          <div class="chart-x"><span>RH</span><span>Finance</span><span>IT</span><span>Opérations</span><span>Service client</span></div>
+        </section>
+
+        <section class="card flush w-2" aria-labelledby="b">
+          <div class="card-head between"><h2 id="b">Branches</h2><a class="link" href="16-admin-branches.html">Gérer →</a></div>
+          <table>
+            <thead><tr><th>Branche</th><th>Managers</th><th class="num">Effectif</th><th style="width:200px">Ponctualité</th><th class="num">Alertes</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Service client</strong></td><td class="muted">4</td><td class="num">186</td><td><div class="inline"><div class="progress warn grow"><div style="width:88%"></div></div><span class="small">88 %</span></div></td><td class="num"><span class="badge b-danger no-dot">4</span></td></tr>
+              <tr><td><strong>Opérations</strong></td><td class="muted">5</td><td class="num">172</td><td><div class="inline"><div class="progress ok grow"><div style="width:95%"></div></div><span class="small">95 %</span></div></td><td class="num"><span class="badge b-warning no-dot">2</span></td></tr>
+              <tr><td><strong>IT</strong></td><td class="muted">3</td><td class="num">118</td><td><div class="inline"><div class="progress ok grow"><div style="width:96%"></div></div><span class="small">96 %</span></div></td><td class="num"><span class="badge b-neutral no-dot">0</span></td></tr>
+              <tr><td><strong>RH</strong></td><td class="muted">2</td><td class="num">72</td><td><div class="inline"><div class="progress ok grow"><div style="width:97%"></div></div><span class="small">97 %</span></div></td><td class="num"><span class="badge b-neutral no-dot">1</span></td></tr>
+              <tr><td><strong>Finance</strong></td><td class="muted">1</td><td class="num">64</td><td><div class="inline"><div class="progress warn grow"><div style="width:91%"></div></div><span class="small">91 %</span></div></td><td class="num"><span class="badge b-warning no-dot">2</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

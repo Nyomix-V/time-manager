@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>02 · Mot de passe oublié — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <section class="auth-brand">
+      <div class="logo"><i data-i="clock"></i>Time Manager</div>
+      <p>Pointez vos heures, suivez votre temps de travail et pilotez vos équipes au même endroit.</p>
+      <ul>
+        <li><i data-i="checkmark"></i>Pointage d'arrivée et de départ en un clic</li>
+        <li><i data-i="checkmark"></i>Tableaux de bord et KPI par équipe</li>
+        <li><i data-i="checkmark"></i>Conforme RGPD et droit du travail</li>
+      </ul>
+    </section>
+
+    <main class="auth-area">
+      <div class="stack" style="gap:24px">
+        <form class="card auth-card" aria-labelledby="title">
+          <div>
+            <h1 id="title">Mot de passe oublié</h1>
+            <p class="sub">Saisissez votre adresse email : nous vous enverrons un lien valable 30 minutes pour choisir un nouveau mot de passe.</p>
+          </div>
+          <div class="field">
+            <label for="email">Adresse email</label>
+            <div class="input" id="email"><i data-i="mail"></i>lea.martin@trinity-market.com</div>
+          </div>
+          <a class="btn btn-primary btn-block" href="#">Envoyer le lien</a>
+          <div class="alert alert-info"><i data-i="info"></i><span>Compte Microsoft ? Réinitialisez votre mot de passe depuis votre compte Microsoft.</span></div>
+          <a class="link" href="01-connexion.html">← Retour à la connexion</a>
+        </form>
+      </div>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

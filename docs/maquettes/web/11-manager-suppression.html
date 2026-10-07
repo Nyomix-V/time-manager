@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>11 · Confirmation de suppression — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="manager" data-active="Salariés"></aside>
+    <main class="main" aria-hidden="true">
+      <header class="header">
+        <div class="titles"><h1>Salariés</h1><p class="sub">24 salariés dans la branche Finance.</p></div>
+        <span class="btn btn-primary"><i data-i="plus"></i>Ajouter un salarié</span>
+      </header>
+      <div class="toolbar"><div class="input search placeholder"><i data-i="search"></i>Rechercher un nom, un email…</div></div>
+      <section class="card flush">
+        <table>
+          <thead><tr><th>Salarié</th><th>Équipe</th><th>Aujourd'hui</th><th class="num">Heures (sem.)</th><th class="num">Retards (mois)</th></tr></thead>
+          <tbody>
+            <tr><td><div class="person"><div class="avatar sm">LM</div><div><strong>Léa Martin</strong><span>lea.martin@trinity-market.com</span></div></div></td><td>Comptabilité</td><td><span class="badge b-success">En poste · 08:57</span></td><td class="num">4 h 50</td><td class="num">1</td></tr>
+            <tr><td><div class="person"><div class="avatar sm">TP</div><div><strong>Thomas Petit</strong><span>thomas.petit@trinity-market.com</span></div></div></td><td>Contrôle de gestion</td><td><span class="badge b-warning">En retard · 09:18</span></td><td class="num">4 h 14</td><td class="num">5</td></tr>
+            <tr><td><div class="person"><div class="avatar sm">IM</div><div><strong>Inès Moreau</strong><span>ines.moreau@trinity-market.com</span></div></div></td><td>Comptabilité</td><td><span class="badge b-success">En poste · 08:45</span></td><td class="num">5 h 02</td><td class="num">2</td></tr>
+            <tr><td><div class="person"><div class="avatar sm">LB</div><div><strong>Lucas Bernard</strong><span>lucas.bernard@trinity-market.com</span></div></div></td><td>Trésorerie</td><td><span class="badge b-info">Absence justifiée</span></td><td class="num">—</td><td class="num">0</td></tr>
+            <tr><td><div class="person"><div class="avatar sm">CL</div><div><strong>Chloé Laurent</strong><span>chloe.laurent@trinity-market.com</span></div></div></td><td>Trésorerie</td><td><span class="badge b-neutral">Pas encore pointé</span></td><td class="num">—</td><td class="num">0</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <div class="overlay">
+      <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="m-title" aria-describedby="m-desc">
+        <div class="modal-icon"><i data-i="trash"></i></div>
+        <div>
+          <h2 id="m-title" style="font-size:20px">Supprimer Thomas Petit ?</h2>
+          <p id="m-desc" class="sub">Son compte sera désactivé immédiatement et ses données personnelles supprimées sous 30 jours (RGPD). Ses pointages sont conservés de façon anonyme pour les obligations légales.</p>
+        </div>
+        <div class="alert alert-danger"><i data-i="alert"></i><span>Cette action est <strong>irréversible</strong>.</span></div>
+        <div class="field">
+          <label for="confirm">Pour confirmer, tapez <strong>SUPPRIMER</strong></label>
+          <div class="input focus" id="confirm">SUPPRI<span style="border-left:1.5px solid var(--text);height:18px;margin-left:-6px"></span></div>
+        </div>
+        <div class="actions">
+          <a class="btn btn-secondary" href="08-manager-salaries.html">Annuler</a>
+          <span class="btn btn-danger" style="opacity:.45" aria-disabled="true">Supprimer définitivement</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>
