@@ -29,6 +29,7 @@ const ICONS = {
   filter: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
   phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
   trend: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  play: '<polygon points="6 3 20 12 6 21 6 3"/>',
   pause: '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>',
   coffee: '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/>',
   timer: '<line x1="10" y1="2" x2="14" y2="2"/><line x1="12" y1="14" x2="15" y2="11"/><circle cx="12" cy="14" r="8"/>',
@@ -71,6 +72,7 @@ const ROLES = {
     tabs: [
       ["Pointer", "clock", "m02-accueil.html"],
       ["Équipe", "chart", "m06-manager-equipe.html"],
+      ["Demandes", "check", "m08-demandes.html", 5],
       ["Absences", "file", "m04-absence.html"],
       ["Profil", "user", "m05-profil.html"],
     ],
@@ -89,6 +91,7 @@ const ROLES = {
     tabs: [
       ["Pointer", "clock", "m02-accueil.html"],
       ["Branche", "chart", "m06-manager-equipe.html"],
+      ["Demandes", "check", "m08-demandes.html", 5],
       ["Absences", "file", "m04-absence.html"],
       ["Profil", "user", "m05-profil.html"],
     ],
@@ -106,8 +109,16 @@ const ROLES = {
 };
 
 // Les écrans partagés (pointage, mes heures, salariés…) reçoivent le rôle dans l'URL : ?role=manager
-const urlRole = new URLSearchParams(location.search).get("role");
+const params = new URLSearchParams(location.search);
+const urlRole = params.get("role");
 const withRole = (href, key) => (key === "employe" ? href : `${href}?role=${key}`);
+
+// Prénom affiché ("Bonjour Léa") selon le rôle de la page.
+const pageRoleKey = ROLES[urlRole] ? urlRole : document.querySelector("[data-role]")?.dataset.role;
+if (ROLES[pageRoleKey]) {
+  const firstName = ROLES[pageRoleKey].user[1].split(" ")[0];
+  document.querySelectorAll("[data-first-name]").forEach((n) => (n.textContent = firstName));
+}
 
 document.querySelectorAll("aside.sidebar[data-role]").forEach((el) => {
   const key = ROLES[urlRole] && urlRole !== "admin" ? urlRole : el.dataset.role;
@@ -120,7 +131,6 @@ document.querySelectorAll("aside.sidebar[data-role]").forEach((el) => {
     })
     .join("");
   const [ini, name, sub] = role.user;
-  document.querySelectorAll("[data-first-name]").forEach((n) => (n.textContent = name.split(" ")[0]));
   el.setAttribute("aria-label", "Navigation principale");
   el.innerHTML = `
     <div class="logo">${icon("clock")}Time Manager</div>
@@ -133,10 +143,12 @@ document.querySelectorAll("aside.sidebar[data-role]").forEach((el) => {
 document.querySelectorAll("nav.tabbar[data-role]").forEach((el) => {
   el.setAttribute("aria-label", "Navigation principale");
   const key = ROLES[urlRole]?.tabs ? urlRole : el.dataset.role;
+  const active = (el.dataset.active || "").split("|");
   el.innerHTML = ROLES[key].tabs
-    .map(([label, ic, href]) => {
-      const current = label === el.dataset.active ? ' aria-current="page"' : "";
-      return `<a class="tab" href="${withRole(href, key)}"${current}>${icon(ic)}${label}</a>`;
+    .map(([label, ic, href, count]) => {
+      const current = active.includes(label) ? ' aria-current="page"' : "";
+      const badge = count ? `<span class="tab-badge" aria-label="${count} en attente">${count}</span>` : "";
+      return `<a class="tab" href="${withRole(href, key)}"${current}>${icon(ic)}${label}${badge}</a>`;
     })
     .join("");
 });
@@ -145,12 +157,24 @@ document.querySelectorAll("[data-i]").forEach((el) => {
   el.outerHTML = icon(el.dataset.i).replace('class="ic"', `class="ic ${el.className}"`);
 });
 
-// État "demande en attente" (profil) : ?demande=en-attente affiche les éléments data-state="pending"
-// et masque les data-state="idle". Un employé n'a qu'une demande en cours à la fois.
-const pendingRequest = new URLSearchParams(location.search).get("demande") === "en-attente";
-document.querySelectorAll("[data-state]").forEach((el) => {
-  el.hidden = (el.dataset.state === "pending") !== pendingRequest;
+// États d'écran pilotés par l'URL : data-if="etat=pause" n'est visible qu'avec ?etat=pause,
+// data-if="etat!=pause" seulement sans. Exemples : ?etat=pause (pointage), ?vue=historique (absences),
+// ?demande=en-attente (profil : une seule demande en cours à la fois), ?role=directeur.
+document.querySelectorAll("[data-if]").forEach((el) => {
+  const [, key, negate, value] = el.dataset.if.match(/^(\w+)(!?)=(.*)$/);
+  const matches = (params.get(key) ?? "") === value;
+  el.hidden = negate ? matches : !matches;
 });
+
+// Garde le rôle de l'URL quand on passe d'un écran à l'autre.
+if (ROLES[urlRole] && urlRole !== "employe") {
+  document.querySelectorAll("a[href]").forEach((a) => {
+    const href = a.getAttribute("href");
+    if (!/^[\w-]+\.html/.test(href) || href.includes("role=")) return;
+    const [path, hash] = href.split("#");
+    a.setAttribute("href", `${path}${path.includes("?") ? "&" : "?"}role=${urlRole}${hash ? "#" + hash : ""}`);
+  });
+}
 
 // Modales : data-open="id" ouvre, data-close ferme, Échap ferme. Une ancre (#id) ouvre la modale ou le menu au chargement.
 document.addEventListener("click", (e) => {

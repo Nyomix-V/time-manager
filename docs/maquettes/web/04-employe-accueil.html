@@ -22,14 +22,21 @@
       <div class="row">
         <section class="card clock-card w-2" aria-labelledby="clock-title">
           <h2 id="clock-title" class="muted small" style="font-weight:500">Pointage du jour</h2>
-          <span class="badge b-success">En poste · de retour de pause depuis 13:15</span>
-          <div class="clock-time" aria-label="Heure actuelle : 14 heures 32">14:32</div>
-          <p class="muted small">Travaillé : <strong style="color:var(--text)">4 h 50</strong> · Pause prise : <strong style="color:var(--text)">45 min</strong></p>
-          <div class="inline" style="gap:12px">
-            <a class="btn btn-secondary btn-xl" href="#"><i data-i="pause"></i>Commencer une pause</a>
+          <!-- État « en poste » -->
+          <span class="badge b-success" data-if="etat!=pause">En poste · de retour de pause depuis 13:15</span>
+          <div class="clock-time" data-if="etat!=pause" aria-label="Heure actuelle : 14 heures 32">14:32</div>
+          <p class="muted small" data-if="etat!=pause">Travaillé : <strong style="color:var(--text)">4 h 50</strong> · Pause prise : <strong style="color:var(--text)">45 min</strong></p>
+          <div class="inline" style="gap:12px" data-if="etat!=pause">
+            <a class="btn btn-pause btn-xl" href="04-employe-accueil.html?etat=pause"><i data-i="pause"></i>Commencer une pause</a>
             <a class="btn btn-primary btn-xl" href="#"><i data-i="logout"></i>Pointer mon départ</a>
           </div>
-          <p class="hint">Pendant une pause, le compteur d'heures s'arrête. Oubli de pointage ? Signalez-le depuis l'onglet Absences.</p>
+          <!-- État « en pause » : un seul bouton, pointer la fin de pause -->
+          <span class="badge b-info" data-if="etat=pause">En pause depuis 12:30</span>
+          <div class="clock-time" data-if="etat=pause" aria-label="Heure actuelle : 12 heures 42">12:42</div>
+          <span class="pause-timer" data-if="etat=pause" role="timer"><i data-i="coffee"></i>Pause en cours · 12 min sur 45 prévues</span>
+          <a class="btn btn-primary btn-xl" data-if="etat=pause" href="04-employe-accueil.html"><i data-i="play"></i>Pointer la fin de pause</a>
+          <p class="hint" data-if="etat!=pause">Pendant une pause, le compteur d'heures s'arrête. Oubli de pointage ? Signalez-le depuis l'onglet Absences.</p>
+          <p class="hint" data-if="etat=pause">Le compteur d'heures est arrêté. Pointez la fin de pause pour reprendre ; le départ se pointe ensuite.</p>
         </section>
 
         <div class="stack">
@@ -57,8 +64,8 @@
           <h2 id="today">Aujourd'hui</h2>
           <div class="timeline">
             <div class="tl-item"><span class="tl-dot done"></span><div><h3>Arrivée · 08:57</h3><p class="hint">À l'heure</p></div></div>
-            <div class="tl-item"><span class="tl-dot done"></span><div><h3>Début de pause · 12:30</h3><p class="hint">Pointé</p></div></div>
-            <div class="tl-item"><span class="tl-dot done"></span><div><h3>Fin de pause · 13:15</h3><p class="hint">45 min, conforme au planning</p></div></div>
+            <div class="tl-item" data-if="etat!=pause"><span class="tl-dot done"></span><div><h3>Pause · 12:30 → 13:15</h3><p class="hint">45 min, conforme au planning</p></div></div>
+            <div class="tl-item" data-if="etat=pause"><span class="tl-dot live"></span><div><h3>Pause en cours · depuis 12:30</h3><p class="hint">Fin de pause à pointer</p></div></div>
             <div class="tl-item"><span class="tl-dot pending"></span><div><h3 class="muted">Départ prévu · 16:45</h3><p class="hint">Calculé : arrivée prévue + 7 h + pause</p></div></div>
           </div>
         </section>

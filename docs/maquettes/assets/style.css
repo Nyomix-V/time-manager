@@ -248,7 +248,40 @@ body.mobile-page { min-height: 100vh; display: grid; place-items: center; paddin
 .m-content .kpi .value { font-size: 22px; }
 
 /* ---------- Modales et menus interactifs ---------- */
-.overlay[hidden], [data-state][hidden] { display: none !important; }
+.overlay[hidden], [data-if][hidden] { display: none !important; }
+
+/* ---------- Bouton de pause (bleu clair : distinct du départ, bleu plein) ---------- */
+.btn-pause { background: var(--primary-soft); border-color: var(--primary-light); color: var(--primary); }
+.btn-pause:hover { background: #DBE4FF; }
+.pause-timer { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: 14px; font-weight: 600; }
+.pause-timer .ic { width: 18px; height: 18px; }
+.tl-dot.live { background: var(--primary-light); box-shadow: 0 0 0 4px var(--primary-soft); }
+
+/* ---------- Planning (jours, horaires, temps de travail) ---------- */
+.planning { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.planning div { display: flex; flex-direction: column; gap: 2px; font-size: 12px; color: var(--muted); }
+.planning strong { font-size: 16px; color: var(--text); }
+.days.sm span { width: 34px; height: 30px; font-size: 12px; border-radius: 8px; }
+
+/* ---------- Mobile : onglets, panneaux bas, sélecteur de vue ---------- */
+.tab { position: relative; }
+.tab-badge { position: absolute; top: 0; left: calc(50% + 6px); min-width: 18px; padding: 1px 5px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 700; text-align: center; }
+.phone .overlay { place-items: end center; border-radius: 44px; overflow: hidden; }
+.phone .modal { width: 100%; gap: 14px; padding: 14px 20px 30px; border-radius: 24px 24px 0 0; box-shadow: none; }
+.phone .modal::before { content: ""; align-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--border); }
+.phone .modal .modal-head .grow h2 { font-size: 18px; }
+.segmented { display: flex; padding: 4px; border-radius: 12px; background: #E9ECF4; }
+.segmented a { flex: 1; padding: 9px 8px; border-radius: 9px; text-align: center; font-size: 14px; font-weight: 600; color: var(--muted); }
+.segmented a[aria-current="page"] { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(20, 26, 51, 0.12); }
+.phone .acc summary { grid-template-columns: 1fr auto 16px; padding: 12px 2px; }
+.phone .acc[open] summary, .phone .acc .acc-body { background: transparent; }
+.phone .acc .acc-body { padding: 0 2px 12px; }
+.phone .acc:first-of-type { border-top: none; }
+.req-card { display: flex; flex-direction: column; gap: 10px; }
+.req-card .actions { justify-content: stretch; }
+.req-card .actions .btn { flex: 1; padding: 9px 12px; }
+.chips-row { display: flex; gap: 8px; overflow: hidden; }
+.chips-row .chip { white-space: nowrap; padding: 7px 12px; }
 .btn[aria-disabled="true"], .list-item[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
 .overlay { z-index: 10; }
 .modal.lg { width: 620px; }

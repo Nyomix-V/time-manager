@@ -3,29 +3,65 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>M04 · Justifier une absence — Time Manager mobile</title>
+  <title>M04 · Absences — Time Manager mobile</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body class="mobile-page">
   <div class="phone">
     <div class="status-bar"><span>9:41</span><span>5G ▮▮▮</span></div>
-    <header class="m-header"><h1 class="grow">Justifier une absence</h1></header>
+    <header class="m-header"><h1 class="grow">Absences</h1></header>
     <main class="m-content">
-      <div class="field">
+      <!-- Bascule entre le formulaire et l'historique -->
+      <nav class="segmented" aria-label="Vue" data-if="vue!=historique">
+        <a href="m04-absence.html" aria-current="page">Nouvelle demande</a>
+        <a href="m04-absence.html?vue=historique">Historique</a>
+      </nav>
+      <nav class="segmented" aria-label="Vue" data-if="vue=historique">
+        <a href="m04-absence.html">Nouvelle demande</a>
+        <a href="m04-absence.html?vue=historique" aria-current="page">Historique</a>
+      </nav>
+
+      <!-- Vue « Nouvelle demande » -->
+      <div class="field" data-if="vue!=historique">
         <span class="label">Motif <span class="req">*</span></span>
         <div class="radio-group"><span class="chip on">Arrêt maladie</span><span class="chip">Rendez-vous médical</span><span class="chip">Congé</span><span class="chip">Oubli de pointage</span><span class="chip">Autre</span></div>
       </div>
-      <div class="grid-2" style="gap:12px">
+      <div class="grid-2" style="gap:12px" data-if="vue!=historique">
         <div class="field"><label>Du <span class="req">*</span></label><div class="input"><i data-i="calendar"></i>08/10</div></div>
         <div class="field"><label>Au <span class="req">*</span></label><div class="input"><i data-i="calendar"></i>10/10</div></div>
       </div>
-      <div class="field"><label>Commentaire</label><div class="input placeholder" style="min-height:70px;align-items:flex-start">Facultatif…</div></div>
-      <div class="field">
+      <div class="field" data-if="vue!=historique"><label>Commentaire</label><div class="input placeholder" style="min-height:56px;align-items:flex-start">Facultatif…</div></div>
+      <div class="field" data-if="vue!=historique">
         <span class="label">Justificatif</span>
-        <div class="dropzone" style="padding:16px"><i data-i="upload"></i><strong style="color:var(--text)">Prendre une photo ou choisir un fichier</strong>PDF, JPG ou PNG · 5 Mo max</div>
+        <div class="dropzone" style="padding:14px"><i data-i="upload"></i><strong style="color:var(--text)">Prendre une photo ou choisir un fichier</strong>PDF, JPG ou PNG · 5 Mo max</div>
       </div>
-      <a class="btn btn-primary btn-block" style="padding:15px;font-size:16px;margin-top:auto" href="#">Envoyer la demande</a>
+      <a class="btn btn-primary btn-block" style="padding:15px;font-size:16px;margin-top:auto" href="#" data-if="vue!=historique">Envoyer la demande</a>
+
+      <!-- Vue « Historique » : 12 derniers mois, réponse du manager au clic -->
+      <section class="card" style="gap:0;padding:6px 16px" data-if="vue=historique" aria-label="Mes demandes des 12 derniers mois">
+        <details class="acc">
+          <summary><span><strong>Arrêt maladie</strong><span class="hint" style="display:block">8 – 10 oct.</span></span><span class="badge b-warning">En attente</span><i data-i="chevron" class="chev"></i></summary>
+          <div class="acc-body"><p class="muted">Envoyée le 7 oct. · avis-arret.pdf</p><p>Votre manager n'a pas encore répondu.</p></div>
+        </details>
+        <details class="acc" open>
+          <summary><span><strong>Rendez-vous médical</strong><span class="hint" style="display:block">24 sept.</span></span><span class="badge b-success">Validée</span><i data-i="chevron" class="chev"></i></summary>
+          <div class="acc-body"><div class="reply"><div class="person"><div class="avatar sm">KB</div><div><strong>Karim Benali</strong><span>Validée le 20 sept.</span></div></div><p>« OK, bon courage pour le rendez-vous. »</p></div></div>
+        </details>
+        <details class="acc">
+          <summary><span><strong>Oubli de pointage</strong><span class="hint" style="display:block">12 sept.</span></span><span class="badge b-success">Validée</span><i data-i="chevron" class="chev"></i></summary>
+          <div class="acc-body"><div class="reply"><strong>Karim Benali · 12 sept.</strong><p>Départ corrigé à 16:50.</p></div></div>
+        </details>
+        <details class="acc">
+          <summary><span><strong>Congé</strong><span class="hint" style="display:block">18 – 22 août</span></span><span class="badge b-success">Validée</span><i data-i="chevron" class="chev"></i></summary>
+          <div class="acc-body"><div class="reply"><strong>Karim Benali · 1er août</strong><p>Validé, bonnes vacances !</p></div></div>
+        </details>
+        <details class="acc">
+          <summary><span><strong>Autre</strong><span class="hint" style="display:block">2 juil.</span></span><span class="badge b-danger">Refusée</span><i data-i="chevron" class="chev"></i></summary>
+          <div class="acc-body"><div class="reply"><strong>Karim Benali · 3 juil.</strong><p>« Merci de joindre la convocation. »</p></div></div>
+        </details>
+        <a class="see-all" href="#" style="margin:0 -16px"><i data-i="plus"></i>Tout voir · 4 demandes de plus d'un an</a>
+      </section>
     </main>
     <nav class="tabbar" data-role="employe" data-active="Absences"></nav>
   </div>

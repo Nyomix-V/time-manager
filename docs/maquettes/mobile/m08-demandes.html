@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M08 · Demandes à valider (manager) — Time Manager mobile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body class="mobile-page">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>5G ▮▮▮</span></div>
+    <header class="m-header"><h1 class="grow">Demandes</h1><span class="badge b-danger no-dot">5 en attente</span></header>
+    <main class="m-content" style="gap:10px">
+      <div class="chips-row" role="tablist" aria-label="Type de demande">
+        <span class="chip on" role="tab" aria-selected="true">Toutes 5</span><span class="chip" role="tab">Absences 3</span><span class="chip" role="tab">Modifs 1</span><span class="chip" role="tab">Suppr. 1</span>
+      </div>
+
+      <section class="card req-card" style="padding:14px">
+        <div class="person"><div class="avatar sm">LB</div><div class="grow"><strong>Lucas Bernard</strong><span>Arrêt maladie · 6 – 8 oct.</span></div><span class="badge b-info no-dot">Absence</span></div>
+        <a class="link inline tiny" href="#"><i data-i="file"></i>avis-arret.pdf</a>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-open="sheet-refus"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#" data-open="sheet-valider"><i data-i="checkmark"></i>Valider</a></div>
+      </section>
+
+      <section class="card req-card" style="padding:14px">
+        <div class="person"><div class="avatar sm">TP</div><div class="grow"><strong>Thomas Petit</strong><span>Oubli de pointage · 2 oct., 16:47</span></div><span class="badge b-info no-dot">Absence</span></div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-open="sheet-refus"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#" data-open="sheet-valider"><i data-i="checkmark"></i>Valider</a></div>
+      </section>
+
+      <section class="card req-card" style="padding:14px">
+        <div class="person"><div class="avatar sm">LM</div><div class="grow"><strong>Léa Martin</strong><span>Téléphone → +33 6 98 76 54 32</span></div><span class="badge b-warning no-dot">Modif.</span></div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-open="sheet-refus"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#" data-open="sheet-modif"><i data-i="checkmark"></i>Valider</a></div>
+      </section>
+
+      <section class="card req-card" style="padding:14px">
+        <div class="person"><div class="avatar sm">SR</div><div class="grow"><strong>Sarah Roux</strong><span>Suppression du compte</span></div><span class="badge b-danger no-dot">Suppr.</span></div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-open="sheet-refus"><i data-i="x"></i>Refuser</a><a class="btn btn-primary" href="#" data-open="sheet-suppr"><i data-i="checkmark"></i>Valider</a></div>
+      </section>
+
+      <a class="link" href="#" style="text-align:center">Voir 1 autre demande</a>
+    </main>
+    <nav class="tabbar" data-role="manager" data-active="Demandes"></nav>
+
+    <!-- Refus : motif obligatoire -->
+    <div class="overlay" id="sheet-refus" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="r-title">
+        <div class="modal-head">
+          <div class="grow"><h2 id="r-title">Refuser la demande</h2><p class="sub">Thomas Petit · Oubli de pointage du 2 oct.</p></div>
+          <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
+        </div>
+        <div class="field"><label for="m-motif">Motif du refus <span class="req">*</span></label><div class="input textarea focus" id="m-motif" style="min-height:84px">Le badge montre un départ à 16:00, merci de vérifier.</div><span class="hint">Obligatoire. Le salarié le verra dans son historique.</span></div>
+        <a class="btn btn-danger btn-block" style="padding:14px" href="#" data-close>Refuser la demande</a>
+      </div>
+    </div>
+
+    <!-- Validation : commentaire facultatif -->
+    <div class="overlay" id="sheet-valider" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="v-title">
+        <div class="modal-head">
+          <div class="grow"><h2 id="v-title">Valider la demande</h2><p class="sub">Lucas Bernard · Arrêt maladie, 6 – 8 oct.</p></div>
+          <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
+        </div>
+        <a class="link inline" href="#"><i data-i="file"></i>Voir le justificatif</a>
+        <div class="field"><label>Commentaire</label><div class="input placeholder" style="min-height:56px;align-items:flex-start">Facultatif…</div></div>
+        <a class="btn btn-primary btn-block" style="padding:14px" href="#" data-close>Valider la demande</a>
+      </div>
+    </div>
+
+    <!-- Validation d'une modification d'information -->
+    <div class="overlay" id="sheet-modif" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mo-title">
+        <div class="modal-head">
+          <div class="grow"><h2 id="mo-title">Valider la modification</h2><p class="sub">Léa Martin · demandée le 5 oct.</p></div>
+          <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
+        </div>
+        <div class="card" style="padding:14px;gap:6px"><span class="tiny muted">Téléphone</span><div class="diff"><span class="old">+33 6 12 34 56 78</span><span class="muted">→</span><span class="new">+33 6 98 76 54 32</span></div></div>
+        <a class="btn btn-primary btn-block" style="padding:14px" href="#" data-close>Valider et appliquer</a>
+      </div>
+    </div>
+
+    <!-- Validation d'une suppression de compte -->
+    <div class="overlay" id="sheet-suppr" hidden>
+      <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="su-title">
+        <div class="modal-head">
+          <div class="modal-icon"><i data-i="trash"></i></div>
+          <div class="grow"><h2 id="su-title">Supprimer le compte de Sarah Roux ?</h2><p class="sub">Motif : départ de l'entreprise.</p></div>
+        </div>
+        <div class="alert alert-danger" style="font-size:13px"><i data-i="alert"></i><span>Action <strong>irréversible</strong>. Les pointages sont conservés de façon anonyme.</span></div>
+        <div class="field"><label>Tapez <strong>SUPPRIMER</strong> pour confirmer</label><div class="input placeholder">SUPPRIMER</div></div>
+        <a class="btn btn-danger btn-block" style="padding:14px" href="#" data-close>Supprimer le compte</a>
+        <a class="btn btn-secondary btn-block" href="#" data-close>Annuler</a>
+      </div>
+    </div>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

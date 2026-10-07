@@ -11,28 +11,41 @@
   <div class="phone">
     <div class="status-bar"><span>9:41</span><span>5G ▮▮▮</span></div>
     <header class="m-header">
-      <div class="grow"><p class="sub" style="margin:0">Lundi 6 octobre</p><h1>Bonjour Léa</h1></div>
+      <div class="grow"><p class="sub" style="margin:0">Lundi 6 octobre</p><h1>Bonjour <span data-first-name>Léa</span></h1></div>
       <a class="icon-btn" href="#" aria-label="Notifications" style="width:40px;height:40px"><i data-i="bell"></i></a>
     </header>
     <main class="m-content">
       <section class="card clock-card" style="padding:24px;gap:14px">
-        <span class="badge b-success">En poste · retour de pause 13:15</span>
-        <div class="clock-time" style="font-size:52px">14:32</div>
-        <p class="muted small">Travaillé <strong style="color:var(--text)">4 h 50</strong> · Pause <strong style="color:var(--text)">45 min</strong></p>
-        <a class="btn btn-secondary btn-block" style="padding:14px;font-size:15px" href="#"><i data-i="pause"></i>Commencer une pause</a>
-        <a class="btn btn-primary btn-xl btn-block" href="#"><i data-i="logout"></i>Pointer mon départ</a>
+        <!-- État « en poste » -->
+        <span class="badge b-success" data-if="etat!=pause">En poste · retour de pause 13:15</span>
+        <div class="clock-time" style="font-size:52px" data-if="etat!=pause">14:32</div>
+        <p class="muted small" data-if="etat!=pause">Travaillé <strong style="color:var(--text)">4 h 50</strong> · Pause <strong style="color:var(--text)">45 min</strong></p>
+        <a class="btn btn-pause btn-block" style="padding:14px;font-size:15px" href="m02-accueil.html?etat=pause" data-if="etat!=pause"><i data-i="pause"></i>Commencer une pause</a>
+        <a class="btn btn-primary btn-xl btn-block" href="#" data-if="etat!=pause"><i data-i="logout"></i>Pointer mon départ</a>
+        <!-- État « en pause » : un seul bouton -->
+        <span class="badge b-info" data-if="etat=pause">En pause depuis 12:30</span>
+        <div class="clock-time" style="font-size:52px" data-if="etat=pause">12:42</div>
+        <span class="pause-timer" data-if="etat=pause" role="timer"><i data-i="coffee"></i>12 min sur 45 prévues</span>
+        <a class="btn btn-primary btn-xl btn-block" href="m02-accueil.html" data-if="etat=pause"><i data-i="play"></i>Pointer la fin de pause</a>
+        <p class="hint" data-if="etat=pause">Compteur d'heures arrêté pendant la pause.</p>
       </section>
 
-      <section class="card kpi">
-        <div class="between"><span class="label">Cette semaine</span><span class="small"><strong>4 h 50</strong> <span class="muted">/ 35 h</span></span></div>
-        <div class="progress"><div style="width:14%"></div></div>
+      <section class="card" style="gap:12px" aria-labelledby="plan">
+        <div class="between"><h2 id="plan">Mon planning</h2><span class="hint">lun → ven</span></div>
+        <div class="planning" style="gap:8px">
+          <div>Arrivée<strong>09:00</strong></div>
+          <div>Travail<strong>7 h</strong></div>
+          <div>Pause<strong>45 min</strong></div>
+          <div>Fin<strong>16:45</strong></div>
+        </div>
       </section>
 
       <section class="card">
         <h2>Aujourd'hui</h2>
         <div class="timeline">
           <div class="tl-item" style="padding-bottom:12px"><span class="tl-dot done"></span><div class="between grow"><h3>Arrivée</h3><span class="small">08:57</span></div></div>
-          <div class="tl-item" style="padding-bottom:12px"><span class="tl-dot done"></span><div class="between grow"><h3>Pause pointée</h3><span class="small">12:30 → 13:15</span></div></div>
+          <div class="tl-item" style="padding-bottom:12px" data-if="etat!=pause"><span class="tl-dot done"></span><div class="between grow"><h3>Pause</h3><span class="small">12:30 → 13:15</span></div></div>
+          <div class="tl-item" style="padding-bottom:12px" data-if="etat=pause"><span class="tl-dot live"></span><div class="between grow"><h3>Pause en cours</h3><span class="small">depuis 12:30</span></div></div>
           <div class="tl-item" style="padding-bottom:0"><span class="tl-dot pending"></span><div class="between grow"><h3 class="muted">Départ prévu</h3><span class="small muted">16:45</span></div></div>
         </div>
       </section>

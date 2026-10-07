@@ -38,28 +38,44 @@
             <div class="field"><span class="label">Branche</span><div class="input readonly" aria-readonly="true">Finance</div></div>
             <div class="field"><span class="label">Équipe</span><div class="input readonly" aria-readonly="true">Comptabilité</div></div>
           </div>
-          <div class="alert alert-warning" data-state="pending" role="status"><i data-i="clock"></i><span class="grow"><strong>Demande en attente</strong> · Téléphone → +33 6 98 76 54 32, envoyée le 5 oct. à Karim Benali. Vous pourrez en faire une nouvelle dès qu'elle sera acceptée ou refusée.</span></div>
+          <div class="alert alert-warning" data-if="demande=en-attente" role="status"><i data-i="clock"></i><span class="grow"><strong>Demande en attente</strong> · Téléphone → +33 6 98 76 54 32, envoyée le 5 oct. à Karim Benali. Vous pourrez en faire une nouvelle dès qu'elle sera acceptée ou refusée.</span></div>
           <div class="between">
             <div class="inline small"><span class="ms-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Compte Microsoft lié <span class="badge b-success">Actif</span></div>
-            <a class="btn btn-primary" href="#" data-open="modal-modif" data-state="idle"><i data-i="edit"></i>Demander une modification</a>
-            <span class="btn btn-primary" aria-disabled="true" data-state="pending" title="Une demande est déjà en attente"><i data-i="edit"></i>Demander une modification</span>
+            <a class="btn btn-primary" href="#" data-open="modal-modif" data-if="demande!=en-attente"><i data-i="edit"></i>Demander une modification</a>
+            <span class="btn btn-primary" aria-disabled="true" data-if="demande=en-attente" title="Une demande est déjà en attente"><i data-i="edit"></i>Demander une modification</span>
           </div>
         </section>
 
-        <section class="card" aria-labelledby="sec">
-          <div>
-            <h2 id="sec">Sécurité</h2>
-            <p class="sub">Changez votre mot de passe régulièrement.</p>
-          </div>
-          <div class="field"><label>Mot de passe actuel</label><div class="input"><i data-i="lock"></i>••••••••••</div></div>
-          <div class="field"><label>Nouveau mot de passe</label><div class="input focus"><i data-i="lock"></i>••••••••••••</div>
-            <div class="progress ok" aria-label="Robustesse : forte"><div style="width:80%"></div></div>
-            <span class="hint">Robustesse : forte</span>
-          </div>
-          <div class="field"><label>Confirmer le mot de passe</label><div class="input"><i data-i="lock"></i>••••••••••••</div></div>
-          <p class="hint">12 caractères minimum, avec une majuscule, un chiffre et un caractère spécial.</p>
-          <div class="actions"><a class="btn btn-secondary" href="#">Mettre à jour le mot de passe</a></div>
-        </section>
+        <div class="stack" style="gap:24px">
+          <section class="card" aria-labelledby="plan">
+            <div class="between">
+              <div><h2 id="plan">Mon planning</h2><p class="sub">Défini par votre manager.</p></div>
+              <div class="days sm" aria-label="Jours travaillés : lundi au vendredi"><span class="on">L</span><span class="on">M</span><span class="on">M</span><span class="on">J</span><span class="on">V</span><span>S</span><span>D</span></div>
+            </div>
+            <div class="planning">
+              <div>Arrivée<strong>09:00</strong></div>
+              <div>Travail / jour<strong>7 h 00</strong></div>
+              <div>Pause<strong>45 min</strong></div>
+              <div>Fin prévue<strong>16:45</strong></div>
+            </div>
+          </section>
+
+          <section class="card" aria-labelledby="sec">
+            <div>
+              <h2 id="sec">Sécurité</h2>
+              <p class="sub">12 caractères minimum, avec une majuscule, un chiffre et un caractère spécial.</p>
+            </div>
+            <div class="field"><label>Mot de passe actuel</label><div class="input"><i data-i="lock"></i>••••••••••</div></div>
+            <div class="grid-2">
+              <div class="field"><label>Nouveau mot de passe</label><div class="input focus"><i data-i="lock"></i>••••••••••••</div></div>
+              <div class="field"><label>Confirmer</label><div class="input"><i data-i="lock"></i>••••••••••••</div></div>
+            </div>
+            <div class="between">
+              <div class="inline grow" style="max-width:240px"><div class="progress ok grow" aria-label="Robustesse : forte"><div style="width:80%"></div></div><span class="hint">Forte</span></div>
+              <a class="btn btn-secondary" href="#">Mettre à jour le mot de passe</a>
+            </div>
+          </section>
+        </div>
       </div>
 
       <section class="card danger-zone" aria-labelledby="del">
@@ -67,10 +83,10 @@
           <div>
             <h2 id="del">Supprimer mon compte</h2>
             <p class="sub">La suppression est validée par votre manager. Vos données personnelles sont alors supprimées (RGPD) ; vos pointages sont conservés de façon anonyme pour les obligations légales.</p>
-            <p class="hint" data-state="pending" style="margin-top:6px">Indisponible : une demande est déjà en attente de réponse.</p>
+            <p class="hint" data-if="demande=en-attente" style="margin-top:6px">Indisponible : une demande est déjà en attente de réponse.</p>
           </div>
-          <a class="btn btn-danger" href="#" data-open="modal-suppr" data-state="idle"><i data-i="trash"></i>Demander la suppression</a>
-          <span class="btn btn-danger" aria-disabled="true" data-state="pending" title="Une demande est déjà en attente"><i data-i="trash"></i>Demander la suppression</span>
+          <a class="btn btn-danger" href="#" data-open="modal-suppr" data-if="demande!=en-attente"><i data-i="trash"></i>Demander la suppression</a>
+          <span class="btn btn-danger" aria-disabled="true" data-if="demande=en-attente" title="Une demande est déjà en attente"><i data-i="trash"></i>Demander la suppression</span>
         </div>
       </section>
     </main>
