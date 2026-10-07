@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>18 · Dashboard branche (directeur) — Time Manager</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" data-role="directeur" data-active="Dashboard branche"></aside>
+    <main class="main">
+      <header class="header">
+        <div class="titles">
+          <h1>Dashboard branche</h1>
+          <p class="sub">Finance · 64 personnes · 3 équipes · 2 managers</p>
+        </div>
+        <div class="tabs"><span>Semaine</span><span class="on">Mois</span><span>Personnalisée</span></div>
+        <div class="input" style="width:190px"><i data-i="calendar"></i>Septembre 2026</div>
+        <a class="btn btn-secondary" href="#"><i data-i="download"></i>Exporter</a>
+      </header>
+
+      <div class="alert alert-warning" role="alert">
+        <i data-i="alert"></i>
+        <span class="grow"><strong>Contrôle de gestion : ponctualité à 82 %</strong> — 2 salariés au-delà du seuil de 3 retards.</span>
+        <a class="link" href="07-manager-dashboard.html?role=directeur" style="color:var(--warning)">Voir l'équipe →</a>
+      </div>
+
+      <div class="grid-4">
+        <section class="card kpi"><span class="label"><i data-i="timer"></i>Moyenne hebdo (branche)</span><span class="value">34 h 50</span><span class="delta down">−25 min vs août</span></section>
+        <section class="card kpi"><span class="label"><i data-i="trend"></i>Taux de ponctualité</span><span class="value">91 %</span><span class="delta down">−3 pts vs août</span></section>
+        <section class="card kpi"><span class="label"><i data-i="coffee"></i>Pause moyenne / jour</span><span class="value">48 min</span><span class="delta muted">Prévu : 45 min</span></section>
+        <section class="card kpi"><span class="label"><i data-i="calendar"></i>Taux d'absence</span><span class="value">3,2 %</span><span class="delta up">−0,8 pt vs août</span></section>
+      </div>
+
+      <section class="card flush" aria-labelledby="teams">
+        <div class="card-head between"><h2 id="teams">Équipes et managers</h2><a class="link" href="12-manager-equipes.html?role=directeur">Gérer les équipes →</a></div>
+        <table>
+          <thead><tr><th>Équipe</th><th>Manager</th><th>Pointage du manager (auj.)</th><th class="num">Effectif</th><th class="num">Moy. hebdo</th><th style="width:190px">Ponctualité</th><th class="num">Alertes</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Comptabilité</strong></td><td><div class="person"><div class="avatar sm">KB</div><strong>Karim Benali</strong></div></td><td><span class="badge b-success">En poste · depuis 08:40</span></td><td class="num">22</td><td class="num">35 h 10</td><td><div class="inline"><div class="progress ok grow"><div style="width:96%"></div></div><span class="small">96 %</span></div></td><td class="num"><span class="badge b-neutral no-dot">0</span></td></tr>
+            <tr class="highlight"><td><strong>Contrôle de gestion</strong></td><td><div class="person"><div class="avatar sm">KB</div><strong>Karim Benali</strong></div></td><td><span class="badge b-success">En poste · depuis 08:40</span></td><td class="num">18</td><td class="num">33 h 50</td><td><div class="inline"><div class="progress bad grow"><div style="width:82%"></div></div><span class="small">82 %</span></div></td><td class="num"><span class="badge b-danger no-dot">2</span></td></tr>
+            <tr><td><strong>Trésorerie</strong></td><td><div class="person"><div class="avatar sm">NH</div><strong>Nadia Haddad</strong></div></td><td><span class="badge b-info">En pause · depuis 14:10</span></td><td class="num">24</td><td class="num">35 h 25</td><td><div class="inline"><div class="progress ok grow"><div style="width:94%"></div></div><span class="small">94 %</span></div></td><td class="num"><span class="badge b-neutral no-dot">0</span></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <div class="row">
+        <section class="card" aria-labelledby="c">
+          <div class="between"><h2 id="c">Moyenne hebdo par équipe</h2><div class="legend"><span><i style="background:var(--danger)"></i>35 h</span></div></div>
+          <div class="chart" style="height:120px" role="img" aria-label="Moyenne hebdomadaire : Comptabilité 35 h 10, Contrôle de gestion 33 h 50, Trésorerie 35 h 25">
+            <div class="target" style="bottom:70%"><span>35 h</span></div>
+            <div class="col"><div class="bar" style="height:70.3%"></div></div>
+            <div class="col"><div class="bar warn" style="height:67.7%"></div></div>
+            <div class="col"><div class="bar" style="height:70.8%"></div></div>
+          </div>
+          <div class="chart-x"><span>Comptabilité</span><span>Contrôle de gestion</span><span>Trésorerie</span></div>
+        </section>
+        <section class="card">
+          <h2>Droits du directeur</h2>
+          <div class="timeline">
+            <div class="tl-item" style="padding-bottom:10px"><span class="tl-dot done"></span><p class="small">Voit tous les salariés et managers de sa branche, et leurs pointages.</p></div>
+            <div class="tl-item" style="padding-bottom:10px"><span class="tl-dot done"></span><p class="small">Crée, modifie et supprime salariés et managers de sa branche.</p></div>
+            <div class="tl-item" style="padding-bottom:0"><span class="tl-dot done"></span><p class="small">Pointe ses propres heures, comme tout le monde (sauf l'admin).</p></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="../assets/app.js"></script>
+</body>
+</html>

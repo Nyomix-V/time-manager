@@ -9,12 +9,12 @@
 </head>
 <body>
   <div class="app">
-    <aside class="sidebar" data-role="employe" data-active="Accueil"></aside>
+    <aside class="sidebar" data-role="employe" data-active="Pointage"></aside>
     <main class="main">
       <header class="header">
         <div class="titles">
-          <h1>Bonjour Léa</h1>
-          <p class="sub">Lundi 6 octobre 2026 · Horaires de l'équipe : 09:00 – 17:30</p>
+          <h1>Bonjour <span data-first-name>Léa</span></h1>
+          <p class="sub">Lundi 6 octobre 2026 · Horaires prévus : 09:00 – 16:45 · Pause 45 min</p>
         </div>
         <a class="icon-btn" href="#" aria-label="Notifications"><i data-i="bell"></i></a>
       </header>
@@ -22,11 +22,14 @@
       <div class="row">
         <section class="card clock-card w-2" aria-labelledby="clock-title">
           <h2 id="clock-title" class="muted small" style="font-weight:500">Pointage du jour</h2>
-          <span class="badge b-success">En poste depuis 08:57</span>
+          <span class="badge b-success">En poste · de retour de pause depuis 13:15</span>
           <div class="clock-time" aria-label="Heure actuelle : 14 heures 32">14:32</div>
-          <p class="muted small">Temps travaillé aujourd'hui : <strong style="color:var(--text)">4 h 50</strong> (pause de 45 min déduite)</p>
-          <a class="btn btn-primary btn-xl" href="#"><i data-i="logout"></i>Pointer mon départ</a>
-          <p class="hint">Oubli de pointage ? Signalez-le à votre manager depuis l'onglet Absences.</p>
+          <p class="muted small">Travaillé : <strong style="color:var(--text)">4 h 50</strong> · Pause prise : <strong style="color:var(--text)">45 min</strong></p>
+          <div class="inline" style="gap:12px">
+            <a class="btn btn-secondary btn-xl" href="#"><i data-i="pause"></i>Commencer une pause</a>
+            <a class="btn btn-primary btn-xl" href="#"><i data-i="logout"></i>Pointer mon départ</a>
+          </div>
+          <p class="hint">Pendant une pause, le compteur d'heures s'arrête. Oubli de pointage ? Signalez-le depuis l'onglet Absences.</p>
         </section>
 
         <div class="stack">
@@ -54,8 +57,9 @@
           <h2 id="today">Aujourd'hui</h2>
           <div class="timeline">
             <div class="tl-item"><span class="tl-dot done"></span><div><h3>Arrivée · 08:57</h3><p class="hint">À l'heure</p></div></div>
-            <div class="tl-item"><span class="tl-dot done"></span><div><h3>Pause · 12:30 – 13:15</h3><p class="hint">45 min</p></div></div>
-            <div class="tl-item"><span class="tl-dot pending"></span><div><h3 class="muted">Départ prévu · 17:30</h3><p class="hint">Fin de journée théorique</p></div></div>
+            <div class="tl-item"><span class="tl-dot done"></span><div><h3>Début de pause · 12:30</h3><p class="hint">Pointé</p></div></div>
+            <div class="tl-item"><span class="tl-dot done"></span><div><h3>Fin de pause · 13:15</h3><p class="hint">45 min, conforme au planning</p></div></div>
+            <div class="tl-item"><span class="tl-dot pending"></span><div><h3 class="muted">Départ prévu · 16:45</h3><p class="hint">Calculé : arrivée prévue + 7 h + pause</p></div></div>
           </div>
         </section>
 

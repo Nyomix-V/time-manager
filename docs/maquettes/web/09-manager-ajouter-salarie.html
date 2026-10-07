@@ -29,15 +29,30 @@
             <div class="field"><label>Téléphone</label><div class="input"><i data-i="phone"></i>+33 6 45 78 12 90</div></div>
           </div>
 
-          <h2 style="margin-top:8px">Affectation</h2>
           <div class="grid-2">
-            <div class="field"><span class="label">Branche</span><div class="input placeholder"><i data-i="lock"></i>Finance (votre branche)</div></div>
+            <div class="field"><span class="label">Branche</span><div class="input readonly"><i data-i="lock"></i>Finance (votre branche)</div></div>
             <div class="field"><label>Équipe <span class="req">*</span></label><div class="input select">Comptabilité</div></div>
-            <div class="field"><label>Heure d'arrivée prévue</label><div class="input"><i data-i="clock"></i>09:00</div></div>
-            <div class="field"><label>Durée hebdomadaire du contrat</label><div class="input select">35 h</div></div>
           </div>
 
-          <div class="actions" style="margin-top:8px"><a class="btn btn-secondary" href="08-manager-salaries.html">Annuler</a><a class="btn btn-primary" href="#">Créer le salarié</a></div>
+          <h2 style="margin-top:4px">Planning</h2>
+          <div class="field">
+            <span class="label">Jours travaillés <span class="req">*</span></span>
+            <div class="days" role="group" aria-label="Jours travaillés">
+              <span class="on" aria-pressed="true">Lun</span><span class="on" aria-pressed="true">Mar</span><span class="on" aria-pressed="true">Mer</span><span class="on" aria-pressed="true">Jeu</span><span class="on" aria-pressed="true">Ven</span><span aria-pressed="false">Sam</span><span aria-pressed="false">Dim</span>
+            </div>
+          </div>
+          <div class="grid-3" style="gap:16px">
+            <div class="field"><label>Heure d'arrivée <span class="req">*</span></label><div class="input"><i data-i="clock"></i>09:00</div></div>
+            <div class="field"><label>Travail par jour <span class="req">*</span></label><div class="input select">7 h 00</div></div>
+            <div class="field"><label>Temps de pause <span class="req">*</span></label><div class="input select"><i data-i="coffee"></i>45 min</div></div>
+          </div>
+          <div class="computed" aria-live="polite">
+            <div>Fin de journée prévue<strong>16:45</strong></div>
+            <div>Heures par semaine<strong>35 h</strong></div>
+            <div class="grow small" style="align-self:center">Calculé automatiquement par le serveur, non saisi.</div>
+          </div>
+
+          <div class="actions"><a class="btn btn-secondary" href="08-manager-salaries.html">Annuler</a><a class="btn btn-primary" href="#">Créer le salarié</a></div>
         </form>
 
         <aside class="stack">
@@ -49,7 +64,7 @@
               <div class="tl-item"><span class="tl-dot pending"></span><div><h3>Première connexion</h3><p class="hint">Par email et mot de passe, ou avec Microsoft.</p></div></div>
             </div>
           </section>
-          <div class="alert alert-info"><i data-i="shield"></i><span>Seul un administrateur peut créer un manager ou affecter un salarié à une autre branche.</span></div>
+          <div class="alert alert-info"><i data-i="shield"></i><span>Un manager crée des employés dans sa branche. Le directeur peut aussi créer des managers ; l'administrateur, dans toutes les branches.</span></div>
         </aside>
       </div>
     </main>

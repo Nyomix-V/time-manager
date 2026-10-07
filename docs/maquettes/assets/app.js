@@ -29,6 +29,8 @@ const ICONS = {
   filter: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
   phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
   trend: '<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+  pause: '<rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/>',
+  coffee: '<path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/>',
   timer: '<line x1="10" y1="2" x2="14" y2="2"/><line x1="12" y1="14" x2="15" y2="11"/><circle cx="12" cy="14" r="8"/>',
   more: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
   shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
@@ -38,12 +40,13 @@ const ICONS = {
 const icon = (name) =>
   `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ""}</svg>`;
 
+// Tout le monde pointe, sauf l'admin.
 const ROLES = {
   employe: {
     user: ["LM", "Léa Martin", "Employée · Finance"],
     nav: [
-      ["Accueil", "home", "04-employe-accueil.html"],
-      ["Mes heures", "clock", "05-employe-mes-heures.html"],
+      ["Pointage", "clock", "04-employe-accueil.html"],
+      ["Mes heures", "timer", "05-employe-mes-heures.html"],
       ["Absences", "file", "06-employe-absences.html"],
       ["Mon profil", "user", "03-mon-profil.html"],
     ],
@@ -57,8 +60,8 @@ const ROLES = {
   manager: {
     user: ["KB", "Karim Benali", "Manager · Finance"],
     nav: [
-      ["Accueil", "home", "04-employe-accueil.html"],
-      ["Mes heures", "clock", "05-employe-mes-heures.html"],
+      ["Pointage", "clock", "04-employe-accueil.html"],
+      ["Mes heures", "timer", "05-employe-mes-heures.html"],
       ["Dashboard équipe", "chart", "07-manager-dashboard.html"],
       ["Salariés", "users", "08-manager-salaries.html"],
       ["Équipes", "building", "12-manager-equipes.html"],
@@ -68,6 +71,24 @@ const ROLES = {
     tabs: [
       ["Pointer", "clock", "m02-accueil.html"],
       ["Équipe", "chart", "m06-manager-equipe.html"],
+      ["Absences", "file", "m04-absence.html"],
+      ["Profil", "user", "m05-profil.html"],
+    ],
+  },
+  directeur: {
+    user: ["CF", "Claire Fontaine", "Directrice · Finance"],
+    nav: [
+      ["Pointage", "clock", "04-employe-accueil.html"],
+      ["Mes heures", "timer", "05-employe-mes-heures.html"],
+      ["Dashboard branche", "chart", "18-directeur-dashboard.html"],
+      ["Salariés", "users", "08-manager-salaries.html"],
+      ["Équipes", "building", "12-manager-equipes.html"],
+      ["Absences à valider", "check", "13-manager-absences.html", 5],
+      ["Mon profil", "user", "03-mon-profil.html"],
+    ],
+    tabs: [
+      ["Pointer", "clock", "m02-accueil.html"],
+      ["Branche", "chart", "m06-manager-equipe.html"],
       ["Absences", "file", "m04-absence.html"],
       ["Profil", "user", "m05-profil.html"],
     ],
@@ -84,16 +105,22 @@ const ROLES = {
   },
 };
 
+// Les écrans partagés (pointage, mes heures, salariés…) reçoivent le rôle dans l'URL : ?role=manager
+const urlRole = new URLSearchParams(location.search).get("role");
+const withRole = (href, key) => (key === "employe" ? href : `${href}?role=${key}`);
+
 document.querySelectorAll("aside.sidebar[data-role]").forEach((el) => {
-  const role = ROLES[el.dataset.role];
+  const key = ROLES[urlRole] && urlRole !== "admin" ? urlRole : el.dataset.role;
+  const role = ROLES[key];
   const items = role.nav
     .map(([label, ic, href, count]) => {
       const current = label === el.dataset.active ? ' aria-current="page"' : "";
       const badge = count ? `<span class="nav-count" aria-label="${count} en attente">${count}</span>` : "";
-      return `<a class="nav-item" href="${href}"${current}>${icon(ic)}${label}${badge}</a>`;
+      return `<a class="nav-item" href="${withRole(href, key)}"${current}>${icon(ic)}${label}${badge}</a>`;
     })
     .join("");
   const [ini, name, sub] = role.user;
+  document.querySelectorAll("[data-first-name]").forEach((n) => (n.textContent = name.split(" ")[0]));
   el.setAttribute("aria-label", "Navigation principale");
   el.innerHTML = `
     <div class="logo">${icon("clock")}Time Manager</div>
@@ -105,16 +132,17 @@ document.querySelectorAll("aside.sidebar[data-role]").forEach((el) => {
 
 document.querySelectorAll("nav.tabbar[data-role]").forEach((el) => {
   el.setAttribute("aria-label", "Navigation principale");
-  el.innerHTML = ROLES[el.dataset.role].tabs
+  const key = ROLES[urlRole]?.tabs ? urlRole : el.dataset.role;
+  el.innerHTML = ROLES[key].tabs
     .map(([label, ic, href]) => {
       const current = label === el.dataset.active ? ' aria-current="page"' : "";
-      return `<a class="tab" href="${href}"${current}>${icon(ic)}${label}</a>`;
+      return `<a class="tab" href="${withRole(href, key)}"${current}>${icon(ic)}${label}</a>`;
     })
     .join("");
 });
 
 document.querySelectorAll("[data-i]").forEach((el) => {
-  el.outerHTML = icon(el.dataset.i);
+  el.outerHTML = icon(el.dataset.i).replace('class="ic"', `class="ic ${el.className}"`);
 });
 
 // Écrans web : adapte le cadre 1440 × 900 à la taille de la fenêtre, sans le couper.

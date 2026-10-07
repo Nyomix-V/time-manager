@@ -1,6 +1,6 @@
 # Time Manager — Maquettes
 
-Maquettes cliquables de l'application Time Manager (projet T-DEV-700) : **17 écrans web** et **7 écrans mobiles**, construits à partir des user stories.
+Maquettes cliquables de l'application Time Manager (projet T-DEV-700) : **18 écrans web** et **7 écrans mobiles**, construits à partir des user stories.
 
 ## Lancer la maquette
 
@@ -34,13 +34,16 @@ Puis ouvrez <http://localhost:5500> dans le navigateur.
 
 | Rôle | Écrans |
 |---|---|
-| **Commun** | Connexion (email ou Microsoft), mot de passe oublié, mon profil |
-| **Employé** | Accueil et pointage, mes heures, justifier une absence |
-| **Manager** | Dashboard équipe (KPI, alertes de retards), salariés, ajout d'un salarié, fiche salarié, suppression protégée, équipes, absences à valider |
-| **Admin** | Dashboard global, utilisateurs, branches et équipes, pointages |
+| **Commun** | Connexion (email ou Microsoft), mot de passe oublié, mon profil (en lecture seule) |
+| **Employé** | Pointage (arrivée, pauses, départ), mes heures, justifier une absence |
+| **Manager** | Pointage, dashboard équipe (KPI, alertes de retards), salariés, ajout d'un salarié avec son planning, fiche salarié (modification et suppression), équipes, absences à valider |
+| **Directeur** | Pointage, dashboard de la branche (équipes, managers et leurs pointages), salariés et managers de la branche |
+| **Admin** | Dashboard global, utilisateurs, branches et équipes, pointages. L'admin ne pointe pas. |
 | **Mobile** | Connexion, pointage, mes heures, absence, profil, et côté manager : mon équipe, fiche salarié |
 
 Les écrans web font 1440 × 900 et s'adaptent à la taille de la fenêtre. Les écrans mobiles font 390 × 844.
+
+Les écrans partagés entre plusieurs rôles prennent le rôle dans l'adresse : `web/04-employe-accueil.html?role=manager` affiche le pointage avec le menu du manager (`employe`, `manager`, `directeur`).
 
 ## Organisation des fichiers
 

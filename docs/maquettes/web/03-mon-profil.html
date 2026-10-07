@@ -14,7 +14,7 @@
       <header class="header">
         <div class="titles">
           <h1>Mon profil</h1>
-          <p class="sub">Gérez vos informations personnelles et la sécurité de votre compte.</p>
+          <p class="sub">Consultez vos informations et gérez la sécurité de votre compte.</p>
         </div>
       </header>
 
@@ -22,25 +22,24 @@
         <section class="card" aria-labelledby="info">
           <div class="inline" style="gap:16px">
             <div class="avatar lg">LM</div>
-            <div>
+            <div class="grow">
               <h2 id="info">Informations personnelles</h2>
-              <p class="sub">Visibles par votre manager et les RH.</p>
+              <p class="sub">Gérées par votre manager, votre directeur ou un administrateur.</p>
             </div>
+            <span class="badge b-neutral"><i data-i="lock"></i>Lecture seule</span>
           </div>
           <div class="grid-2">
-            <div class="field"><label>Prénom</label><div class="input">Léa</div></div>
-            <div class="field"><label>Nom</label><div class="input">Martin</div></div>
+            <div class="field"><span class="label">Prénom</span><div class="input readonly" aria-readonly="true">Léa</div></div>
+            <div class="field"><span class="label">Nom</span><div class="input readonly" aria-readonly="true">Martin</div></div>
           </div>
-          <div class="field"><label>Adresse email</label><div class="input"><i data-i="mail"></i>lea.martin@trinity-market.com</div></div>
-          <div class="field"><label>Téléphone</label><div class="input"><i data-i="phone"></i>+33 6 12 34 56 78</div></div>
+          <div class="field"><span class="label">Adresse email</span><div class="input readonly" aria-readonly="true"><i data-i="mail"></i>lea.martin@trinity-market.com</div></div>
+          <div class="field"><span class="label">Téléphone</span><div class="input readonly" aria-readonly="true"><i data-i="phone"></i>+33 6 12 34 56 78</div></div>
           <div class="grid-2">
-            <div class="field"><span class="label">Branche</span><div class="input placeholder">Finance</div></div>
-            <div class="field"><span class="label">Équipe</span><div class="input placeholder">Comptabilité</div></div>
+            <div class="field"><span class="label">Branche</span><div class="input readonly" aria-readonly="true">Finance</div></div>
+            <div class="field"><span class="label">Équipe</span><div class="input readonly" aria-readonly="true">Comptabilité</div></div>
           </div>
-          <div class="between">
-            <div class="inline small"><span class="ms-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Compte Microsoft lié <span class="badge b-success">Actif</span></div>
-            <a class="btn btn-primary" href="#">Enregistrer</a>
-          </div>
+          <div class="alert alert-info"><i data-i="info"></i><span class="grow">Une information est erronée ? Seul votre manager (Karim Benali) peut la corriger.</span></div>
+          <div class="inline small"><span class="ms-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Compte Microsoft lié <span class="badge b-success">Actif</span></div>
         </section>
 
         <section class="card" aria-labelledby="sec">
