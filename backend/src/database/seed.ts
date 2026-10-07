@@ -3,46 +3,79 @@ import * as bcrypt from 'bcrypt';
 import { AppDataSource } from './data-source';
 import { User } from '../entities/user.entity';
 import { Branch } from '../entities/branch.entity';
-import { Role } from '../entities/enums';
+import { Team } from '../entities/team.entity';
+import { Clock } from '../entities/clock.entity';
+import { Role, UserStatus, ClockType } from '../entities/enums';
 
-// Seeds one admin + one manager + one employee, with a branch.
-// Run against a schema created by `synchronize` or by migrations.
+// Seeds a small but realistic org: branches, teams, users (all roles), and a
+// day of clocks (with a break) for the demo employee.
 async function main() {
-  // Dev convenience: let the seed create tables if they don't exist yet.
-  AppDataSource.setOptions({ synchronize: true });
+  AppDataSource.setOptions({ synchronize: true }); // dev: create tables if needed
   await AppDataSource.initialize();
 
   const branches = AppDataSource.getRepository(Branch);
+  const teams = AppDataSource.getRepository(Team);
   const users = AppDataSource.getRepository(User);
+  const clocks = AppDataSource.getRepository(Clock);
   const pw = await bcrypt.hash('password123', 10);
 
-  let branch = await branches.findOne({ where: { name: 'Paris HQ' } });
-  if (!branch) {
-    branch = await branches.save(
-      branches.create({
-        name: 'Paris HQ',
-        description: 'Seed branch',
-        expectedStartMin: 540, // 09:00
+  const upsertBranch = async (name: string, description: string) =>
+    (await branches.findOne({ where: { name } })) ??
+    (await branches.save(branches.create({ name, description })));
+
+  const finance = await upsertBranch('Finance', 'Comptabilité, gestion, trésorerie.');
+  const it = await upsertBranch('IT', 'Infrastructure et développement.');
+
+  const upsertUser = async (data: Partial<User>) =>
+    (await users.findOne({ where: { email: data.email } })) ??
+    (await users.save(
+      users.create({ ...data, passwordHash: pw, status: UserStatus.ACTIVE }),
+    ));
+
+  // Admin (no branch, does not clock), Directeur (Finance), Manager (Finance).
+  const admin = await upsertUser({
+    firstName: 'Alex', lastName: 'Admin', email: 'admin@trinity.io', role: Role.ADMIN,
+  });
+  const directeur = await upsertUser({
+    firstName: 'Diane', lastName: 'Directeur', email: 'directeur@trinity.io',
+    role: Role.DIRECTEUR, branchId: finance.id,
+  });
+  const manager = await upsertUser({
+    firstName: 'Karim', lastName: 'Benali', email: 'manager@trinity.io',
+    role: Role.MANAGER, branchId: finance.id,
+  });
+
+  // A team led by the manager.
+  const compta =
+    (await teams.findOne({ where: { name: 'Comptabilité' } })) ??
+    (await teams.save(
+      teams.create({
+        name: 'Comptabilité',
+        description: 'Tenue des comptes et clôtures mensuelles.',
+        branchId: finance.id,
+        managerId: manager.id,
       }),
-    );
-  }
+    ));
 
-  const seedUsers = [
-    { firstName: 'Alex', lastName: 'Admin', email: 'admin@trinity.io', role: Role.ADMIN, branchId: undefined },
-    { firstName: 'Mandy', lastName: 'Manager', email: 'manager@trinity.io', role: Role.MANAGER, branchId: branch.id },
-    { firstName: 'Emma', lastName: 'Employee', email: 'employee@trinity.io', role: Role.EMPLOYEE, branchId: branch.id },
-    { firstName: 'Diane', lastName: 'Directeur', email: 'directeur@trinity.io', role: Role.DIRECTEUR, branchId: undefined },
-  ];
+  const employee = await upsertUser({
+    firstName: 'Emma', lastName: 'Employee', email: 'employee@trinity.io',
+    role: Role.EMPLOYEE, branchId: finance.id, teamId: compta.id,
+  });
 
-  for (const u of seedUsers) {
-    const exists = await users.findOne({ where: { email: u.email } });
-    if (!exists) {
-      await users.save(users.create({ ...u, passwordHash: pw }));
-    }
+  // A day of clocks for the employee: arrive 08:57, break 12:30-13:15, leave 16:50.
+  const existingClocks = await clocks.count({ where: { userId: employee.id } });
+  if (existingClocks === 0) {
+    const day = '2026-10-06T';
+    await clocks.save([
+      clocks.create({ userId: employee.id, type: ClockType.IN, time: new Date(day + '08:57:00Z') }),
+      clocks.create({ userId: employee.id, type: ClockType.BREAK_START, time: new Date(day + '12:30:00Z') }),
+      clocks.create({ userId: employee.id, type: ClockType.BREAK_END, time: new Date(day + '13:15:00Z') }),
+      clocks.create({ userId: employee.id, type: ClockType.OUT, time: new Date(day + '16:50:00Z') }),
+    ]);
   }
 
   console.log('Seed done. Logins (all password123):');
-  console.log('  admin@trinity.io / manager@trinity.io / employee@trinity.io');
+  console.log('  admin@ / directeur@ / manager@ / employee@trinity.io');
   await AppDataSource.destroy();
 }
 

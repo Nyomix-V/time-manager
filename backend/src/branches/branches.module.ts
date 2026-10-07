@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { TypeOrmModule, InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 import { Branch } from '../entities/branch.entity';
 import { Role } from '../entities/enums';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth/guards';
@@ -21,27 +21,27 @@ import { JwtAuthGuard, RolesGuard, Roles } from '../auth/guards';
 class CreateBranchDto {
   @IsString() name: string;
   @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsInt() @Min(0) @Max(1439) expectedStartMin?: number;
 }
 class UpdateBranchDto {
   @IsOptional() @IsString() name?: string;
   @IsOptional() @IsString() description?: string;
-  @IsOptional() @IsInt() @Min(0) @Max(1439) expectedStartMin?: number;
 }
 
 @Injectable()
 export class BranchesService {
   constructor(
-    @InjectRepository(Branch)
-    private readonly branches: Repository<Branch>,
+    @InjectRepository(Branch) private readonly branches: Repository<Branch>,
   ) {}
 
   findAll() {
-    return this.branches.find({ relations: { users: true } });
+    return this.branches.find({ relations: { teams: true } });
   }
 
   async findOne(id: string) {
-    const branch = await this.branches.findOne({ where: { id } });
+    const branch = await this.branches.findOne({
+      where: { id },
+      relations: { teams: true },
+    });
     if (!branch) throw new NotFoundException('Branch not found');
     return branch;
   }
@@ -78,6 +78,7 @@ export class BranchesController {
     return this.branches.findOne(id);
   }
 
+  // Branches are a company-wide (technical) concern -> admin only.
   @Post()
   @Roles(Role.ADMIN)
   create(@Body() dto: CreateBranchDto) {
@@ -85,7 +86,7 @@ export class BranchesController {
   }
 
   @Put(':id')
-  @Roles(Role.ADMIN, Role.MANAGER)
+  @Roles(Role.ADMIN)
   update(@Param('id') id: string, @Body() dto: UpdateBranchDto) {
     return this.branches.update(id, dto);
   }

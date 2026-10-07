@@ -8,22 +8,25 @@ export interface WorkedDay {
   hours: number;
 }
 
-// Minimal structural type so the pure calc stays decoupled from the entity
-// (and from the DB) — easy to unit-test.
-export type ClockLike = { time: Date; status: 'IN' | 'OUT' };
+// Minimal structural type -> the pure calc stays decoupled from the entity/DB.
+export type ClockLike = {
+  time: Date;
+  type: 'IN' | 'OUT' | 'BREAK_START' | 'BREAK_END';
+};
+
+export interface WorkSummary {
+  totalHours: number;
+  breakMinutes: number;
+  perDay: WorkedDay[];
+}
 
 @Injectable()
 export class WorkingTimesService {
   constructor(
-    @InjectRepository(Clock)
-    private readonly clocks: Repository<Clock>,
+    @InjectRepository(Clock) private readonly clocks: Repository<Clock>,
   ) {}
 
-  async summary(
-    userId: string,
-    from?: Date,
-    to?: Date,
-  ): Promise<{ totalHours: number; perDay: WorkedDay[] }> {
+  async summary(userId: string, from?: Date, to?: Date): Promise<WorkSummary> {
     let timeFilter;
     if (from && to) timeFilter = Between(from, to);
     else if (from) timeFilter = MoreThanOrEqual(from);
@@ -36,31 +39,58 @@ export class WorkingTimesService {
     return WorkingTimesService.compute(rows);
   }
 
-  // Pure function: pair IN->OUT clocks, sum durations, group by day.
+  // Pure state machine over the ordered events:
+  //   IN -> working ; BREAK_START -> pause (counter stops) ;
+  //   BREAK_END -> working ; OUT -> stop.
+  // Worked time EXCLUDES breaks (mockup page 04: "le compteur d'heures s'arrête").
   // Business-critical ("a wrong hour count can lead to strikes") -> unit-tested.
-  static compute(clocks: ClockLike[]): {
-    totalHours: number;
-    perDay: WorkedDay[];
-  } {
-    const perDayMap = new Map<string, number>();
-    let openIn: Date | null = null;
+  static compute(clocks: ClockLike[]): WorkSummary {
+    const workedMsByDay = new Map<string, number>();
+    let breakMs = 0;
+    let workingSince: Date | null = null;
+    let breakSince: Date | null = null;
+
+    const addWorked = (end: Date) => {
+      if (!workingSince) return;
+      const day = workingSince.toISOString().slice(0, 10);
+      workedMsByDay.set(
+        day,
+        (workedMsByDay.get(day) ?? 0) + (end.getTime() - workingSince.getTime()),
+      );
+      workingSince = null;
+    };
 
     for (const c of clocks) {
-      if (c.status === 'IN') {
-        openIn = c.time;
-      } else if (c.status === 'OUT' && openIn) {
-        const ms = c.time.getTime() - openIn.getTime();
-        const day = openIn.toISOString().slice(0, 10);
-        perDayMap.set(day, (perDayMap.get(day) ?? 0) + ms / 3_600_000);
-        openIn = null;
+      switch (c.type) {
+        case 'IN':
+          if (!workingSince) workingSince = c.time;
+          break;
+        case 'BREAK_START':
+          addWorked(c.time);
+          breakSince = c.time;
+          break;
+        case 'BREAK_END':
+          if (breakSince) {
+            breakMs += c.time.getTime() - breakSince.getTime();
+            breakSince = null;
+          }
+          workingSince = c.time;
+          break;
+        case 'OUT':
+          addWorked(c.time);
+          if (breakSince) {
+            breakMs += c.time.getTime() - breakSince.getTime();
+            breakSince = null;
+          }
+          break;
       }
     }
 
-    const perDay = [...perDayMap.entries()]
-      .map(([date, hours]) => ({ date, hours: round2(hours) }))
+    const perDay = [...workedMsByDay.entries()]
+      .map(([date, ms]) => ({ date, hours: round2(ms / 3_600_000) }))
       .sort((a, b) => a.date.localeCompare(b.date));
     const totalHours = round2(perDay.reduce((s, d) => s + d.hours, 0));
-    return { totalHours, perDay };
+    return { totalHours, breakMinutes: Math.round(breakMs / 60_000), perDay };
   }
 }
 

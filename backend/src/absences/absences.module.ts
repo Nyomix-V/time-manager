@@ -12,36 +12,40 @@ import {
 } from '@nestjs/common';
 import { TypeOrmModule, InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { IsDateString, IsEnum, IsString } from 'class-validator';
+import { IsDateString, IsEnum, IsOptional, IsString } from 'class-validator';
 import { Absence } from '../entities/absence.entity';
-import { AbsenceStatus, Role } from '../entities/enums';
+import { AbsenceType, RequestStatus, Role } from '../entities/enums';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../auth/scope';
 
 class CreateAbsenceDto {
+  @IsEnum(AbsenceType) type: AbsenceType;
   @IsDateString() startDate: string;
   @IsDateString() endDate: string;
-  @IsString() reason: string;
+  @IsOptional() @IsString() comment?: string;
+  @IsOptional() @IsString() attachmentPath?: string;
 }
-class DecideAbsenceDto {
-  @IsEnum(AbsenceStatus) status: AbsenceStatus;
+class DecideDto {
+  @IsEnum(RequestStatus) status: RequestStatus; // APPROVED | REJECTED
+  @IsOptional() @IsString() decisionComment?: string;
 }
 
 @Injectable()
 export class AbsencesService {
   constructor(
-    @InjectRepository(Absence)
-    private readonly absences: Repository<Absence>,
+    @InjectRepository(Absence) private readonly absences: Repository<Absence>,
   ) {}
 
   create(userId: string, dto: CreateAbsenceDto) {
     return this.absences.save(
       this.absences.create({
         userId,
+        type: dto.type,
         startDate: new Date(dto.startDate),
         endDate: new Date(dto.endDate),
-        reason: dto.reason,
+        comment: dto.comment,
+        attachmentPath: dto.attachmentPath,
       }),
     );
   }
@@ -49,14 +53,25 @@ export class AbsencesService {
   listForUser(userId: string) {
     return this.absences.find({
       where: { userId },
-      order: { startDate: 'DESC' },
+      order: { createdAt: 'DESC' },
     });
   }
 
-  async decide(id: string, status: AbsenceStatus) {
+  listPending() {
+    return this.absences.find({
+      where: { status: RequestStatus.PENDING },
+      relations: { user: true },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  async decide(id: string, deciderId: string, dto: DecideDto) {
     const absence = await this.absences.findOne({ where: { id } });
     if (!absence) throw new NotFoundException('Absence not found');
-    absence.status = status;
+    absence.status = dto.status;
+    absence.decidedById = deciderId;
+    absence.decisionComment = dto.decisionComment;
+    absence.decidedAt = new Date();
     return this.absences.save(absence);
   }
 }
@@ -66,9 +81,16 @@ export class AbsencesService {
 export class AbsencesController {
   constructor(private readonly absences: AbsencesService) {}
 
+  // Employee files for themselves.
   @Post()
   create(@CurrentUser() actor: AuthUser, @Body() dto: CreateAbsenceDto) {
     return this.absences.create(actor.id, dto);
+  }
+
+  @Get('pending')
+  @Roles(Role.MANAGER, Role.DIRECTEUR, Role.ADMIN)
+  listPending() {
+    return this.absences.listPending();
   }
 
   @Get('user/:userId')
@@ -77,9 +99,13 @@ export class AbsencesController {
   }
 
   @Patch(':id/decision')
-  @Roles(Role.MANAGER, Role.ADMIN)
-  decide(@Param('id') id: string, @Body() dto: DecideAbsenceDto) {
-    return this.absences.decide(id, dto.status);
+  @Roles(Role.MANAGER, Role.DIRECTEUR, Role.ADMIN)
+  decide(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: DecideDto,
+  ) {
+    return this.absences.decide(id, actor.id, dto);
   }
 }
 

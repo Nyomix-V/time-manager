@@ -8,29 +8,70 @@ export interface AuthUser {
   branchId?: string | null;
 }
 
-// Authorization BY SCOPE, not just by role (the subtle part of the user stories).
+// Authorization BY SCOPE, not just by role (aligned with mockup page 18).
 //
-//   ADMIN    -> may act on any branch / any user
-//   MANAGER  -> may act only within their OWN branch
-//   EMPLOYEE -> may act only on themselves
+//   ADMIN     -> everything, every branch (technical). Does NOT clock in.
+//   DIRECTEUR -> full management within their OWN branch, managers included.
+//   MANAGER   -> manages employees within their OWN branch.
+//   EMPLOYEE  -> acts on themselves only.
 //
-// Call these in services, after the RolesGuard has checked the coarse role.
+// Called inside services, after the RolesGuard has checked the coarse role.
 
-export function assertCanManageBranch(actor: AuthUser, branchId: string | null) {
-  if (actor.role === Role.ADMIN) return;
-  if (actor.role === Role.MANAGER && actor.branchId && actor.branchId === branchId) {
+export function assertSameBranchOrGlobal(
+  actor: AuthUser,
+  branchId: string | null,
+) {
+  if (actor.role === Role.ADMIN) return; // global
+  if (
+    (actor.role === Role.DIRECTEUR || actor.role === Role.MANAGER) &&
+    actor.branchId &&
+    actor.branchId === branchId
+  ) {
     return;
   }
   throw new ForbiddenException('Out of your branch scope');
 }
 
-// Can the actor read/manage this target user?
-export function assertCanActOnUser(
+// Can the actor manage (create/update/delete) this target user?
+export function assertCanManageUser(
+  actor: AuthUser,
+  target: { id: string; branchId: string | null; role: Role },
+) {
+  if (actor.role === Role.ADMIN) return;
+
+  // Directeur: anyone in their branch, including managers (but not admins).
+  if (
+    actor.role === Role.DIRECTEUR &&
+    actor.branchId === target.branchId &&
+    target.role !== Role.ADMIN
+  ) {
+    return;
+  }
+
+  // Manager: only employees in their own branch.
+  if (
+    actor.role === Role.MANAGER &&
+    actor.branchId === target.branchId &&
+    target.role === Role.EMPLOYEE
+  ) {
+    return;
+  }
+
+  throw new ForbiddenException('You cannot manage this user');
+}
+
+// Read access: self, or someone in your branch (manager/directeur), or anyone (admin).
+export function assertCanReadUser(
   actor: AuthUser,
   target: { id: string; branchId: string | null },
 ) {
   if (actor.role === Role.ADMIN) return;
-  if (actor.role === Role.MANAGER && actor.branchId === target.branchId) return;
-  if (actor.id === target.id) return; // acting on self
-  throw new ForbiddenException('You cannot act on this user');
+  if (actor.id === target.id) return;
+  if (
+    (actor.role === Role.DIRECTEUR || actor.role === Role.MANAGER) &&
+    actor.branchId === target.branchId
+  ) {
+    return;
+  }
+  throw new ForbiddenException('You cannot view this user');
 }

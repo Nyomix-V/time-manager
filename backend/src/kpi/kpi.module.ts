@@ -7,16 +7,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { TypeOrmModule, InjectRepository } from '@nestjs/typeorm';
-import {
-  Repository,
-  Between,
-  MoreThanOrEqual,
-  LessThanOrEqual,
-} from 'typeorm';
+import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { User } from '../entities/user.entity';
-import { Branch } from '../entities/branch.entity';
 import { Clock } from '../entities/clock.entity';
-import { Role, hasGlobalScope } from '../entities/enums';
+import { Role } from '../entities/enums';
 import { WorkingTimesService } from '../workingtimes/workingtimes.service';
 import { WorkingTimesModule } from '../workingtimes/workingtimes.module';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth/guards';
@@ -25,32 +19,36 @@ import { AuthUser } from '../auth/scope';
 import { countLateDays } from './lateness';
 
 const WEEKLY_LEGAL_HOURS = 35; // legal weekly threshold (France ~ 35h)
-const LATE_ALERT_THRESHOLD = 3; // alert if more lateness than this per period
+const LATE_ALERT_THRESHOLD = 3; // mockup: "Seuil de 3 dépassé"
 
 interface KpiRow {
   userId: string;
   name: string;
+  branchId?: string | null;
+  teamId?: string | null;
   totalHours: number;
-  overtimeHours: number; // KPI 1
-  avgDailyHours: number; // KPI 2
-  lateDays: number; // KPI 3
-  lateAlert: boolean; // manager story: alert on too many retards
+  avgDailyHours: number;
+  overtimeHours: number;
+  breakMinutes: number;
+  lateDays: number;
+  lateAlert: boolean;
 }
 
 @Injectable()
 export class KpiService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
-    @InjectRepository(Branch) private readonly branches: Repository<Branch>,
     @InjectRepository(Clock) private readonly clocks: Repository<Clock>,
     private readonly wt: WorkingTimesService,
   ) {}
 
-  // Report scoped to the actor: manager -> own branch, admin -> everyone.
-  async report(actor: AuthUser, from?: Date, to?: Date) {
-    const users = hasGlobalScope(actor.role)
-    ? await this.users.find()
-    : await this.users.find({ where: { branchId: actor.branchId ?? undefined } });
+  // Per-user KPI rows, scoped: manager/directeur -> own branch, admin -> all.
+  // Optional teamId filter (for a team dashboard).
+  async report(actor: AuthUser, from?: Date, to?: Date, teamId?: string) {
+    const where: any = {};
+    if (actor.role !== Role.ADMIN) where.branchId = actor.branchId ?? undefined;
+    if (teamId) where.teamId = teamId;
+    const users = await this.users.find({ where });
 
     let timeFilter;
     if (from && to) timeFilter = Between(from, to);
@@ -59,32 +57,48 @@ export class KpiService {
 
     const rows: KpiRow[] = [];
     for (const u of users) {
-      const { totalHours, perDay } = await this.wt.summary(u.id, from, to);
-
+      const { totalHours, perDay, breakMinutes } = await this.wt.summary(u.id, from, to);
       const weeks = Math.max(1, perDay.length / 5);
       const overtime = Math.max(0, totalHours - WEEKLY_LEGAL_HOURS * weeks);
       const avgDaily = perDay.length > 0 ? totalHours / perDay.length : 0;
 
-      const branch = u.branchId
-        ? await this.branches.findOne({ where: { id: u.branchId } })
-        : null;
       const clocks = await this.clocks.find({
         where: timeFilter ? { userId: u.id, time: timeFilter } : { userId: u.id },
         order: { time: 'ASC' },
       });
-      const lateDays = countLateDays(clocks, branch?.expectedStartMin ?? 540);
+      const lateDays = countLateDays(clocks, u.expectedStartMin ?? 540);
 
       rows.push({
         userId: u.id,
         name: `${u.firstName} ${u.lastName}`,
+        branchId: u.branchId,
+        teamId: u.teamId,
         totalHours,
-        overtimeHours: round2(overtime),
         avgDailyHours: round2(avgDaily),
+        overtimeHours: round2(overtime),
+        breakMinutes,
         lateDays,
         lateAlert: lateDays > LATE_ALERT_THRESHOLD,
       });
     }
-    return { from, to, kpis: ['overtime', 'avgDailyHours', 'lateDays'], rows };
+
+    // Aggregate for a branch/team dashboard header (mockup pages 14/18).
+    const totalDays = rows.reduce((s, r) => s + (r.avgDailyHours > 0 ? 1 : 0), 0);
+    const summary = {
+      people: rows.length,
+      avgWeeklyHours: round2(
+        rows.reduce((s, r) => s + r.avgDailyHours * 5, 0) / Math.max(1, rows.length),
+      ),
+      punctualityPct:
+        rows.length === 0
+          ? 100
+          : Math.round(
+              (rows.filter((r) => !r.lateAlert).length / rows.length) * 100,
+            ),
+      alerts: rows.filter((r) => r.lateAlert).length,
+    };
+
+    return { from, to, teamId, summary, rows };
   }
 }
 
@@ -98,25 +112,24 @@ export class KpiController {
   constructor(private readonly kpi: KpiService) {}
 
   @Get('report')
-  @Roles(Role.MANAGER, Role.ADMIN, Role.DIRECTEUR)
+  @Roles(Role.MANAGER, Role.DIRECTEUR, Role.ADMIN)
   report(
     @CurrentUser() actor: AuthUser,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('teamId') teamId?: string,
   ) {
     return this.kpi.report(
       actor,
       from ? new Date(from) : undefined,
       to ? new Date(to) : undefined,
+      teamId,
     );
   }
 }
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([User, Branch, Clock]),
-    WorkingTimesModule,
-  ],
+  imports: [TypeOrmModule.forFeature([User, Clock]), WorkingTimesModule],
   providers: [KpiService],
   controllers: [KpiController],
 })
