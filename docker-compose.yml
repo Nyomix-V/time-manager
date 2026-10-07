@@ -85,12 +85,13 @@ services:
   mobile-builder:
     build:
       context: ./mobile
+      args:
+        # Baked into the APK at build time (a runtime env var would be ignored).
+        EXPO_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://10.0.2.2:8080/api}
     container_name: tm_mobile_builder
     profiles: ["mobile"]
     volumes:
       - ./mobile/artifacts:/output               # the .apk lands here
-    environment:
-      EXPO_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://10.0.2.2:8080/api}
 
 networks:
   backend_net:
