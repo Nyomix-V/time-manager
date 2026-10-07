@@ -1,7 +1,6 @@
 // Client HTTP de l'API Time Manager.
-// EXPO_PUBLIC_API_URL est figée dans l'APK au moment du build (voir Dockerfile).
-// 10.0.2.2 = la machine hôte vue depuis l'émulateur Android.
-export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:8080/api';
+import { API_URL, MOCK } from './config';
+import { mockRequest } from './mock';
 
 export class ApiError extends Error {
   constructor(
@@ -19,6 +18,14 @@ type RequestOptions = {
 };
 
 export async function apiRequest<T>(path: string, { method = 'GET', body, token }: RequestOptions = {}): Promise<T> {
+  if (MOCK) {
+    try {
+      return await mockRequest<T>(path, method, body);
+    } catch (e) {
+      throw new ApiError((e as { status?: number }).status ?? 500, e instanceof Error ? e.message : String(e));
+    }
+  }
+
   let response: Response;
   try {
     response = await fetch(`${API_URL}${path}`, {

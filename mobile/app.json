@@ -12,6 +12,13 @@
     },
     "android": {
       "package": "com.trinitymarket.timemanager",
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#3B5BDB",
         "foregroundImage": "./assets/android-icon-foreground.png",

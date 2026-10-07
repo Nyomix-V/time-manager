@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # =============================================================
 #  Mobile (Expo / React Native) — construit l'APK Android
 #  Étapes :
@@ -57,15 +58,21 @@ COPY . .
 # 10.0.2.2 = la machine hôte vue depuis l'émulateur Android.
 ARG EXPO_PUBLIC_API_URL=http://10.0.2.2:8080/api
 ENV EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL}
+# 1 = mode démo (faux comptes, aucun appel au backend).
+ARG EXPO_PUBLIC_MOCK=0
+ENV EXPO_PUBLIC_MOCK=${EXPO_PUBLIC_MOCK}
 ENV NODE_ENV=production
 
 # Génère le projet Android natif (dossier android/, jamais versionné).
 RUN npx expo prebuild --platform android --no-install
 
-# arm64-v8a = téléphones, x86_64 = émulateurs : on évite les 4 architectures pour gagner du temps.
+# arm64-v8a = téléphones, x86_64 = émulateurs. Chaque architecture ajoutée rallonge la compilation C++.
+ARG ANDROID_ARCHS=arm64-v8a,x86_64
 # Signé avec la clé de debug générée par prebuild : suffisant pour installer l'APK, pas pour le Play Store.
+# Le cache Gradle (/root/.gradle) est conservé entre deux builds : les dépendances ne sont téléchargées qu'une fois.
 WORKDIR /app/android
-RUN ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=arm64-v8a,x86_64
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew assembleRelease --no-daemon -PreactNativeArchitectures=${ANDROID_ARCHS}
 
 # ---- artifact ----
 FROM alpine:3.20 AS artifact
