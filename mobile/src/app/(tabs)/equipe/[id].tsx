@@ -5,6 +5,7 @@ import { Alert, Linking, Text, View } from 'react-native';
 import { api } from '@/api';
 import type { Planning, Team, User } from '@/api/types';
 import { useSession } from '@/auth/AuthProvider';
+import { AbsenceHistory } from '@/components/AbsenceHistory';
 import { BarChart, Kpi, Row, StateView } from '@/components/data';
 import { Chips, DateField, DaysPicker, TextField } from '@/components/forms';
 import { Sheet } from '@/components/Sheet';
@@ -38,13 +39,14 @@ export default function EmployeeScreen() {
   const [sheet, setSheet] = useState<'edit' | 'delete' | null>(null);
 
   const { data, error, loading, reload, refreshing, refresh } = useQuery(async () => {
-    const [user, planning, clocks, teams] = await Promise.all([
+    const [user, planning, clocks, teams, absences] = await Promise.all([
       api.users.get(id),
       api.plannings.get(id),
       api.clocks.list(id, addDays(startOfDay(new Date()), -35), new Date()),
       api.teams.list(),
+      api.absences.listForUser(id),
     ]);
-    return { user, planning, clocks, teams };
+    return { user, planning, clocks, teams, absences };
   }, [id]);
 
   if (!data) {
@@ -55,8 +57,9 @@ export default function EmployeeScreen() {
     );
   }
 
-  const { user, planning, clocks, teams } = data;
+  const { user, planning, clocks, teams, absences } = data;
   const manageable = canManage(session, user, teams);
+  const pendingAbsences = absences.filter((a) => a.status === 'PENDING').length;
   const team = teams.find((t) => t.id === user.teamId);
   const days = summarizeDays(clocks, planning);
   const last4Weeks = periodStats(days.filter((d) => d.date >= addDays(startOfDay(new Date()), -28)));
@@ -137,6 +140,14 @@ export default function EmployeeScreen() {
               }
             />
           ))}
+        </Card>
+
+        <Card style={{ gap: 0, paddingVertical: 6 }}>
+          <View style={[layout.between, { paddingTop: 8 }]}>
+            <Text style={text.h2}>Absences</Text>
+            {pendingAbsences > 0 && <Badge label={`${pendingAbsences} en attente`} tone="warning" />}
+          </View>
+          <AbsenceHistory absences={absences} empty="Aucune absence déclarée." />
         </Card>
       </Screen>
 

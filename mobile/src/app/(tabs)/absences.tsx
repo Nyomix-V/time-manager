@@ -4,13 +4,14 @@ import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '@/api';
-import type { Absence, AbsenceType } from '@/api/types';
+import type { AbsenceType } from '@/api/types';
 import { useSession } from '@/auth/AuthProvider';
+import { AbsenceHistory } from '@/components/AbsenceHistory';
 import { StateView } from '@/components/data';
 import { Chips, DateField, Segmented, TextField } from '@/components/forms';
-import { Badge, Banner, Button, Card, Screen, layout, text } from '@/components/ui';
-import { ABSENCE_LABELS, DECISION_LABELS } from '@/domain/labels';
-import { addDays, endOfDay, formatDate, formatDateRange, startOfDay } from '@/domain/time';
+import { Button, Card, Screen, layout, text } from '@/components/ui';
+import { ABSENCE_LABELS } from '@/domain/labels';
+import { endOfDay, startOfDay } from '@/domain/time';
 import { useQuery } from '@/hooks/useQuery';
 import { errorMessage } from '@/lib/api';
 import { colors, radius } from '@/theme/tokens';
@@ -144,79 +145,12 @@ function NewAbsence({ onSent }: { onSent: () => void }) {
 
 function History() {
   const session = useSession();
-  const [showAll, setShowAll] = useState(false);
-  const [open, setOpen] = useState<string | null>(null);
   const { data, error, loading, reload } = useQuery(() => api.absences.listForUser(session.userId), [session.userId]);
-
   if (!data) return <StateView loading={loading} error={error} onRetry={reload} />;
-
-  // Les 12 derniers mois par défaut, le reste avec « Tout voir ».
-  const oneYearAgo = addDays(new Date(), -365);
-  const recent = data.filter((a) => new Date(a.startDate) >= oneYearAgo);
-  const older = data.length - recent.length;
-  const shown = showAll ? data : recent;
-
-  if (!data.length) return <StateView loading={false} error={null} onRetry={reload} empty="Aucune demande pour l'instant." />;
-
   return (
     <Card style={{ gap: 0, paddingVertical: 6 }}>
-      <Text style={[text.small, { paddingVertical: 8 }]}>{showAll ? 'Toutes vos demandes' : '12 derniers mois'} · touchez une demande pour voir la réponse</Text>
-      {shown.map((absence) => (
-        <AbsenceItem
-          key={absence.id}
-          absence={absence}
-          open={open === absence.id}
-          onToggle={() => setOpen((id) => (id === absence.id ? null : absence.id))}
-        />
-      ))}
-      {older > 0 && !showAll && (
-        <Pressable onPress={() => setShowAll(true)} accessibilityRole="button" style={styles.seeAll}>
-          <Feather name="plus" size={16} color={colors.primary} />
-          <Text style={text.link}>
-            Tout voir · {older} demande{older > 1 ? 's' : ''} de plus d'un an
-          </Text>
-        </Pressable>
-      )}
+      <AbsenceHistory absences={data} empty="Aucune demande pour l'instant." />
     </Card>
-  );
-}
-
-function AbsenceItem({ absence, open, onToggle }: { absence: Absence; open: boolean; onToggle: () => void }) {
-  const decision = DECISION_LABELS[absence.status];
-  return (
-    <View style={styles.item}>
-      <Pressable
-        onPress={onToggle}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
-        accessibilityLabel={`${ABSENCE_LABELS[absence.type]}, ${decision.label}`}
-        style={styles.itemHead}
-      >
-        <View style={layout.grow}>
-          <Text style={text.h3}>{ABSENCE_LABELS[absence.type]}</Text>
-          <Text style={text.small}>{formatDateRange(new Date(absence.startDate), new Date(absence.endDate))}</Text>
-        </View>
-        <Badge label={decision.label} tone={decision.tone} />
-        <Feather name={open ? 'chevron-up' : 'chevron-down'} size={18} color={colors.muted} />
-      </Pressable>
-      {open && (
-        <View style={styles.itemBody}>
-          <Text style={text.small}>
-            Envoyée le {formatDate(new Date(absence.createdAt))}
-            {absence.attachmentName ? ` · ${absence.attachmentName}` : ''}
-          </Text>
-          {!!absence.reason && <Text style={text.body}>« {absence.reason} »</Text>}
-          {absence.status === 'PENDING' ? (
-            <Text style={text.muted}>Votre manager n'a pas encore répondu.</Text>
-          ) : (
-            <Banner tone={absence.status === 'APPROVED' ? 'success' : 'danger'} icon={absence.status === 'APPROVED' ? 'check' : 'x'}>
-              {absence.decidedByName ?? 'Votre manager'} · {formatDate(new Date(absence.decidedAt!))}
-              {absence.decisionComment ? `\n« ${absence.decisionComment} »` : ''}
-            </Banner>
-          )}
-        </View>
-      )}
-    </View>
   );
 }
 
@@ -232,8 +166,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   file: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: radius.md, backgroundColor: colors.primarySoft },
-  item: { borderTopWidth: 1, borderTopColor: colors.border },
-  itemHead: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 12, minHeight: 56 },
-  itemBody: { gap: 8, paddingBottom: 14 },
-  seeAll: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 14, borderTopWidth: 1, borderTopColor: colors.border },
 });
