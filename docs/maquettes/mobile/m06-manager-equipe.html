@@ -11,29 +11,46 @@
   <div class="phone">
     <div class="status-bar"><span>9:41</span><span>5G ▮▮▮</span></div>
     <header class="m-header">
-      <div class="grow"><p class="sub" style="margin:0">Branche Finance</p><h1>Mon équipe</h1></div>
+      <div class="grow">
+        <p class="sub" style="margin:0">Branche Finance</p>
+        <h1><span data-if="role!=directeur">Mon équipe</span><span data-if="role=directeur">Ma branche</span></h1>
+      </div>
       <div class="input select small" style="min-height:36px;padding:6px 10px">Mois</div>
     </header>
     <main class="m-content">
-      <div class="alert alert-warning" role="alert"><i data-i="alert"></i><span><strong>2 salariés</strong> ont dépassé 3 retards ce mois-ci.</span></div>
+      <div class="alert alert-warning" role="alert" style="font-size:13px"><i data-i="alert"></i><span><strong>2 salariés</strong> ont dépassé 3 retards ce mois-ci.</span></div>
 
       <div class="grid-2" style="gap:12px">
         <section class="card kpi" style="padding:14px"><span class="label">Moy. hebdo</span><span class="value">34 h 50</span><span class="delta down">−25 min</span></section>
         <section class="card kpi" style="padding:14px"><span class="label">Ponctualité</span><span class="value">91 %</span><span class="delta down">−3 pts</span></section>
       </div>
 
-      <section class="card" style="gap:4px">
-        <div class="between"><h2>Aujourd'hui</h2><span class="hint">18 présents sur 24</span></div>
+      <section class="card" style="gap:6px">
+        <div class="between">
+          <h2>Maintenant</h2>
+          <details class="dropdown" id="filtre">
+            <summary class="input select small" style="min-height:32px;padding:5px 10px">Mes équipes</summary>
+            <div class="menu" role="listbox" style="left:auto;right:0;width:220px">
+              <a href="#" role="option">Toutes les équipes <span class="hint">612</span></a>
+              <a href="#" role="option" aria-selected="true">Mes équipes <span class="hint">24</span></a>
+              <a href="#" role="option">Sans équipe <span class="hint">7</span></a>
+              <span class="group-label">Mes équipes</span>
+              <a href="#" role="option">Comptabilité <span class="hint">9</span></a>
+              <a href="#" role="option">Contrôle de gestion <span class="hint">7</span></a>
+              <a href="#" role="option">Trésorerie <span class="hint">8</span></a>
+            </div>
+          </details>
+        </div>
+        <span class="live">Actualisé à 14:32 · auto chaque minute</span>
         <div>
-          <a class="list-item" href="m07-manager-salarie.html"><div class="avatar sm">TP</div><div class="grow"><strong>Thomas Petit</strong><div class="hint">5 retards ce mois</div></div><span class="badge b-warning">09:18</span></a>
-          <a class="list-item" href="#"><div class="avatar sm">HG</div><div class="grow"><strong>Hugo Garcia</strong><div class="hint">4 retards ce mois</div></div><span class="badge b-success">09:04</span></a>
-          <a class="list-item" href="#"><div class="avatar sm">LM</div><div class="grow"><strong>Léa Martin</strong><div class="hint">Comptabilité</div></div><span class="badge b-success">08:57</span></a>
-          <a class="list-item" href="#"><div class="avatar sm">LB</div><div class="grow"><strong>Lucas Bernard</strong><div class="hint">Trésorerie</div></div><span class="badge b-info">Absent</span></a>
-          <a class="list-item" href="#"><div class="avatar sm">CL</div><div class="grow"><strong>Chloé Laurent</strong><div class="hint">Trésorerie</div></div><span class="badge b-neutral">—</span></a>
+          <a class="list-item" href="m07-manager-salarie.html"><div class="avatar sm">TP</div><div class="grow"><strong>Thomas Petit</strong><div class="hint">5 retards ce mois</div></div><span class="badge b-warning">Retard · 09:18</span></a>
+          <a class="list-item" href="m07-manager-salarie.html"><div class="avatar sm">IM</div><div class="grow"><strong>Inès Moreau</strong><div class="hint">Comptabilité</div></div><span class="badge b-info">En pause · 14:20</span></a>
+          <a class="list-item" href="m07-manager-salarie.html"><div class="avatar sm">LM</div><div class="grow"><strong>Léa Martin</strong><div class="hint">Comptabilité</div></div><span class="badge b-success">En poste · 08:57</span></a>
+          <a class="list-item" href="m07-manager-salarie.html"><div class="avatar sm">LB</div><div class="grow"><strong>Lucas Bernard</strong><div class="hint">Trésorerie</div></div><span class="badge b-neutral">Absent · justifié</span></a>
         </div>
       </section>
     </main>
-    <nav class="tabbar" data-role="manager" data-active="Équipe"></nav>
+    <nav class="tabbar" data-role="manager" data-active="Équipe|Branche"></nav>
   </div>
   <script src="../assets/app.js"></script>
 </body>

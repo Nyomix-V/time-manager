@@ -1,6 +1,6 @@
 # Time Manager — Maquettes
 
-Maquettes cliquables de l'application Time Manager (projet T-DEV-700) : **18 écrans web** et **7 écrans mobiles**, construits à partir des user stories.
+Maquettes cliquables de l'application Time Manager (projet T-DEV-700) : **18 écrans web** et **8 écrans mobiles**, construits à partir des user stories.
 
 ## Lancer la maquette
 
@@ -39,11 +39,20 @@ Puis ouvrez <http://localhost:5500> dans le navigateur.
 | **Manager** | Pointage, dashboard équipe (KPI, alertes de retards), salariés, ajout d'un salarié avec son planning, fiche salarié (modification et suppression), équipes (modale au clic), demandes à valider : absences, modifications d'informations, suppressions de compte (modales de validation et de refus) |
 | **Directeur** | Pointage, dashboard de la branche (équipes, managers et leurs pointages), salariés et managers de la branche |
 | **Admin** | Dashboard global, utilisateurs, branches et équipes, pointages. L'admin ne pointe pas. |
-| **Mobile** | Connexion, pointage, mes heures, absence, profil, et côté manager : mon équipe, fiche salarié |
+| **Mobile** | Connexion, pointage (avec pause et planning du jour), mes heures, absences (nouvelle demande / historique), profil (demandes au manager). Manager et directeur : mon équipe ou ma branche, fiche salarié, demandes à valider |
 
 Les écrans web font 1440 × 900 et s'adaptent à la taille de la fenêtre. Les écrans mobiles font 390 × 844.
 
 Les écrans partagés entre plusieurs rôles prennent le rôle dans l'adresse : `web/04-employe-accueil.html?role=manager` affiche le pointage avec le menu du manager (`employe`, `manager`, `directeur`).
+
+D'autres paramètres affichent un état précis de l'écran :
+
+| Paramètre | Effet |
+|---|---|
+| `?etat=pause` | Pointage pendant une pause (un seul bouton : pointer la fin de pause) |
+| `?vue=historique` | Absences mobile : historique au lieu du formulaire |
+| `?demande=en-attente` | Profil : une demande est en cours, les nouvelles demandes sont bloquées |
+| `#id` (ex. `#modal-refus`, `#sheet-refus`, `#filtre`) | Ouvre directement une modale, un panneau ou un menu |
 
 ## Organisation des fichiers
 

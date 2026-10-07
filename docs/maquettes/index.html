@@ -27,7 +27,7 @@
   <div class="wrap">
     <header>
       <div class="logo" style="color:var(--text);padding:0 0 8px"><i data-i="clock"></i>Time Manager · Maquettes</div>
-      <p class="sub">18 écrans web (1440 × 900), 4 rôles (employé, manager, directeur, admin) et 7 écrans mobiles (390 × 844). Cliquez sur un écran pour l'ouvrir en taille réelle.</p>
+      <p class="sub">18 écrans web (1440 × 900), 4 rôles (employé, manager, directeur, admin) et 8 écrans mobiles (390 × 844), avec leurs différents états. Cliquez sur un écran pour l'ouvrir en taille réelle.</p>
     </header>
     <div id="groups"></div>
   </div>
@@ -35,11 +35,12 @@
   <script>
     const GROUPS = [
       ["Web · Commun", "web", [["01-connexion", "Connexion"], ["02-mot-de-passe-oublie", "Mot de passe oublié"], ["03-mon-profil", "Mon profil (lecture seule)"], ["03-mon-profil", "Mon profil · demande en attente", "?demande=en-attente"], ["03-mon-profil", "Demande de modification", "#modal-modif"], ["03-mon-profil", "Demande de suppression", "#modal-suppr"]]],
-      ["Web · Employé", "web", [["04-employe-accueil", "Accueil et pointage"], ["05-employe-mes-heures", "Mes heures"], ["06-employe-absences", "Absences"]]],
+      ["Web · Employé", "web", [["04-employe-accueil", "Pointage · en poste"], ["04-employe-accueil", "Pointage · en pause", "?etat=pause"], ["05-employe-mes-heures", "Mes heures"], ["06-employe-absences", "Absences"]]],
       ["Web · Manager", "web", [["04-employe-accueil", "Pointage du manager", "?role=manager"], ["07-manager-dashboard", "Dashboard équipe"], ["08-manager-salaries", "Salariés (toute l'entreprise)"], ["08-manager-salaries", "Salariés · filtre d'équipes ouvert", "#filtre"], ["09-manager-ajouter-salarie", "Ajouter un salarié"], ["10-manager-fiche-salarie", "Fiche salarié"], ["11-manager-suppression", "Confirmation de suppression"], ["12-manager-equipes", "Équipes"], ["12-manager-equipes", "Équipes · modale d'une équipe", "#modal-team"], ["13-manager-absences", "Demandes à valider"], ["13-manager-absences", "Demandes · modale de refus", "#modal-refus"], ["13-manager-absences", "Demandes · modale de validation", "#modal-valider"], ["13-manager-absences", "Demandes · modification de profil", "#modal-modif"]]],
       ["Web · Directeur", "web", [["18-directeur-dashboard", "Dashboard branche"], ["04-employe-accueil", "Pointage du directeur", "?role=directeur"], ["08-manager-salaries", "Salariés de la branche", "?role=directeur"]]],
       ["Web · Admin (ne pointe pas)", "web", [["14-admin-dashboard", "Dashboard global"], ["15-admin-utilisateurs", "Utilisateurs"], ["16-admin-branches", "Branches et équipes"], ["17-admin-pointages", "Pointages"]]],
-      ["Mobile", "mobile", [["m01-connexion", "Connexion"], ["m02-accueil", "Pointage"], ["m03-mes-heures", "Mes heures"], ["m04-absence", "Justifier une absence"], ["m05-profil", "Profil"], ["m06-manager-equipe", "Manager · Mon équipe"], ["m07-manager-salarie", "Manager · Fiche salarié"]]],
+      ["Mobile · Employé", "mobile", [["m01-connexion", "Connexion"], ["m02-accueil", "Pointage · en poste"], ["m02-accueil", "Pointage · en pause", "?etat=pause"], ["m03-mes-heures", "Mes heures"], ["m04-absence", "Absences · nouvelle demande"], ["m04-absence", "Absences · historique", "?vue=historique"], ["m05-profil", "Profil"], ["m05-profil", "Profil · demande de modification", "#sheet-modif"], ["m05-profil", "Profil · demande en attente", "?demande=en-attente"]]],
+      ["Mobile · Manager et directeur", "mobile", [["m02-accueil", "Pointage du manager", "?role=manager"], ["m06-manager-equipe", "Mon équipe"], ["m06-manager-equipe", "Mon équipe · filtre ouvert", "#filtre"], ["m07-manager-salarie", "Fiche salarié"], ["m08-demandes", "Demandes à valider"], ["m08-demandes", "Demandes · refus avec motif", "#sheet-refus"], ["m08-demandes", "Demandes · validation", "#sheet-valider"], ["m06-manager-equipe", "Directeur · Ma branche", "?role=directeur"]]],
     ];
     document.getElementById("groups").innerHTML = GROUPS.map(([title, dir, screens]) => `
       <section class="group ${dir === "web" ? "web" : "mob"}" style="margin-bottom:36px">

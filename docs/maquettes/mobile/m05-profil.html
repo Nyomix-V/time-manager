@@ -10,30 +10,62 @@
 <body class="mobile-page">
   <div class="phone">
     <div class="status-bar"><span>9:41</span><span>5G ▮▮▮</span></div>
-    <header class="m-header"><h1 class="grow">Mon profil</h1></header>
+    <header class="m-header"><h1 class="grow">Mon profil</h1><span class="badge b-neutral"><i data-i="lock"></i>Lecture seule</span></header>
     <main class="m-content" style="gap:10px">
       <section class="card" style="flex-direction:row;align-items:center;gap:14px">
         <div class="avatar lg">LM</div>
-        <div><h2 style="font-size:18px">Léa Martin</h2><p class="sub" style="margin:0">Employée · Finance · Comptabilité</p></div>
+        <div class="grow">
+          <h2 style="font-size:18px">Léa Martin</h2>
+          <p class="sub" style="margin:0">Employée · Finance · Comptabilité</p>
+          <span class="inline tiny muted" style="margin-top:4px"><span class="ms-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Compte Microsoft lié</span>
+        </div>
       </section>
 
       <section class="card" style="gap:0">
         <div class="list-item"><i data-i="mail"></i><div class="grow"><div class="hint">Email</div>lea.martin@trinity-market.com</div></div>
         <div class="list-item"><i data-i="phone"></i><div class="grow"><div class="hint">Téléphone</div>+33 6 12 34 56 78</div></div>
-        <div class="list-item"><span class="ms-logo"><i></i><i></i><i></i><i></i></span><div class="grow">Compte Microsoft</div><span class="badge b-success">Lié</span></div>
+        <div class="list-item"><i data-i="calendar"></i><div class="grow"><div class="hint">Planning · lun → ven</div>09:00 → 16:45 · <strong>7 h / jour</strong> · pause 45 min</div></div>
       </section>
 
-      <div class="alert alert-warning" role="status" style="font-size:13px"><i data-i="clock"></i><span><strong>Demande en attente</strong> (téléphone, 5 oct.). Nouvelle demande possible après la réponse.</span></div>
+      <div class="alert alert-warning" role="status" style="font-size:13px" data-if="demande=en-attente"><i data-i="clock"></i><span><strong>Demande en attente</strong> (téléphone, 5 oct.). Nouvelle demande possible après la réponse.</span></div>
 
       <section class="card" style="gap:0">
-        <span class="list-item" aria-disabled="true"><i data-i="edit"></i><span class="grow">Demander une modification<span class="hint" style="display:block">Indisponible : demande en attente</span></span><i data-i="lock"></i></span>
+        <a class="list-item" href="#" data-open="sheet-modif" data-if="demande!=en-attente"><i data-i="edit"></i><span class="grow">Demander une modification</span><i data-i="chevron"></i></a>
+        <span class="list-item" aria-disabled="true" data-if="demande=en-attente"><i data-i="edit"></i><span class="grow">Demander une modification<span class="hint" style="display:block">Indisponible : demande en attente</span></span><i data-i="lock"></i></span>
         <a class="list-item" href="#"><i data-i="lock"></i><span class="grow">Changer mon mot de passe</span><i data-i="chevron"></i></a>
         <a class="list-item" href="m01-connexion.html"><i data-i="logout"></i><span class="grow">Se déconnecter</span><i data-i="chevron"></i></a>
       </section>
 
-      <span class="btn btn-ghost" style="color:var(--danger)" aria-disabled="true"><i data-i="trash"></i>Demander la suppression de mon compte</span>
+      <a class="btn btn-ghost" style="color:var(--danger)" href="#" data-open="sheet-suppr" data-if="demande!=en-attente"><i data-i="trash"></i>Demander la suppression de mon compte</a>
+      <span class="btn btn-ghost" style="color:var(--danger)" aria-disabled="true" data-if="demande=en-attente"><i data-i="trash"></i>Demander la suppression de mon compte</span>
     </main>
     <nav class="tabbar" data-role="employe" data-active="Profil"></nav>
+
+    <div class="overlay" id="sheet-modif" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sm-title">
+        <div class="modal-head">
+          <div class="grow"><h2 id="sm-title">Demander une modification</h2><p class="sub">Une seule demande à la fois : votre manager la valide ou la refuse.</p></div>
+          <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
+        </div>
+        <div class="field"><label>Information <span class="req">*</span></label><div class="input select">Téléphone</div></div>
+        <div class="field"><span class="label">Valeur actuelle</span><div class="input readonly">+33 6 12 34 56 78</div></div>
+        <div class="field"><label>Nouvelle valeur <span class="req">*</span></label><div class="input focus">+33 6 98 76 54 32</div></div>
+        <a class="btn btn-primary btn-block" style="padding:14px" href="m05-profil.html?demande=en-attente">Envoyer la demande</a>
+      </div>
+    </div>
+
+    <div class="overlay" id="sheet-suppr" hidden>
+      <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="ss-title">
+        <div class="modal-head">
+          <div class="modal-icon"><i data-i="trash"></i></div>
+          <div class="grow"><h2 id="ss-title">Supprimer mon compte</h2><p class="sub">Votre manager recevra la demande. En attendant sa réponse, vous ne pourrez pas faire d'autre demande.</p></div>
+        </div>
+        <div class="field"><label>Motif</label><div class="input select">Départ de l'entreprise</div></div>
+        <div class="alert alert-danger" style="font-size:13px"><i data-i="alert"></i><span>Une fois validée, la suppression est <strong>irréversible</strong>.</span></div>
+        <a class="btn btn-danger btn-block" style="padding:14px" href="m05-profil.html?demande=en-attente">Envoyer la demande</a>
+        <a class="btn btn-secondary btn-block" href="#" data-close>Annuler</a>
+      </div>
+    </div>
   </div>
   <script src="../assets/app.js"></script>
 </body>
