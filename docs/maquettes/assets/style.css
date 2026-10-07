@@ -248,7 +248,8 @@ body.mobile-page { min-height: 100vh; display: grid; place-items: center; paddin
 .m-content .kpi .value { font-size: 22px; }
 
 /* ---------- Modales et menus interactifs ---------- */
-.overlay[hidden] { display: none; }
+.overlay[hidden], [data-state][hidden] { display: none !important; }
+.btn[aria-disabled="true"], .list-item[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
 .overlay { z-index: 10; }
 .modal.lg { width: 620px; }
 .modal-head { display: flex; align-items: flex-start; gap: 14px; }

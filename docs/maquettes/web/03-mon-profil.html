@@ -38,10 +38,11 @@
             <div class="field"><span class="label">Branche</span><div class="input readonly" aria-readonly="true">Finance</div></div>
             <div class="field"><span class="label">Équipe</span><div class="input readonly" aria-readonly="true">Comptabilité</div></div>
           </div>
-          <div class="alert alert-warning"><i data-i="clock"></i><span class="grow"><strong>Demande en attente</strong> · Téléphone → +33 6 98 76 54 32, envoyée le 5 oct. à Karim Benali.</span></div>
+          <div class="alert alert-warning" data-state="pending" role="status"><i data-i="clock"></i><span class="grow"><strong>Demande en attente</strong> · Téléphone → +33 6 98 76 54 32, envoyée le 5 oct. à Karim Benali. Vous pourrez en faire une nouvelle dès qu'elle sera acceptée ou refusée.</span></div>
           <div class="between">
             <div class="inline small"><span class="ms-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Compte Microsoft lié <span class="badge b-success">Actif</span></div>
-            <a class="btn btn-primary" href="#" data-open="modal-modif"><i data-i="edit"></i>Demander une modification</a>
+            <a class="btn btn-primary" href="#" data-open="modal-modif" data-state="idle"><i data-i="edit"></i>Demander une modification</a>
+            <span class="btn btn-primary" aria-disabled="true" data-state="pending" title="Une demande est déjà en attente"><i data-i="edit"></i>Demander une modification</span>
           </div>
         </section>
 
@@ -66,8 +67,10 @@
           <div>
             <h2 id="del">Supprimer mon compte</h2>
             <p class="sub">La suppression est validée par votre manager. Vos données personnelles sont alors supprimées (RGPD) ; vos pointages sont conservés de façon anonyme pour les obligations légales.</p>
+            <p class="hint" data-state="pending" style="margin-top:6px">Indisponible : une demande est déjà en attente de réponse.</p>
           </div>
-          <a class="btn btn-danger" href="#" data-open="modal-suppr"><i data-i="trash"></i>Demander la suppression</a>
+          <a class="btn btn-danger" href="#" data-open="modal-suppr" data-state="idle"><i data-i="trash"></i>Demander la suppression</a>
+          <span class="btn btn-danger" aria-disabled="true" data-state="pending" title="Une demande est déjà en attente"><i data-i="trash"></i>Demander la suppression</span>
         </div>
       </section>
     </main>
@@ -76,7 +79,7 @@
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mm-title">
         <div class="modal-head">
           <div class="modal-icon info"><i data-i="edit"></i></div>
-          <div class="grow"><h2 id="mm-title">Demander une modification</h2><p class="sub">Votre manager reçoit la demande et la valide ou la refuse.</p></div>
+          <div class="grow"><h2 id="mm-title">Demander une modification</h2><p class="sub">Votre manager la valide ou la refuse. Une seule demande à la fois : vous pourrez en faire une autre après sa réponse.</p></div>
           <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
         </div>
         <div class="field"><label>Information à modifier <span class="req">*</span></label><div class="input select">Téléphone</div></div>
@@ -93,7 +96,7 @@
       <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="ms-title">
         <div class="modal-head">
           <div class="modal-icon"><i data-i="trash"></i></div>
-          <div class="grow"><h2 id="ms-title">Demander la suppression de mon compte</h2><p class="sub">Karim Benali (votre manager) recevra la demande. Vous pourrez l'annuler tant qu'elle n'est pas traitée.</p></div>
+          <div class="grow"><h2 id="ms-title">Demander la suppression de mon compte</h2><p class="sub">Karim Benali (votre manager) recevra la demande. En attendant sa réponse, vous ne pourrez pas faire d'autre demande.</p></div>
         </div>
         <div class="field"><label>Motif</label><div class="input select">Départ de l'entreprise</div></div>
         <div class="alert alert-danger"><i data-i="alert"></i><span>Une fois validée, la suppression est <strong>irréversible</strong>.</span></div>

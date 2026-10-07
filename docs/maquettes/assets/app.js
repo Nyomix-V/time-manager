@@ -145,6 +145,13 @@ document.querySelectorAll("[data-i]").forEach((el) => {
   el.outerHTML = icon(el.dataset.i).replace('class="ic"', `class="ic ${el.className}"`);
 });
 
+// État "demande en attente" (profil) : ?demande=en-attente affiche les éléments data-state="pending"
+// et masque les data-state="idle". Un employé n'a qu'une demande en cours à la fois.
+const pendingRequest = new URLSearchParams(location.search).get("demande") === "en-attente";
+document.querySelectorAll("[data-state]").forEach((el) => {
+  el.hidden = (el.dataset.state === "pending") !== pendingRequest;
+});
+
 // Modales : data-open="id" ouvre, data-close ferme, Échap ferme. Une ancre (#id) ouvre la modale ou le menu au chargement.
 document.addEventListener("click", (e) => {
   const opener = e.target.closest("[data-open]");
