@@ -6,6 +6,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { Role } from '../entities/enums';
@@ -16,28 +17,35 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../auth/scope';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard) // every route needs a valid JWT
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
   constructor(private readonly users: UsersService) {}
 
   @Get()
-  @Roles(Role.MANAGER, Role.ADMIN, Role.DIRECTEUR)
-  findAll(@CurrentUser() actor: AuthUser) {
-    return this.users.findAll(actor);
+  @Roles(Role.MANAGER, Role.DIRECTEUR, Role.ADMIN)
+  findAll(
+    @CurrentUser() actor: AuthUser,
+    @Query('branchId') branchId?: string,
+    @Query('teamId') teamId?: string,
+    @Query('role') role?: Role,
+  ) {
+    return this.users.findAll(actor, { branchId, teamId, role });
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.users.findOne(id);
+  findOne(@CurrentUser() actor: AuthUser, @Param('id') id: string) {
+    return this.users.getScoped(actor, id);
   }
 
+  // Managers/directeurs/admins register users (directeur & admin can create managers).
   @Post()
-  @Roles(Role.MANAGER, Role.ADMIN) // users are registered by managers/admins
+  @Roles(Role.MANAGER, Role.DIRECTEUR, Role.ADMIN)
   create(@CurrentUser() actor: AuthUser, @Body() dto: CreateUserDto) {
     return this.users.create(actor, dto);
   }
 
   @Put(':id')
+  @Roles(Role.MANAGER, Role.DIRECTEUR, Role.ADMIN)
   update(
     @CurrentUser() actor: AuthUser,
     @Param('id') id: string,
@@ -47,7 +55,7 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @Roles(Role.MANAGER, Role.ADMIN)
+  @Roles(Role.MANAGER, Role.DIRECTEUR, Role.ADMIN)
   remove(@CurrentUser() actor: AuthUser, @Param('id') id: string) {
     return this.users.remove(actor, id);
   }

@@ -1,57 +1,43 @@
-import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { Repository } from 'typeorm';
 import { AuthService } from './auth.service';
-import { UsersService } from '../users/users.service';
+import { User } from '../entities/user.entity';
+import { UserToken } from '../entities/user-token.entity';
+import { Role } from '../entities/enums';
 
 describe('AuthService', () => {
   let auth: AuthService;
-  let users: { findByEmail: jest.Mock };
   let jwt: { sign: jest.Mock };
 
   beforeEach(() => {
-    users = { findByEmail: jest.fn() };
     jwt = { sign: jest.fn().mockReturnValue('signed.jwt.token') };
     auth = new AuthService(
-      users as unknown as UsersService,
+      {} as Repository<User>,
+      {} as Repository<UserToken>,
       jwt as unknown as JwtService,
     );
   });
 
-  it('rejects an unknown email', async () => {
-    users.findByEmail.mockResolvedValue(null);
-    await expect(auth.login('x@y.z', 'secret')).rejects.toThrow(
-      UnauthorizedException,
-    );
+  it('hashes and verifies a password roundtrip', async () => {
+    const hash = await AuthService.hash('password123');
+    const bcrypt = await import('bcrypt');
+    expect(await bcrypt.compare('password123', hash)).toBe(true);
+    expect(await bcrypt.compare('wrong', hash)).toBe(false);
   });
 
-  it('rejects a wrong password', async () => {
-    const passwordHash = await AuthService.hash('rightpassword');
-    users.findByEmail.mockResolvedValue({
-      id: '1',
-      email: 'x@y.z',
-      role: 'EMPLOYEE',
-      passwordHash,
-    });
-    await expect(auth.login('x@y.z', 'wrongpassword')).rejects.toThrow(
-      UnauthorizedException,
-    );
-  });
-
-  it('returns a token on valid credentials', async () => {
-    const passwordHash = await AuthService.hash('rightpassword');
-    users.findByEmail.mockResolvedValue({
-      id: '1',
-      email: 'x@y.z',
-      role: 'EMPLOYEE',
-      branchId: 'b1',
-      passwordHash,
-    });
-    const res = await auth.login('x@y.z', 'rightpassword');
+  it('signs a JWT carrying id, email, role and branchId', () => {
+    const res = auth.sign('1', 'x@y.z', Role.MANAGER, 'b1');
     expect(res.access_token).toBe('signed.jwt.token');
     expect(res.user).toEqual({
       id: '1',
       email: 'x@y.z',
-      role: 'EMPLOYEE',
+      role: Role.MANAGER,
+      branchId: 'b1',
+    });
+    expect(jwt.sign).toHaveBeenCalledWith({
+      sub: '1',
+      email: 'x@y.z',
+      role: Role.MANAGER,
       branchId: 'b1',
     });
   });

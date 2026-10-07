@@ -27,6 +27,8 @@ services:
       context: ./backend
       target: dev                                # multistage: dev target
     container_name: tm_backend
+    ports: 
+      - "3000:3000"
     environment:
       DATABASE_URL: mysql://${MYSQL_USER:-timemanager}:${MYSQL_PASSWORD:-devpassword}@database:3306/${MYSQL_DATABASE:-timemanager}
       DB_SYNC: "true"                            # dev: TypeORM auto-creates tables

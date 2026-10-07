@@ -10,8 +10,9 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
 } from 'typeorm';
-import { Role } from './enums';
+import { Role, UserStatus } from './enums';
 import { Branch } from './branch.entity';
+import { Team } from './team.entity';
 import { Clock } from './clock.entity';
 import { Absence } from './absence.entity';
 
@@ -37,11 +38,15 @@ export class User {
   passwordHash?: string;
 
   @Column({ nullable: true, unique: true })
-  msOid?: string;
+  msOid?: string; // Microsoft object id (SSO)
 
   @Column({ type: 'enum', enum: Role, default: Role.EMPLOYEE })
   role: Role;
 
+  @Column({ type: 'enum', enum: UserStatus, default: UserStatus.INVITED })
+  status: UserStatus;
+
+  // --- Organisation ---
   @Index()
   @Column({ type: 'uuid', nullable: true })
   branchId?: string;
@@ -50,9 +55,31 @@ export class User {
   @JoinColumn({ name: 'branchId' })
   branch?: Branch;
 
-  // @DeleteDateColumn => soft delete: rows are hidden, not destroyed.
+  @Index()
+  @Column({ type: 'uuid', nullable: true })
+  teamId?: string; // null = "sans équipe"
+
+  @ManyToOne(() => Team, (team) => team.members, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'teamId' })
+  team?: Team;
+
+  // --- Planning (set by the manager; mockup pages 03 & 09) ---
+  // Worked weekdays as ISO numbers joined by commas, e.g. "1,2,3,4,5" (Mon–Fri).
+  @Column({ default: '1,2,3,4,5' })
+  workingDays: string;
+
+  @Column({ default: 540 }) // expected arrival, minutes from midnight (540 = 09:00)
+  expectedStartMin: number;
+
+  @Column({ default: 420 }) // worked minutes per day (420 = 7h)
+  workMinutesPerDay: number;
+
+  @Column({ default: 45 }) // break minutes per day
+  breakMinutes: number;
+
+  // --- Lifecycle ---
   @DeleteDateColumn()
-  deletedAt?: Date;
+  deletedAt?: Date; // soft delete (RGPD: row hidden, clocks kept anonymised)
 
   @CreateDateColumn()
   createdAt: Date;
