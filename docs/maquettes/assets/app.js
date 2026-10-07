@@ -1,4 +1,4 @@
-// Génère la barre latérale (web), la barre d'onglets (mobile) et les icônes.
+﻿// Génère la barre latérale (web), la barre d'onglets (mobile) et les icônes.
 // Icônes : tracés Lucide (licence ISC).
 const ICONS = {
   home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
@@ -65,7 +65,7 @@ const ROLES = {
       ["Dashboard équipe", "chart", "07-manager-dashboard.html"],
       ["Salariés", "users", "08-manager-salaries.html"],
       ["Équipes", "building", "12-manager-equipes.html"],
-      ["Absences à valider", "check", "13-manager-absences.html", 3],
+      ["Demandes à valider", "check", "13-manager-absences.html", 5],
       ["Mon profil", "user", "03-mon-profil.html"],
     ],
     tabs: [
@@ -83,7 +83,7 @@ const ROLES = {
       ["Dashboard branche", "chart", "18-directeur-dashboard.html"],
       ["Salariés", "users", "08-manager-salaries.html"],
       ["Équipes", "building", "12-manager-equipes.html"],
-      ["Absences à valider", "check", "13-manager-absences.html", 5],
+      ["Demandes à valider", "check", "13-manager-absences.html", 5],
       ["Mon profil", "user", "03-mon-profil.html"],
     ],
     tabs: [
@@ -144,6 +144,28 @@ document.querySelectorAll("nav.tabbar[data-role]").forEach((el) => {
 document.querySelectorAll("[data-i]").forEach((el) => {
   el.outerHTML = icon(el.dataset.i).replace('class="ic"', `class="ic ${el.className}"`);
 });
+
+// Modales : data-open="id" ouvre, data-close ferme, Échap ferme. Une ancre (#id) ouvre la modale ou le menu au chargement.
+document.addEventListener("click", (e) => {
+  const opener = e.target.closest("[data-open]");
+  if (opener) {
+    e.preventDefault();
+    document.getElementById(opener.dataset.open).hidden = false;
+  }
+  const closer = e.target.closest("[data-close]");
+  if (closer || e.target.classList.contains("overlay")) {
+    e.preventDefault();
+    (closer || e.target).closest(".overlay").hidden = true;
+  }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") document.querySelectorAll(".overlay[id]").forEach((o) => (o.hidden = true));
+});
+if (location.hash) {
+  const target = document.querySelector(location.hash);
+  if (target?.tagName === "DETAILS") target.open = true;
+  else if (target) target.hidden = false;
+}
 
 // Écrans web : adapte le cadre 1440 × 900 à la taille de la fenêtre, sans le couper.
 const webScreen = document.querySelector("body > .app");

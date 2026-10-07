@@ -38,8 +38,11 @@
             <div class="field"><span class="label">Branche</span><div class="input readonly" aria-readonly="true">Finance</div></div>
             <div class="field"><span class="label">Équipe</span><div class="input readonly" aria-readonly="true">Comptabilité</div></div>
           </div>
-          <div class="alert alert-info"><i data-i="info"></i><span class="grow">Une information est erronée ? Seul votre manager (Karim Benali) peut la corriger.</span></div>
-          <div class="inline small"><span class="ms-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Compte Microsoft lié <span class="badge b-success">Actif</span></div>
+          <div class="alert alert-warning"><i data-i="clock"></i><span class="grow"><strong>Demande en attente</strong> · Téléphone → +33 6 98 76 54 32, envoyée le 5 oct. à Karim Benali.</span></div>
+          <div class="between">
+            <div class="inline small"><span class="ms-logo" aria-hidden="true"><i></i><i></i><i></i><i></i></span>Compte Microsoft lié <span class="badge b-success">Actif</span></div>
+            <a class="btn btn-primary" href="#" data-open="modal-modif"><i data-i="edit"></i>Demander une modification</a>
+          </div>
         </section>
 
         <section class="card" aria-labelledby="sec">
@@ -62,12 +65,41 @@
         <div class="between">
           <div>
             <h2 id="del">Supprimer mon compte</h2>
-            <p class="sub">Vos données personnelles seront supprimées (RGPD). Vos pointages sont conservés de façon anonyme pour les obligations légales.</p>
+            <p class="sub">La suppression est validée par votre manager. Vos données personnelles sont alors supprimées (RGPD) ; vos pointages sont conservés de façon anonyme pour les obligations légales.</p>
           </div>
-          <a class="btn btn-danger" href="#"><i data-i="trash"></i>Supprimer mon compte</a>
+          <a class="btn btn-danger" href="#" data-open="modal-suppr"><i data-i="trash"></i>Demander la suppression</a>
         </div>
       </section>
     </main>
+
+    <div class="overlay" id="modal-modif" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mm-title">
+        <div class="modal-head">
+          <div class="modal-icon info"><i data-i="edit"></i></div>
+          <div class="grow"><h2 id="mm-title">Demander une modification</h2><p class="sub">Votre manager reçoit la demande et la valide ou la refuse.</p></div>
+          <a class="icon-btn close" href="#" data-close aria-label="Fermer"><i data-i="x"></i></a>
+        </div>
+        <div class="field"><label>Information à modifier <span class="req">*</span></label><div class="input select">Téléphone</div></div>
+        <div class="grid-2">
+          <div class="field"><span class="label">Valeur actuelle</span><div class="input readonly">+33 6 12 34 56 78</div></div>
+          <div class="field"><label>Nouvelle valeur <span class="req">*</span></label><div class="input focus">+33 6 98 76 54 32</div></div>
+        </div>
+        <div class="field"><label>Commentaire</label><div class="input textarea placeholder" style="min-height:70px">Facultatif…</div></div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-close>Annuler</a><a class="btn btn-primary" href="#" data-close>Envoyer la demande</a></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="modal-suppr" hidden>
+      <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="ms-title">
+        <div class="modal-head">
+          <div class="modal-icon"><i data-i="trash"></i></div>
+          <div class="grow"><h2 id="ms-title">Demander la suppression de mon compte</h2><p class="sub">Karim Benali (votre manager) recevra la demande. Vous pourrez l'annuler tant qu'elle n'est pas traitée.</p></div>
+        </div>
+        <div class="field"><label>Motif</label><div class="input select">Départ de l'entreprise</div></div>
+        <div class="alert alert-danger"><i data-i="alert"></i><span>Une fois validée, la suppression est <strong>irréversible</strong>.</span></div>
+        <div class="actions"><a class="btn btn-secondary" href="#" data-close>Annuler</a><a class="btn btn-danger" href="#" data-close>Envoyer la demande</a></div>
+      </div>
+    </div>
   </div>
   <script src="../assets/app.js"></script>
 </body>

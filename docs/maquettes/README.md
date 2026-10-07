@@ -34,9 +34,9 @@ Puis ouvrez <http://localhost:5500> dans le navigateur.
 
 | Rôle | Écrans |
 |---|---|
-| **Commun** | Connexion (email ou Microsoft), mot de passe oublié, mon profil (en lecture seule) |
+| **Commun** | Connexion (email ou Microsoft), mot de passe oublié, mon profil (en lecture seule, avec demande de modification ou de suppression envoyée au manager) |
 | **Employé** | Pointage (arrivée, pauses, départ), mes heures, justifier une absence |
-| **Manager** | Pointage, dashboard équipe (KPI, alertes de retards), salariés, ajout d'un salarié avec son planning, fiche salarié (modification et suppression), équipes, absences à valider |
+| **Manager** | Pointage, dashboard équipe (KPI, alertes de retards), salariés, ajout d'un salarié avec son planning, fiche salarié (modification et suppression), équipes (modale au clic), demandes à valider : absences, modifications d'informations, suppressions de compte (modales de validation et de refus) |
 | **Directeur** | Pointage, dashboard de la branche (équipes, managers et leurs pointages), salariés et managers de la branche |
 | **Admin** | Dashboard global, utilisateurs, branches et équipes, pointages. L'admin ne pointe pas. |
 | **Mobile** | Connexion, pointage, mes heures, absence, profil, et côté manager : mon équipe, fiche salarié |
