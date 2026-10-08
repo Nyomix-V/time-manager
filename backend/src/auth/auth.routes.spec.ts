@@ -54,6 +54,14 @@ describe('Auth routes', () => {
       expect(query(location(web)).get('state')).toMatch(/^web\./);
     });
 
+    it('sends the app back with a message when SSO is not configured', async () => {
+      delete process.env.MS_CLIENT_ID;
+      const mobile = await server().get('/auth/microsoft?client=mobile').expect(302);
+      expect(location(mobile)).toMatch(/^timemanager:\/\/login\?error=/);
+      expect(query(location(mobile)).get('error')).toBe('Connexion Microsoft non configurée sur le serveur');
+      await server().get('/auth/microsoft').expect(400); // web: unchanged
+    });
+
     it('brings the mobile app back with our token and links the Microsoft account', async () => {
       microsoftAnswers({ id_token: idToken({ oid: 'ms-oid-1', preferred_username: 'EMPA@test.fr' }) });
       const res = await server().get('/auth/microsoft/callback?code=abc&state=mobile.0123456789abcdef').expect(302);

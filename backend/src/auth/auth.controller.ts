@@ -43,6 +43,9 @@ class ChangePasswordDto {
   @Matches(STRONG, { message: 'Mot de passe trop faible : 12 caractères, une majuscule, un chiffre et un caractère spécial' }) newPassword: string;
 }
 
+// Where the mobile app waits for the end of a Microsoft sign-in (its URL scheme, see mobile/app.json).
+const appRedirect = () => process.env.MOBILE_SSO_REDIRECT || 'timemanager://login';
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly auth: AuthService) {}
@@ -86,7 +89,14 @@ export class AuthController {
   // ?client=mobile: the mobile app opened this page; step 2 sends the user back to the app.
   @Get('microsoft')
   microsoft(@Query('client') client: string | undefined, @Res() res: Response) {
-    return res.redirect(this.auth.buildMicrosoftAuthUrl(client === 'mobile' ? 'mobile' : 'web'));
+    const mobile = client === 'mobile';
+    try {
+      return res.redirect(this.auth.buildMicrosoftAuthUrl(mobile ? 'mobile' : 'web'));
+    } catch (e) {
+      // SSO not configured: the app waits in a browser tab, send it back with a message rather than a JSON page.
+      if (!mobile) throw e;
+      return res.redirect(`${appRedirect()}?error=${encodeURIComponent('Connexion Microsoft non configurée sur le serveur')}`);
+    }
   }
 
   // Step 2: Microsoft redirects back here with ?code=... -> we issue our JWT.
@@ -95,7 +105,7 @@ export class AuthController {
   @Get('microsoft/callback')
   async microsoftCallback(@Query('code') code: string, @Query('state') state: string | undefined, @Res() res: Response) {
     if (AuthService.isMobileState(state)) {
-      const app = process.env.MOBILE_SSO_REDIRECT || 'timemanager://login';
+      const app = appRedirect();
       if (!code) return res.redirect(`${app}?error=${encodeURIComponent('Connexion Microsoft annulée')}`);
       try {
         const { access_token } = await this.auth.handleMicrosoftCallback(code);
