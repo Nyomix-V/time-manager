@@ -62,6 +62,12 @@ async function main() {
     role: Role.EMPLOYEE, branchId: finance.id, teamId: compta.id,
   });
 
+    // Compte de démo pour le login Microsoft SSO (retrouvé par email au 1er SSO).
+    await upsertUser({
+      firstName: 'Lucas', lastName: 'Lipari', email: 'lucas.lipari@epitech.eu',
+      role: Role.MANAGER, branchId: finance.id,
+    });
+
   // A day of clocks for the employee: arrive 08:57, break 12:30-13:15, leave 16:50
   // (Paris time: UTC+2 in October, stored in UTC).
   const existingClocks = await clocks.count({ where: { userId: employee.id } });

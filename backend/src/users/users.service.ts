@@ -2,6 +2,7 @@ import {
   Injectable,
   ForbiddenException,
   NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere } from 'typeorm';
@@ -73,6 +74,15 @@ export class UsersService {
       workMinutesPerDay: dto.workMinutesPerDay,
       breakMinutes: dto.breakMinutes,
     });
+    // Un 409 clair au lieu d'un 500 brut quand l'email est déjà pris.
+    const existing = await this.users.findOne({
+      where: { email: dto.email },
+      withDeleted: true,
+    });
+    if (existing) {
+      throw new ConflictException('Email already in use');
+    }
+
     const saved = await this.users.save(user);
 
     // Issue an activation token (valid 48h). In prod this is emailed.
