@@ -1,5 +1,20 @@
+<<<<<<< Updated upstream
 import { Body, Controller, Post, HttpCode, UseGuards } from '@nestjs/common';
 import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
+=======
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  HttpCode,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { Response } from 'express';
+import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
+>>>>>>> Stashed changes
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards';
 import { CurrentUser } from './current-user.decorator';
@@ -71,6 +86,22 @@ export class AuthController {
     return this.auth.changePassword(actor.id, dto.currentPassword, dto.newPassword);
   }
 
-  // Microsoft SSO stays a stub (needs Azure AD app registration):
-  // GET /auth/microsoft -> redirect ; /auth/microsoft/callback -> issue our JWT.
+  // --- Microsoft SSO (server-side flow) ---
+  // Step 1: send the user to Microsoft's sign-in page.
+  @Get('microsoft')
+  microsoft(@Res() res: Response) {
+    return res.redirect(this.auth.buildMicrosoftAuthUrl());
+  }
+
+  // Step 2: Microsoft redirects back here with ?code=... -> we issue our JWT.
+  // If FRONTEND_URL is set, redirect there with the token; else return JSON.
+  @Get('microsoft/callback')
+  async microsoftCallback(@Query('code') code: string, @Res() res: Response) {
+    const result = await this.auth.handleMicrosoftCallback(code);
+    const front = process.env.FRONTEND_URL;
+    if (front) {
+      return res.redirect(`${front}/login?token=${result.access_token}`);
+    }
+    return res.json(result);
+  }
 }

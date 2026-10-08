@@ -36,6 +36,8 @@ services:
       MS_CLIENT_ID: ${MS_CLIENT_ID:-}
       MS_CLIENT_SECRET: ${MS_CLIENT_SECRET:-}
       MS_TENANT_ID: ${MS_TENANT_ID:-common}
+      MS_REDIRECT_URI: ${MS_REDIRECT_URI:-http://localhost:8080/api/auth/microsoft/callback}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
     volumes:
       - ./backend:/app                           # hot reload in dev
       - /app/node_modules

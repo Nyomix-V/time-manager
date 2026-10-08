@@ -117,4 +117,83 @@ export class AuthService {
     });
     return { activated: true };
   }
+
+  // =============================================================
+  //  Microsoft SSO (server-side authorization-code flow)
+  // =============================================================
+  private msConfig() {
+    const tenant = process.env.MS_TENANT_ID || 'common';
+    return {
+      tenant,
+      clientId: process.env.MS_CLIENT_ID || '',
+      clientSecret: process.env.MS_CLIENT_SECRET || '',
+      redirectUri:
+        process.env.MS_REDIRECT_URI ||
+        'http://localhost:8080/api/auth/microsoft/callback',
+      authority: `https://login.microsoftonline.com/${tenant}/oauth2/v2.0`,
+      scope: 'openid profile email',
+    };
+  }
+
+  // Step 1: the URL we send the user to, to sign in with Microsoft.
+  buildMicrosoftAuthUrl(): string {
+    const c = this.msConfig();
+    if (!c.clientId) {
+      throw new BadRequestException('Microsoft SSO not configured (MS_CLIENT_ID)');
+    }
+    const params = new URLSearchParams({
+      client_id: c.clientId,
+      response_type: 'code',
+      redirect_uri: c.redirectUri,
+      response_mode: 'query',
+      scope: c.scope,
+      state: crypto.randomBytes(8).toString('hex'),
+    });
+    return `${c.authority}/authorize?${params.toString()}`;
+  }
+
+  // Step 2: Microsoft redirected back with a code -> exchange it, read identity,
+  // match the account by email, link it (msOid) and issue OUR JWT.
+  async handleMicrosoftCallback(code: string) {
+    const c = this.msConfig();
+    const body = new URLSearchParams({
+      client_id: c.clientId,
+      client_secret: c.clientSecret,
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: c.redirectUri,
+      scope: c.scope,
+    });
+
+    const res = await (globalThis as any).fetch(`${c.authority}/token`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.id_token) {
+      throw new UnauthorizedException(
+        `Microsoft token exchange failed: ${data.error_description || data.error || res.status}`,
+      );
+    }
+
+    // Decode the id_token payload (received directly from Microsoft over TLS).
+    const payload = JSON.parse(
+      Buffer.from(data.id_token.split('.')[1], 'base64url').toString(),
+    );
+    const oid: string = payload.oid;
+    const email: string = (payload.preferred_username || payload.email || '').toLowerCase();
+
+    // Accounts are provisioned by managers: match an existing user by msOid or email.
+    let user = await this.users.findOne({
+      where: [{ msOid: oid }, { email }],
+    });
+    if (!user) {
+      throw new UnauthorizedException('No Time Manager account for this Microsoft user');
+    }
+
+    // Link the Microsoft identity and activate the account on first SSO login.
+    await this.users.update(user.id, { msOid: oid, status: UserStatus.ACTIVE });
+    return this.sign(user.id, user.email, user.role, user.branchId);
+  }
 }
