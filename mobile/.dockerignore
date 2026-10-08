@@ -1,0 +1,10 @@
+node_modules
+android
+ios
+.expo
+dist
+artifacts
+*.apk
+.env
+.env.*
+npm-debug.*
