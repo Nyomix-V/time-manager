@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/auth/AuthProvider';
 import { ROUTES } from '@/auth/navigation';
-import { MICROSOFT_LOGIN_URL } from '@/api/auth';
+import { checkMicrosoftLogin, MICROSOFT_LOGIN_URL } from '@/api/auth';
 import { getErrorMessage } from '@/api/client';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,20 @@ export function LoginPage() {
   const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [msPending, setMsPending] = useState(false);
+
+  const loginWithMicrosoft = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setServerError(null);
+    setMsPending(true);
+    const problem = await checkMicrosoftLogin();
+    if (problem) {
+      setServerError(problem);
+      setMsPending(false);
+    } else {
+      window.location.assign(MICROSOFT_LOGIN_URL); // the backend redirects to Microsoft
+    }
+  };
   const {
     register,
     handleSubmit,
@@ -126,7 +140,7 @@ export function LoginPage() {
       </div>
       {/* Server-side OAuth flow: the backend redirects to Microsoft, then back with the session cookie. */}
       <Button variant="secondary" className="w-full" asChild>
-        <a href={MICROSOFT_LOGIN_URL}>
+        <a href={MICROSOFT_LOGIN_URL} onClick={loginWithMicrosoft} aria-disabled={msPending || undefined}>
           <MicrosoftLogo />
           Se connecter avec Microsoft
         </a>

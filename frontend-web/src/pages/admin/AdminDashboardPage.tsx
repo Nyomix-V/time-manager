@@ -28,10 +28,7 @@ export function AdminDashboardPage() {
 
   return (
     <>
-      <PageHeader
-        title="Dashboard global"
-        subtitle={branches.data && `${branches.data.length} branches`}
-      >
+      <PageHeader title="Dashboard global" subtitle={branches.data && `${branches.data.length} branches`}>
         <PeriodFilter period={period} />
         <Button
           variant="secondary"

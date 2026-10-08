@@ -40,6 +40,8 @@ services:
       MS_CLIENT_ID: ${MS_CLIENT_ID}
       MS_CLIENT_SECRET: ${MS_CLIENT_SECRET}
       MS_TENANT_ID: ${MS_TENANT_ID}
+      MS_REDIRECT_URI: ${MS_REDIRECT_URI}          # https://<domaine>/api/auth/microsoft/callback
+      FRONTEND_URL: ${FRONTEND_URL}                # https://<domaine> : retour après la connexion Microsoft
     depends_on:
       database:
         condition: service_healthy

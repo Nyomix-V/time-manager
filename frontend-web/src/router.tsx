@@ -7,6 +7,7 @@ import { AuthLayout } from '@/components/layout/AuthLayout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
 import { SetPasswordPage } from '@/pages/auth/SetPasswordPage';
+import { MicrosoftCallbackPage } from '@/pages/auth/MicrosoftCallbackPage';
 
 const WORKERS: Role[] = ['EMPLOYEE', 'MANAGER', 'DIRECTEUR']; // everybody who clocks in
 const SUPERVISORS: Role[] = ['MANAGER', 'DIRECTEUR'];
@@ -14,6 +15,11 @@ const SUPERVISORS: Role[] = ['MANAGER', 'DIRECTEUR'];
 // Pages are lazy-loaded (one JS chunk per page): an employee never downloads the admin screens.
 // Each page is wrapped in the role guard matching the backend @Roles(...) of the routes it calls.
 export const router = createBrowserRouter([
+  // Not behind RedirectIfAuthenticated: a new SSO token replaces any previous session.
+  {
+    element: <AuthLayout />,
+    children: [{ path: ROUTES.microsoftCallback, element: <MicrosoftCallbackPage /> }],
+  },
   {
     element: <RedirectIfAuthenticated />,
     children: [

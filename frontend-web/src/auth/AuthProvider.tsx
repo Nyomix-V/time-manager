@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { refreshAccessToken, setAccessToken, setSessionExpiredHandler } from '@/api/client';
 import * as authApi from '@/api/auth';
@@ -13,6 +22,8 @@ type AuthState =
 interface AuthContextValue {
   state: AuthState;
   login: (email: string, password: string) => Promise<void>;
+  /** Opens the session from a JWT issued by the backend (Microsoft SSO callback). */
+  loginWithToken: (token: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -48,6 +59,8 @@ export function decodeJwt(token: string): { sub?: string } {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: 'loading', user: null });
   const queryClient = useQueryClient();
+  // Set as soon as a login starts, so the session restore below cannot overwrite it.
+  const loggingIn = useRef(false);
 
   const clearSession = useCallback(() => {
     setAccessToken(null);
@@ -59,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionExpiredHandler(clearSession);
     let cancelled = false;
     restoreSession().then((user) => {
-      if (cancelled) return;
+      if (cancelled || loggingIn.current) return;
       setState(user ? { status: 'authenticated', user } : { status: 'anonymous', user: null });
     });
     return () => {
@@ -67,15 +80,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [clearSession]);
 
+  /** Common end of every login: keep the token in memory, load the profile (the server checks the token). */
+  const startSession = useCallback(
+    async (token: string) => {
+      loggingIn.current = true;
+      const { sub } = decodeJwt(token);
+      if (!sub) throw new Error('Jeton de connexion invalide.');
+      setAccessToken(token);
+      try {
+        const user = await fetchUser(sub);
+        queryClient.setQueryData(userKeys.detail(user.id), user);
+        setState({ status: 'authenticated', user });
+      } catch (e) {
+        setAccessToken(null);
+        loggingIn.current = false;
+        throw e;
+      }
+    },
+    [queryClient],
+  );
+
   const login = useCallback(
     async (email: string, password: string) => {
       const session = await authApi.login(email, password);
-      setAccessToken(session.access_token);
-      const user = await fetchUser(session.user.id);
-      queryClient.setQueryData(userKeys.detail(user.id), user);
-      setState({ status: 'authenticated', user });
+      await startSession(session.access_token);
     },
-    [queryClient],
+    [startSession],
   );
 
   const logout = useCallback(async () => {
@@ -83,7 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSession();
   }, [clearSession]);
 
-  const value = useMemo(() => ({ state, login, logout }), [state, login, logout]);
+  const value = useMemo(
+    () => ({ state, login, loginWithToken: startSession, logout }),
+    [state, login, startSession, logout],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

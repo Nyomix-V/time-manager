@@ -74,12 +74,25 @@ Les calculs métier (heures travaillées, pauses, retards, heures sup, résumé 
 - Libellés liés aux champs, erreurs annoncées (`role="alert"`, `aria-invalid`, `aria-describedby`).
 - Mise en page responsive, testée à 390 px de large.
 
+## Connexion Microsoft (SSO)
+
+Le flux est géré côté serveur :
+1. Le bouton « Se connecter avec Microsoft » vérifie d'abord que le SSO est configuré, puis ouvre `/api/auth/microsoft`.
+2. Le back redirige vers Microsoft, qui renvoie vers `/api/auth/microsoft/callback`.
+3. Le back retrouve le compte par email et renvoie vers `FRONTEND_URL/login?token=…`.
+4. La page `/login` retire le jeton de l'URL, ouvre la session et redirige vers l'accueil.
+
+Pour l'activer :
+1. Enregistrer une application dans Azure AD (Entra ID), avec comme URI de redirection `http://localhost:8080/api/auth/microsoft/callback`.
+2. Renseigner `MS_CLIENT_ID`, `MS_CLIENT_SECRET` et `MS_TENANT_ID` (l'ID du tenant de l'entreprise plutôt que `common`) dans le `.env` à la racine.
+3. Recréer le back : `docker compose up -d --force-recreate backend`.
+4. Le compte Time Manager doit exister avec **la même adresse email** que le compte Microsoft : il est créé par un manager, il n'y a pas d'inscription automatique.
+
 ## Ce qui manque encore côté back
 
 | Route | Écran | Note |
 |---|---|---|
 | `POST /auth/refresh`, `POST /auth/logout` | Toutes | Refresh token en cookie httpOnly `SameSite=Strict`. Sans cette route, **un rechargement de page déconnecte**. |
-| `GET /auth/microsoft` (+ callback) | Connexion | Après le callback : poser le cookie de refresh puis rediriger vers `/` |
 
 Améliorations utiles :
 - Un historique des demandes traitées pour un périmètre (aujourd'hui, l'onglet « Traitées » charge les demandes salarié par salarié).

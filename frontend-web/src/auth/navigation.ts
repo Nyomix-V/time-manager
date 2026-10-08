@@ -21,6 +21,8 @@ export interface NavItem {
 
 export const ROUTES = {
   login: '/connexion',
+  /** Where the backend sends the user back after Microsoft sign-in (FRONTEND_URL/login?token=). */
+  microsoftCallback: '/login',
   forgotPassword: '/mot-de-passe-oublie',
   resetPassword: '/reinitialiser-mot-de-passe', // ?token=
   activate: '/activer-mon-compte', // ?token=

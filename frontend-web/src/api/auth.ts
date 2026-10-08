@@ -3,6 +3,25 @@ import type { LoginResponse } from './types';
 
 export const MICROSOFT_LOGIN_URL = `${import.meta.env.VITE_API_URL ?? '/api'}/auth/microsoft`;
 
+/**
+ * Microsoft SSO is a full-page redirect, so a server error would show raw JSON.
+ * We first ask the route without following the redirect: a redirect (to Microsoft)
+ * means it is ready; otherwise we return a message to display on the login page.
+ */
+export async function checkMicrosoftLogin(): Promise<string | null> {
+  try {
+    const res = await fetch(MICROSOFT_LOGIN_URL, { redirect: 'manual', credentials: 'same-origin' });
+    if (res.type === 'opaqueredirect' || res.ok) return null;
+    const body = (await res.json().catch(() => ({}))) as { message?: string };
+    if (body.message?.includes('not configured')) {
+      return "La connexion Microsoft n'est pas encore configurée sur ce serveur. Utilisez votre email et votre mot de passe.";
+    }
+    return body.message ?? `Connexion Microsoft indisponible (${res.status}).`;
+  } catch {
+    return 'Serveur injoignable. Vérifiez votre connexion.';
+  }
+}
+
 export async function login(email: string, password: string) {
   const { data } = await api.post<LoginResponse>('/auth/login', { email, password });
   return data;
