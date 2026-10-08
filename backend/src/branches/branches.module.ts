@@ -42,7 +42,7 @@ export class BranchesService {
       where: { id },
       relations: { teams: true },
     });
-    if (!branch) throw new NotFoundException('Branch not found');
+    if (!branch) throw new NotFoundException('Branche introuvable');
     return branch;
   }
 

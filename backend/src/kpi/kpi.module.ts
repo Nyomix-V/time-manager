@@ -10,12 +10,14 @@ import { TypeOrmModule, InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { Clock } from '../entities/clock.entity';
-import { Role } from '../entities/enums';
+import { Absence } from '../entities/absence.entity';
+import { RequestStatus, Role } from '../entities/enums';
 import { WorkingTimesService } from '../workingtimes/workingtimes.service';
 import { WorkingTimesModule } from '../workingtimes/workingtimes.module';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../auth/scope';
+import { businessDaysBetween } from '../common/time';
 import { countLateDays } from './lateness';
 
 const WEEKLY_LEGAL_HOURS = 35; // legal weekly threshold (France ~ 35h)
@@ -30,8 +32,20 @@ interface KpiRow {
   avgDailyHours: number;
   overtimeHours: number;
   breakMinutes: number;
+  workedDays: number;
   lateDays: number;
   lateAlert: boolean;
+  weeklyHours: number; // average per week, given the user's own working days
+}
+
+/** Days covered by the user's approved absences: no lateness counted on them. */
+export function excusedDays(absences: Pick<Absence, 'startDate' | 'endDate' | 'status'>[]): Set<string> {
+  const days = new Set<string>();
+  for (const a of absences) {
+    if (a.status !== RequestStatus.APPROVED) continue;
+    for (const day of businessDaysBetween(new Date(a.startDate), new Date(a.endDate))) days.add(day);
+  }
+  return days;
 }
 
 @Injectable()
@@ -39,6 +53,7 @@ export class KpiService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
     @InjectRepository(Clock) private readonly clocks: Repository<Clock>,
+    @InjectRepository(Absence) private readonly absences: Repository<Absence>,
     private readonly wt: WorkingTimesService,
   ) {}
 
@@ -48,7 +63,7 @@ export class KpiService {
     const where: any = {};
     if (actor.role !== Role.ADMIN) where.branchId = actor.branchId ?? undefined;
     if (teamId) where.teamId = teamId;
-    const users = await this.users.find({ where });
+    const users = (await this.users.find({ where })).filter((u) => u.role !== Role.ADMIN); // the admin does not clock in
 
     let timeFilter;
     if (from && to) timeFilter = Between(from, to);
@@ -58,15 +73,20 @@ export class KpiService {
     const rows: KpiRow[] = [];
     for (const u of users) {
       const { totalHours, perDay, breakMinutes } = await this.wt.summary(u.id, from, to);
-      const weeks = Math.max(1, perDay.length / 5);
+      const workedDays = perDay.length;
+      const daysPerWeek = Math.max(1, (u.workingDays ?? '1,2,3,4,5').split(',').filter(Boolean).length);
+      const weeks = Math.max(1, workedDays / daysPerWeek);
       const overtime = Math.max(0, totalHours - WEEKLY_LEGAL_HOURS * weeks);
-      const avgDaily = perDay.length > 0 ? totalHours / perDay.length : 0;
+      const avgDaily = workedDays > 0 ? totalHours / workedDays : 0;
 
-      const clocks = await this.clocks.find({
-        where: timeFilter ? { userId: u.id, time: timeFilter } : { userId: u.id },
-        order: { time: 'ASC' },
-      });
-      const lateDays = countLateDays(clocks, u.expectedStartMin ?? 540);
+      const [clocks, absences] = await Promise.all([
+        this.clocks.find({
+          where: timeFilter ? { userId: u.id, time: timeFilter } : { userId: u.id },
+          order: { time: 'ASC' },
+        }),
+        this.absences.find({ where: { userId: u.id, status: RequestStatus.APPROVED } }),
+      ]);
+      const lateDays = countLateDays(clocks, u.expectedStartMin ?? 540, excusedDays(absences));
 
       rows.push({
         userId: u.id,
@@ -77,24 +97,23 @@ export class KpiService {
         avgDailyHours: round2(avgDaily),
         overtimeHours: round2(overtime),
         breakMinutes,
+        workedDays,
         lateDays,
         lateAlert: lateDays > LATE_ALERT_THRESHOLD,
+        weeklyHours: workedDays > 0 ? round2(totalHours / weeks) : 0,
       });
     }
 
     // Aggregate for a branch/team dashboard header (mockup pages 14/18).
-    const totalDays = rows.reduce((s, r) => s + (r.avgDailyHours > 0 ? 1 : 0), 0);
+    const active = rows.filter((r) => r.workedDays > 0);
+    const workedDays = rows.reduce((s, r) => s + r.workedDays, 0);
+    const lateDays = rows.reduce((s, r) => s + r.lateDays, 0);
     const summary = {
       people: rows.length,
-      avgWeeklyHours: round2(
-        rows.reduce((s, r) => s + r.avgDailyHours * 5, 0) / Math.max(1, rows.length),
-      ),
-      punctualityPct:
-        rows.length === 0
-          ? 100
-          : Math.round(
-              (rows.filter((r) => !r.lateAlert).length / rows.length) * 100,
-            ),
+      // Average weekly hours of the people who worked over the period.
+      avgWeeklyHours: round2(active.reduce((s, r) => s + r.weeklyHours, 0) / Math.max(1, active.length)),
+      // Share of worked days started on time (100 when nobody worked).
+      punctualityPct: workedDays === 0 ? 100 : Math.round((1 - lateDays / workedDays) * 100),
       alerts: rows.filter((r) => r.lateAlert).length,
     };
 
@@ -129,7 +148,7 @@ export class KpiController {
 }
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Clock]), WorkingTimesModule],
+  imports: [TypeOrmModule.forFeature([User, Clock, Absence]), WorkingTimesModule],
   providers: [KpiService],
   controllers: [KpiController],
 })

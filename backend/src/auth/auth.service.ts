@@ -29,13 +29,13 @@ export class AuthService {
       .getOne();
 
     if (!user || user.deletedAt || !user.passwordHash) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException('Email ou mot de passe incorrect');
     }
     if (user.status !== UserStatus.ACTIVE) {
-      throw new UnauthorizedException('Account not activated');
+      throw new UnauthorizedException('Compte non activé : utilisez le lien reçu par email');
     }
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) throw new UnauthorizedException('Invalid credentials');
+    if (!ok) throw new UnauthorizedException('Email ou mot de passe incorrect');
 
     return this.sign(user.id, user.email, user.role, user.branchId);
   }
@@ -65,7 +65,7 @@ export class AuthService {
   private async consumeToken(token: string, type: TokenType) {
     const row = await this.tokens.findOne({ where: { token, type } });
     if (!row || row.usedAt || row.expiresAt < new Date()) {
-      throw new BadRequestException('Invalid or expired token');
+      throw new BadRequestException('Lien invalide ou expiré');
     }
     row.usedAt = new Date();
     await this.tokens.save(row);
@@ -98,10 +98,10 @@ export class AuthService {
       .where('user.id = :userId', { userId })
       .getOne();
     if (!user || !user.passwordHash) {
-      throw new BadRequestException('No password set (Microsoft account?)');
+      throw new BadRequestException('Aucun mot de passe défini (compte Microsoft ?)');
     }
     const ok = await bcrypt.compare(current, user.passwordHash);
-    if (!ok) throw new UnauthorizedException('Current password is wrong');
+    if (!ok) throw new UnauthorizedException('Mot de passe actuel incorrect');
     await this.users.update(userId, {
       passwordHash: await AuthService.hash(next),
     });

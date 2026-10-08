@@ -11,6 +11,8 @@ import {
   Query,
   UseGuards,
   NotFoundException,
+  ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { TypeOrmModule, InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -53,7 +55,7 @@ export class TeamsService {
       where: { id },
       relations: { manager: true, members: true, branch: true },
     });
-    if (!team) throw new NotFoundException('Team not found');
+    if (!team) throw new NotFoundException('Équipe introuvable');
     return team;
   }
 
@@ -77,12 +79,21 @@ export class TeamsService {
 
   // Add / remove a member = set or clear their teamId.
   async addMember(teamId: string, userId: string) {
-    await this.findOne(teamId);
+    const team = await this.findOne(teamId);
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
+    if (user.branchId !== team.branchId) {
+      throw new BadRequestException("Cette personne n'appartient pas à la branche de l'équipe");
+    }
     await this.users.update(userId, { teamId });
     return { added: true };
   }
 
-  async removeMember(userId: string) {
+  async removeMember(teamId: string, userId: string) {
+    const user = await this.users.findOne({ where: { id: userId } });
+    if (!user || user.teamId !== teamId) {
+      throw new NotFoundException("Cette personne n'est pas dans l'équipe");
+    }
     await this.users.update(userId, { teamId: null as any });
     return { removed: true };
   }
@@ -101,8 +112,13 @@ export class TeamsController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.teams.findOne(id);
+  async findOne(@CurrentUser() actor: AuthUser, @Param('id') id: string) {
+    const team = await this.teams.findOne(id);
+    // Same scope as the list: own branch only (admin: everything).
+    if (actor.role !== Role.ADMIN && team.branchId !== actor.branchId) {
+      throw new ForbiddenException('Hors de votre branche');
+    }
+    return team;
   }
 
   @Post()
@@ -153,7 +169,7 @@ export class TeamsController {
   ) {
     const team = await this.teams.findOne(id);
     assertSameBranchOrGlobal(actor, team.branchId);
-    return this.teams.removeMember(userId);
+    return this.teams.removeMember(id, userId);
   }
 }
 

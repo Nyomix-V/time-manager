@@ -19,17 +19,17 @@ const STRONG = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
 
 class ResetDto {
   @IsString() token: string;
-  @Matches(STRONG, { message: 'Password too weak' }) password: string;
+  @Matches(STRONG, { message: 'Mot de passe trop faible : 12 caractères, une majuscule, un chiffre et un caractère spécial' }) password: string;
 }
 
 class ActivateDto {
   @IsString() token: string;
-  @Matches(STRONG, { message: 'Password too weak' }) password: string;
+  @Matches(STRONG, { message: 'Mot de passe trop faible : 12 caractères, une majuscule, un chiffre et un caractère spécial' }) password: string;
 }
 
 class ChangePasswordDto {
   @IsString() currentPassword: string;
-  @Matches(STRONG, { message: 'Password too weak' }) newPassword: string;
+  @Matches(STRONG, { message: 'Mot de passe trop faible : 12 caractères, une majuscule, un chiffre et un caractère spécial' }) newPassword: string;
 }
 
 @Controller('auth')
