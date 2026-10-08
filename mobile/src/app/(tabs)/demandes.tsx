@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '@/api';
-import type { Absence, AccountRequest, User } from '@/api/types';
+import type { Absence, AccountRequest, Requester } from '@/api/types';
 import { Avatar, StateView } from '@/components/data';
 import { Chips, TextField } from '@/components/forms';
 import { Sheet } from '@/components/Sheet';
@@ -17,8 +17,8 @@ import { colors } from '@/theme/tokens';
 // Maquette : docs/maquettes/mobile/m08-demandes.html
 // Absences (GET /absences/pending) et demandes de compte (GET /account-requests/pending).
 type Item =
-  | { kind: 'absence'; id: string; createdAt: string; user?: User; absence: Absence }
-  | { kind: 'change' | 'deletion'; id: string; createdAt: string; user?: User; request: AccountRequest };
+  | { kind: 'absence'; id: string; createdAt: string; user?: Requester | null; absence: Absence }
+  | { kind: 'change' | 'deletion'; id: string; createdAt: string; user?: Requester | null; request: AccountRequest };
 
 type Filter = 'all' | Item['kind'];
 type Decision = { item: Item; approve: boolean } | null;

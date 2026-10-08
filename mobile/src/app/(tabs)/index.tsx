@@ -16,6 +16,7 @@ import {
   isSameDay,
   planningOf,
   sortClocks,
+  startOfDay,
   summarizeDay,
   type DaySummary,
   type Planning,
@@ -44,8 +45,11 @@ function ClockScreen() {
   const [sending, setSending] = useState<ClockType | null>(null);
 
   const { data, error, loading, reload, refreshing, refresh } = useQuery(async () => {
-    const [user, clocks] = await Promise.all([api.users.get(session.userId), api.clocks.list(session.userId)]);
-    // Le planning est porté par l'utilisateur ; on ne garde que les pointages du jour.
+    // Le planning est porté par l'utilisateur ; seuls les pointages du jour comptent.
+    const [user, clocks] = await Promise.all([
+      api.users.get(session.userId),
+      api.clocks.list(session.userId, { from: startOfDay(new Date()) }),
+    ]);
     return { user, planning: planningOf(user), clocks: clocks.filter((c) => isSameDay(new Date(c.time), new Date())) };
   }, [session.userId]);
 

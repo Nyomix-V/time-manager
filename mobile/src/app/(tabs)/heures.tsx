@@ -7,7 +7,7 @@ import type { Absence } from '@/api/types';
 import { useSession } from '@/auth/AuthProvider';
 import { BarChart, Kpi, Row, StateView, type Bar } from '@/components/data';
 import { DateField, Segmented } from '@/components/forms';
-import { Badge, Card, Screen, layout, text } from '@/components/ui';
+import { Badge, Card, LateBadge, Screen, layout, text } from '@/components/ui';
 import { ABSENCE_LABELS } from '@/domain/labels';
 import {
   WEEKDAYS,
@@ -16,10 +16,12 @@ import {
   dayKey,
   endOfDay,
   endOfMonth,
+  excusedDays,
   formatDate,
   formatDay,
   formatDuration,
   formatTime,
+  isLate,
   isWorkDay,
   periodStats,
   planningOf,
@@ -49,12 +51,10 @@ export default function HoursScreen() {
   const { data, error, loading, reload, refreshing, refresh } = useQuery(async () => {
     const [user, clocks, absences] = await Promise.all([
       api.users.get(session.userId),
-      api.clocks.list(session.userId),
+      api.clocks.list(session.userId, { from, to: endOfDay(to) }),
       api.absences.listForUser(session.userId),
     ]);
-    // GET /clocks/:userId n'a pas encore de filtre par dates : on garde la période ici.
-    const inRange = clocks.filter((c) => new Date(c.time) >= from && new Date(c.time) <= endOfDay(to));
-    return { planning: planningOf(user), clocks: inRange, absences };
+    return { planning: planningOf(user), clocks, absences, excused: excusedDays(absences) };
   }, [session.userId, from.getTime(), to.getTime()]);
 
   const move = (direction: -1 | 1) =>
@@ -62,8 +62,9 @@ export default function HoursScreen() {
   const isCurrent = to >= startOfDay(new Date());
 
   const days = data ? summarizeDays(data.clocks, data.planning) : [];
-  const stats = periodStats(days);
   const planning = data?.planning ?? null;
+  const excused = data?.excused ?? new Set<string>();
+  const stats = periodStats(days, { planning, excused });
 
   return (
     <Screen title="Mes heures" refreshing={refreshing} onRefresh={refresh}>
@@ -130,13 +131,13 @@ export default function HoursScreen() {
           {mode !== 'custom' && (
             <Card>
               <Text style={text.h2}>{mode === 'week' ? 'Heures par jour' : 'Heures par semaine'}</Text>
-              <PeriodChart mode={mode} from={from} to={to} days={days} planning={planning} />
+              <PeriodChart mode={mode} from={from} to={to} days={days} planning={planning} excused={excused} />
             </Card>
           )}
 
           <Card style={{ gap: 0 }}>
             <Text style={[text.h2, { marginBottom: 6 }]}>Détail par jour</Text>
-            <DayList days={days} absences={data.absences} planning={planning} from={from} to={to} />
+            <DayList days={days} absences={data.absences} excused={excused} planning={planning} from={from} to={to} />
           </Card>
         </>
       )}
@@ -155,14 +156,28 @@ function periodLabel(mode: Mode, from: Date, to: Date) {
   return `${from.getDate()} ${from.toLocaleDateString('fr-FR', { month: 'short' })} → ${formatDate(to)}`;
 }
 
-function PeriodChart({ mode, from, to, days, planning }: { mode: Mode; from: Date; to: Date; days: DaySummary[]; planning: Planning | null }) {
+function PeriodChart({
+  mode,
+  from,
+  to,
+  days,
+  planning,
+  excused,
+}: {
+  mode: Mode;
+  from: Date;
+  to: Date;
+  days: DaySummary[];
+  planning: Planning | null;
+  excused: ReadonlySet<string>;
+}) {
   const byKey = new Map(days.map((d) => [d.key, d]));
   let bars: Bar[];
   let target: number | undefined;
   if (mode === 'week') {
     bars = WEEKDAYS.map((label, i) => {
       const day = byKey.get(dayKey(addDays(from, i)));
-      return { label, value: (day?.workedMinutes ?? 0) / 60, highlight: !!day?.lateMinutes };
+      return { label, value: (day?.workedMinutes ?? 0) / 60, highlight: !!day && isLate(day, excused) };
     });
     target = planning ? planning.dailyMinutes / 60 : undefined;
   } else {
@@ -186,7 +201,21 @@ function isoWeekNumber(d: Date) {
 
 type Line = { key: string; date: Date; day?: DaySummary; absence?: Absence };
 
-function DayList({ days, absences, planning, from, to }: { days: DaySummary[]; absences: Absence[]; planning: Planning | null; from: Date; to: Date }) {
+function DayList({
+  days,
+  absences,
+  excused,
+  planning,
+  from,
+  to,
+}: {
+  days: DaySummary[];
+  absences: Absence[];
+  excused: ReadonlySet<string>;
+  planning: Planning | null;
+  from: Date;
+  to: Date;
+}) {
   // Jours pointés + jours d'absence (sans pointage) de la période, du plus récent au plus ancien.
   const lines = new Map<string, Line>(days.map((d) => [d.key, { key: d.key, date: d.date, day: d }]));
   const today = startOfDay(new Date());
@@ -214,7 +243,7 @@ function DayList({ days, absences, planning, from, to }: { days: DaySummary[]; a
                 {line.day.incomplete ? (
                   <Badge label="Oubli de pointage" tone="danger" />
                 ) : line.day.lateMinutes > 0 ? (
-                  <Badge label={`+${line.day.lateMinutes} min`} tone="warning" />
+                  <LateBadge minutes={line.day.lateMinutes} excused={excused.has(line.key)} />
                 ) : null}
               </View>
             }

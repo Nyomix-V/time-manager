@@ -1,7 +1,7 @@
 // Calculs d'heures : fonctions pures, utilisées par les écrans ET par le faux backend du mode démo,
 // pour que les chiffres soient toujours calculés de la même façon.
-// Tout est en heure LOCALE du téléphone (le backend actuel calcule en UTC, voir mobile/API.md).
-import type { Clock, ClockType, User } from '@/api/types';
+// Tout est en heure LOCALE du téléphone, comme le backend qui calcule à l'heure de Paris (APP_TIMEZONE).
+import type { Absence, Clock, ClockType, User } from '@/api/types';
 
 /** Planning d'un salarié. workDays : 1 = lundi … 7 = dimanche. La fin de journée se calcule, elle n'est pas stockée. */
 export type Planning = { workDays: number[]; startMin: number; dailyMinutes: number; breakMinutes: number };
@@ -188,18 +188,40 @@ export type PeriodStats = {
   breakMinutes: number;
 };
 
-export function periodStats(days: DaySummary[]): PeriodStats {
+/**
+ * Mêmes règles que le KPI du backend :
+ *  - moyenne par semaine = total ÷ (jours travaillés ÷ jours du planning), au moins une semaine ;
+ *  - un retard un jour couvert par une absence validée (`excused`, voir excusedDays) ne compte pas.
+ */
+export function periodStats(
+  days: DaySummary[],
+  { planning = null, excused = new Set<string>() }: { planning?: Planning | null; excused?: ReadonlySet<string> } = {},
+): PeriodStats {
   const worked = days.filter((d) => d.workedMinutes > 0);
   const totalMinutes = worked.reduce((sum, d) => sum + d.workedMinutes, 0);
-  const weeks = new Set(worked.map((d) => dayKey(startOfWeek(d.date)))).size;
+  const daysPerWeek = Math.max(1, planning?.workDays.length || 5);
   return {
     totalMinutes,
     workedDays: worked.length,
     avgPerDayMinutes: worked.length ? totalMinutes / worked.length : 0,
-    avgPerWeekMinutes: weeks ? totalMinutes / weeks : 0,
-    lateDays: worked.filter((d) => d.lateMinutes > 0).length,
+    avgPerWeekMinutes: worked.length ? totalMinutes / Math.max(1, worked.length / daysPerWeek) : 0,
+    lateDays: worked.filter((d) => isLate(d, excused)).length,
     breakMinutes: worked.reduce((sum, d) => sum + d.breakMinutes, 0),
   };
+}
+
+/** En retard, et pas excusé par une absence validée. */
+export const isLate = (d: DaySummary, excused: ReadonlySet<string>) => d.lateMinutes > 0 && !excused.has(d.key);
+
+/** Jours (dayKey) couverts par une absence validée : un retard ces jours-là ne compte pas (comme le backend). */
+export function excusedDays(absences: Pick<Absence, 'status' | 'startDate' | 'endDate'>[]): Set<string> {
+  const days = new Set<string>();
+  for (const a of absences) {
+    if (a.status !== 'APPROVED') continue;
+    const last = startOfDay(new Date(a.endDate));
+    for (let d = startOfDay(new Date(a.startDate)); d <= last; d = addDays(d, 1)) days.add(dayKey(d));
+  }
+  return days;
 }
 
 /** Une absence couvre-t-elle ce jour ? */

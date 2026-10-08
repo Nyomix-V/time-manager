@@ -45,8 +45,9 @@ export const api = {
   teams: { list: () => apiRequest<Team[]>('/teams') },
 
   clocks: {
-    /** Tous les pointages de la personne, du plus ancien au plus récent. */
-    list: (userId: string) => apiRequest<Clock[]>(`/clocks/${userId}`),
+    /** Pointages de la personne (sur la période si précisée), du plus ancien au plus récent. */
+    list: (userId: string, range: { from?: Date; to?: Date } = {}) =>
+      apiRequest<Clock[]>(`/clocks/${userId}`, { query: { from: range.from?.toISOString(), to: range.to?.toISOString() } }),
     status: (userId: string) => apiRequest<ClockStatus>(`/clocks/${userId}/status`),
     punch: (userId: string, type: ClockType) => apiRequest<Clock>(`/clocks/${userId}/${CLOCK_ROUTES[type]}`, { method: 'POST' }),
   },

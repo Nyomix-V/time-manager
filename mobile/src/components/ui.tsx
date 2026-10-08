@@ -151,6 +151,11 @@ export function Badge({ label, tone = 'neutral', icon }: { label: string; tone?:
   );
 }
 
+/** Retard d'un jour ; excusé quand une absence validée couvre ce jour (il ne compte alors pas dans les retards). */
+export function LateBadge({ minutes, excused }: { minutes: number; excused: boolean }) {
+  return excused ? <Badge label="Retard excusé" tone="info" /> : <Badge label={`+${minutes} min`} tone="warning" />;
+}
+
 export function Banner({ tone = 'info', icon = 'info', children }: { tone?: Tone; icon?: IconName; children: ReactNode }) {
   const palette = toneColors[tone];
   return (

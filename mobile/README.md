@@ -111,7 +111,7 @@ Les routes utilisées sont listées dans [API.md](API.md).
 
 ## État actuel
 
-Tous les écrans des maquettes sont développés et **branchés sur le backend** de `main` (ou sur le mode démo). Ce qui reste à corriger côté backend (sécurité, fuseau horaire, absences qui annulent un retard…) est listé dans [API.md](API.md).
+Tous les écrans des maquettes sont développés et **branchés sur le backend** (ou sur le mode démo), y compris ses règles de sécurité et de calcul de la branche `fix/backend-regles-securite` (PR #3). Ce qui reste à faire côté backend (présence de l'équipe en un appel, historique des plannings, connexion Microsoft…) est listé dans [API.md](API.md).
 
 | Écran | Rôles |
 |---|---|

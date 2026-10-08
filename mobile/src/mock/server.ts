@@ -1,9 +1,9 @@
-// Faux backend du mode démo (EXPO_PUBLIC_MOCK=1) : mêmes routes et mêmes formats que le backend NestJS.
-// Il applique les règles d'accès PRÉVUES (on pointe pour soi, on ne lit et ne décide que dans son
-// périmètre, motif obligatoire pour un refus) : voir mobile/API.md pour ce qui reste à faire côté backend.
-import type { Absence, AccountRequest, ClockType, KpiRow, RequestStatus, User } from '@/api/types';
+// Faux backend du mode démo (EXPO_PUBLIC_MOCK=1) : mêmes routes, mêmes formats et mêmes règles que le
+// backend NestJS (on pointe pour soi, on ne lit et ne décide que dans son périmètre, motif obligatoire
+// pour un refus, journées et retards à l'heure locale, absence validée = retard excusé).
+import type { Absence, AccountRequest, ClockType, KpiRow, PersonRef, Requester, RequestStatus, User } from '@/api/types';
 import { canManage } from '@/domain/permissions';
-import { periodStats, planningOf, summarizeDays } from '@/domain/time';
+import { excusedDays, isSameDay, periodStats, planningOf, summarizeDays } from '@/domain/time';
 import { absences, accountRequests, branches, clocks, MOCK_ACCOUNTS, MOCK_PASSWORD, teams, users } from './data';
 
 export class MockError extends Error {
@@ -70,9 +70,21 @@ const withRelations = (u: User): User => ({
   team: teams.find((t) => t.id === u.teamId) ?? null,
   branch: branches.find((b) => b.id === u.branchId) ?? null,
 });
-const withUser = <T extends { userId: string }>(item: T) => ({ ...item, user: users.find((u) => u.id === item.userId) });
+// Demandes : la personne qui demande (listes en attente) et celle qui a décidé (historiques), réduites.
+const personRef = (u: User): PersonRef => ({ id: u.id, firstName: u.firstName, lastName: u.lastName });
+const withRequester = <T extends { userId: string }>(item: T) => {
+  const u = users.find((x) => x.id === item.userId);
+  const user: Requester | null = u ? { ...personRef(u), phone: u.phone ?? null, teamId: u.teamId ?? null, role: u.role } : null;
+  return { ...item, user };
+};
+const withDecider = <T extends { decidedById?: string | null }>(item: T) => {
+  const u = users.find((x) => x.id === item.decidedById);
+  return { ...item, decidedBy: u ? personRef(u) : null };
+};
 
 const visibleClocks = (userId: string) => clocks.filter((c) => c.userId === userId && new Date(c.time) <= new Date());
+/** Dernier pointage d'AUJOURD'HUI : chaque journée repart de zéro (un départ oublié la veille ne bloque pas). */
+const lastToday = (userId: string) => visibleClocks(userId).filter((c) => isSameDay(new Date(c.time), new Date())).at(-1);
 
 // ---- Routes ----
 
@@ -110,12 +122,14 @@ const routes: [string, RegExp, Handler][] = [
     const account = MOCK_ACCOUNTS.find((a) => a.email === email);
     const target = users.find((u) => u.id === account?.userId || u.email === email);
     if (!target || passwords.get(target.id) !== body?.password) throw new MockError(401, 'Email ou mot de passe incorrect.');
-    if (target.status !== 'ACTIVE') throw new MockError(401, 'Compte non activé.');
+    if (target.status !== 'ACTIVE') throw new MockError(401, 'Compte non activé : utilisez le lien reçu par email.');
     return { access_token: mockToken(target), user: { id: target.id, email: target.email, role: target.role, branchId: target.branchId ?? null } };
   }],
   ['POST', /^\/auth\/change-password$/, ({ actor, body }) => {
     const me = actor();
-    if (!STRONG.test(String(body?.newPassword ?? ''))) throw new MockError(400, 'Mot de passe trop faible.');
+    if (!STRONG.test(String(body?.newPassword ?? ''))) {
+      throw new MockError(400, 'Mot de passe trop faible : 12 caractères, une majuscule, un chiffre et un caractère spécial.');
+    }
     if (passwords.get(me.id) !== body?.currentPassword) throw new MockError(401, 'Mot de passe actuel incorrect.');
     passwords.set(me.id, body.newPassword);
     return { changed: true };
@@ -164,20 +178,23 @@ const routes: [string, RegExp, Handler][] = [
     if (me.id !== params[0]) throw new MockError(403, 'Vous ne pouvez pointer que pour vous-même.');
     if (me.role === 'ADMIN') throw new MockError(400, "L'administrateur ne pointe pas.");
     const type = PUNCH_ROUTES[params[1]];
-    if (!allowed(visibleClocks(me.id).at(-1)?.type ?? null, type)) throw new MockError(400, 'Ce pointage n’est pas possible maintenant.');
+    if (!allowed(lastToday(me.id)?.type ?? null, type)) throw new MockError(400, 'Ce pointage n’est pas possible maintenant.');
     const clock = { id: newId('c'), userId: me.id, type, time: new Date().toISOString() };
     clocks.push(clock);
     return clock;
   }],
   ['GET', /^\/clocks\/([^/]+)\/status$/, ({ actor, params }) => {
     assertCanRead(actor(), findUser(params[0]));
-    const last = visibleClocks(params[0]).at(-1);
-    const state = last?.type === 'IN' || last?.type === 'BREAK_END' ? 'WORKING' : last?.type === 'BREAK_START' ? 'ON_BREAK' : 'OUT';
-    return { state, since: last?.time ?? null };
+    const today = lastToday(params[0]);
+    const state = today?.type === 'IN' || today?.type === 'BREAK_END' ? 'WORKING' : today?.type === 'BREAK_START' ? 'ON_BREAK' : 'OUT';
+    // `since` garde le dernier pointage, même d'un jour précédent.
+    return { state, since: (today ?? visibleClocks(params[0]).at(-1))?.time ?? null };
   }],
-  ['GET', /^\/clocks\/([^/]+)$/, ({ actor, params }) => {
+  ['GET', /^\/clocks\/([^/]+)$/, ({ actor, params, query }) => {
     assertCanRead(actor(), findUser(params[0]));
-    return visibleClocks(params[0]);
+    const from = query.get('from');
+    const to = query.get('to');
+    return visibleClocks(params[0]).filter((c) => (!from || c.time >= from) && (!to || c.time <= to));
   }],
 
   // ---- KPI (manager, directeur, admin) ----
@@ -192,8 +209,10 @@ const routes: [string, RegExp, Handler][] = [
       .filter((u) => u.role !== 'ADMIN' && (!teamId || u.teamId === teamId))
       .map((u): KpiRow => {
         const range = visibleClocks(u.id).filter((c) => (!from || c.time >= from) && (!to || c.time <= to));
-        const stats = periodStats(summarizeDays(range, planningOf(u)));
-        const weeks = Math.max(1, stats.workedDays / 5);
+        const planning = planningOf(u);
+        const excused = excusedDays(absences.filter((a) => a.userId === u.id));
+        const stats = periodStats(summarizeDays(range, planning), { planning, excused });
+        const weeks = Math.max(1, stats.workedDays / Math.max(1, planning.workDays.length));
         const totalHours = stats.totalMinutes / 60;
         return {
           userId: u.id,
@@ -204,15 +223,20 @@ const routes: [string, RegExp, Handler][] = [
           avgDailyHours: round2(stats.avgPerDayMinutes / 60),
           overtimeHours: round2(Math.max(0, totalHours - 35 * weeks)),
           breakMinutes: Math.round(stats.breakMinutes),
+          workedDays: stats.workedDays,
+          weeklyHours: round2(stats.avgPerWeekMinutes / 60),
           lateDays: stats.lateDays,
           lateAlert: stats.lateDays > 3,
         };
       });
-    // Même résumé que KpiService.report.
+    // Même résumé que KpiService.report : moyenne des personnes qui ont travaillé, part des jours à l'heure.
+    const active = rows.filter((r) => r.workedDays > 0);
+    const workedDays = rows.reduce((s, r) => s + r.workedDays, 0);
+    const lateDays = rows.reduce((s, r) => s + r.lateDays, 0);
     const summary = {
       people: rows.length,
-      avgWeeklyHours: round2(rows.reduce((s, r) => s + r.avgDailyHours * 5, 0) / Math.max(1, rows.length)),
-      punctualityPct: rows.length ? Math.round((rows.filter((r) => !r.lateAlert).length / rows.length) * 100) : 100,
+      avgWeeklyHours: round2(active.reduce((s, r) => s + r.weeklyHours, 0) / Math.max(1, active.length)),
+      punctualityPct: workedDays === 0 ? 100 : Math.round((1 - lateDays / workedDays) * 100),
       alerts: rows.filter((r) => r.lateAlert).length,
     };
     return { from, to, teamId, summary, rows };
@@ -243,15 +267,18 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/absences\/pending$/, ({ actor }) => {
     const me = actor();
     requireSupervisor(me);
-    return absences.filter((a) => a.status === 'PENDING' && decidable(me, a.userId)).map(withUser);
+    return absences.filter((a) => a.status === 'PENDING' && decidable(me, a.userId)).map(withRequester);
   }],
   ['GET', /^\/absences\/user\/([^/]+)$/, ({ actor, params }) => {
     assertCanRead(actor(), findUser(params[0]));
-    return absences.filter((a) => a.userId === params[0]).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return absences
+      .filter((a) => a.userId === params[0])
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map(withDecider);
   }],
   ['PATCH', /^\/absences\/([^/]+)\/decision$/, ({ actor, params, body }) => {
     const item = absences.find((a) => a.id === params[0]);
-    if (!item) throw new MockError(404, 'Absence introuvable.');
+    if (!item) throw new MockError(404, 'Demande introuvable.');
     return decide(actor(), item, body);
   }],
 
@@ -284,11 +311,14 @@ const routes: [string, RegExp, Handler][] = [
   ['GET', /^\/account-requests\/pending$/, ({ actor }) => {
     const me = actor();
     requireSupervisor(me);
-    return accountRequests.filter((r) => r.status === 'PENDING' && decidable(me, r.userId)).map(withUser);
+    return accountRequests.filter((r) => r.status === 'PENDING' && decidable(me, r.userId)).map(withRequester);
   }],
   ['GET', /^\/account-requests\/user\/([^/]+)$/, ({ actor, params }) => {
     assertCanRead(actor(), findUser(params[0]));
-    return accountRequests.filter((r) => r.userId === params[0]).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return accountRequests
+      .filter((r) => r.userId === params[0])
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map(withDecider);
   }],
   ['PATCH', /^\/account-requests\/([^/]+)\/decision$/, ({ actor, params, body }) => {
     const item = accountRequests.find((r) => r.id === params[0]);

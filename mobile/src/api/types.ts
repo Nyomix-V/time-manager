@@ -51,9 +51,17 @@ export type ClockStatus = { state: 'OUT' | 'WORKING' | 'ON_BREAK'; since: string
 
 export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
+/** Personne réduite à son nom : qui a traité une demande (decidedBy). */
+export type PersonRef = { id: string; firstName: string; lastName: string };
+
+/** Personne qui a fait une demande, dans GET /absences/pending et /account-requests/pending. */
+export type Requester = PersonRef & { phone: string | null; teamId: string | null; role: Role };
+
 type Decision = {
   status: RequestStatus;
   decidedById?: string | null;
+  /** Présent dans les historiques (GET …/user/:id) : qui a validé ou refusé. */
+  decidedBy?: PersonRef | null;
   decisionComment?: string | null;
   decidedAt?: string | null;
   createdAt: string;
@@ -69,7 +77,7 @@ export type Absence = Decision & {
   endDate: string;
   comment?: string | null;
   attachmentPath?: string | null;
-  user?: User; // présent dans GET /absences/pending
+  user?: Requester | null; // présent dans GET /absences/pending
 };
 
 export type AccountRequestType = 'INFO_CHANGE' | 'DELETION';
@@ -83,7 +91,7 @@ export type AccountRequest = Decision & {
   field?: EditableField | null;
   newValue?: string | null;
   reason?: string | null;
-  user?: User; // présent dans GET /account-requests/pending
+  user?: Requester | null; // présent dans GET /account-requests/pending
 };
 
 export type KpiRow = {
@@ -95,6 +103,10 @@ export type KpiRow = {
   avgDailyHours: number;
   overtimeHours: number;
   breakMinutes: number;
+  workedDays: number;
+  /** Heures par semaine, rapportées aux jours travaillés du planning (comme periodStats). */
+  weeklyHours: number;
+  /** Jours en retard, hors jours couverts par une absence validée. */
   lateDays: number;
   lateAlert: boolean;
 };
@@ -103,6 +115,7 @@ export type KpiReport = {
   from: string | null;
   to: string | null;
   teamId?: string | null;
+  /** punctualityPct = part des jours travaillés commencés à l'heure. */
   summary: { people: number; avgWeeklyHours: number; punctualityPct: number; alerts: number };
   rows: KpiRow[];
 };

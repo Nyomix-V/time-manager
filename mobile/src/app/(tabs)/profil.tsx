@@ -84,7 +84,8 @@ export default function ProfileScreen() {
       )}
       {!pending && lastAnswer && (
         <Banner tone={DECISION_LABELS[lastAnswer.status].tone} icon={lastAnswer.status === 'APPROVED' ? 'check' : 'x'}>
-          Votre demande ({describeRequest(lastAnswer)}) a été {lastAnswer.status === 'APPROVED' ? 'validée' : 'refusée'}.
+          Votre demande ({describeRequest(lastAnswer)}) a été {lastAnswer.status === 'APPROVED' ? 'validée' : 'refusée'}
+          {lastAnswer.decidedBy ? ` par ${fullName(lastAnswer.decidedBy)}` : ''}.
           {lastAnswer.decisionComment ? ` « ${lastAnswer.decisionComment} »` : ''}
         </Banner>
       )}

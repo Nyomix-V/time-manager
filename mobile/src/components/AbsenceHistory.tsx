@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Absence } from '@/api/types';
-import { ABSENCE_LABELS, DECISION_LABELS } from '@/domain/labels';
+import { ABSENCE_LABELS, DECISION_LABELS, fullName } from '@/domain/labels';
 import { addDays, formatDate, formatDateRange } from '@/domain/time';
 import { colors } from '@/theme/tokens';
 import { StateView } from './data';
@@ -75,7 +75,8 @@ function AbsenceItem({ absence, open, onToggle }: { absence: Absence; open: bool
             <Text style={text.muted}>Pas encore de réponse.</Text>
           ) : (
             <Banner tone={absence.status === 'APPROVED' ? 'success' : 'danger'} icon={absence.status === 'APPROVED' ? 'check' : 'x'}>
-              {absence.status === 'APPROVED' ? 'Validée' : 'Refusée'} le {formatDate(new Date(absence.decidedAt!))}
+              {absence.status === 'APPROVED' ? 'Validée' : 'Refusée'}
+              {absence.decidedBy ? ` par ${fullName(absence.decidedBy)}` : ''} le {formatDate(new Date(absence.decidedAt!))}
               {absence.decisionComment ? `\n« ${absence.decisionComment} »` : ''}
             </Banner>
           )}

@@ -9,19 +9,21 @@ import { AbsenceHistory } from '@/components/AbsenceHistory';
 import { BarChart, Kpi, Row, StateView } from '@/components/data';
 import { Chips, DateField, DaysPicker, TextField } from '@/components/forms';
 import { Sheet } from '@/components/Sheet';
-import { Badge, Banner, Button, Card, IconButton, Screen, layout, text } from '@/components/ui';
+import { Badge, Banner, Button, Card, IconButton, LateBadge, Screen, layout, text } from '@/components/ui';
 import { ROLE_LABELS, fullName } from '@/domain/labels';
 import { canManage } from '@/domain/permissions';
 import {
   WEEKDAYS,
   addDays,
   dayKey,
+  excusedDays,
   expectedEndMin,
   formatDay,
   formatDuration,
   formatMinutesOfDay,
   formatTime,
   formatWorkDays,
+  isLate,
   minutesOfDay,
   periodStats,
   planningFields,
@@ -44,12 +46,11 @@ export default function EmployeeScreen() {
   const { data, error, loading, reload, refreshing, refresh } = useQuery(async () => {
     const [user, clocks, teams, absences] = await Promise.all([
       api.users.get(id),
-      api.clocks.list(id),
+      api.clocks.list(id, { from: addDays(startOfDay(new Date()), -35) }),
       api.teams.list(),
       api.absences.listForUser(id),
     ]);
-    const since = addDays(startOfDay(new Date()), -35);
-    return { user, planning: planningOf(user), clocks: clocks.filter((c) => new Date(c.time) >= since), teams, absences };
+    return { user, planning: planningOf(user), clocks, teams, absences, excused: excusedDays(absences) };
   }, [id]);
 
   if (!data) {
@@ -60,19 +61,19 @@ export default function EmployeeScreen() {
     );
   }
 
-  const { user, planning, clocks, teams, absences } = data;
+  const { user, planning, clocks, teams, absences, excused } = data;
   const manageable = canManage(session, user);
   const pendingAbsences = absences.filter((a) => a.status === 'PENDING').length;
   const team = user.team;
   const days = summarizeDays(clocks, planning);
-  const last4Weeks = periodStats(days.filter((d) => d.date >= addDays(startOfDay(new Date()), -28)));
-  const last30Days = periodStats(days.filter((d) => d.date >= addDays(startOfDay(new Date()), -30)));
+  const last4Weeks = periodStats(days.filter((d) => d.date >= addDays(startOfDay(new Date()), -28)), { planning, excused });
+  const last30Days = periodStats(days.filter((d) => d.date >= addDays(startOfDay(new Date()), -30)), { planning, excused });
 
   const weekStart = startOfWeek(new Date());
   const byKey = new Map(days.map((d) => [d.key, d]));
   const bars = WEEKDAYS.slice(0, 5).map((label, i) => {
     const day = byKey.get(dayKey(addDays(weekStart, i)));
-    return { label, value: (day?.workedMinutes ?? 0) / 60, highlight: !!day?.lateMinutes };
+    return { label, value: (day?.workedMinutes ?? 0) / 60, highlight: !!day && isLate(day, excused) };
   });
 
   return (
@@ -138,7 +139,7 @@ export default function EmployeeScreen() {
               right={
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
                   <Text style={text.strong}>{formatDuration(d.workedMinutes)}</Text>
-                  {d.incomplete ? <Badge label="Oubli" tone="danger" /> : d.lateMinutes > 0 ? <Badge label={`+${d.lateMinutes} min`} tone="warning" /> : null}
+                  {d.incomplete ? <Badge label="Oubli" tone="danger" /> : d.lateMinutes > 0 ? <LateBadge minutes={d.lateMinutes} excused={excused.has(d.key)} /> : null}
                 </View>
               }
             />
