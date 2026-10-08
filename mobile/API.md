@@ -6,16 +6,21 @@ L'app appelle le backend NestJS du dépôt (`backend/`). Toutes les routes sont 
 
 | Écran | Routes |
 |---|---|
-| Connexion | `POST /auth/login` |
+| Connexion | `POST /auth/login`, `POST /auth/forgot-password`, `GET /auth/microsoft?client=mobile` (ouvert dans le navigateur) |
 | Pointage | `GET /users/:id` (planning), `GET /clocks/:id?from` (pointages du jour), `POST /clocks/:id/arrive` · `break/start` · `break/end` · `depart` |
 | Mes heures | `GET /users/:id`, `GET /clocks/:id?from&to`, `GET /absences/user/:id` |
 | Absences | `POST /absences`, `GET /absences/user/:id` |
 | Profil | `GET /users/:id`, `GET /account-requests/user/:id`, `POST /account-requests`, `POST /auth/change-password` |
-| Équipe | `GET /users`, `GET /teams`, `GET /kpi/report?from&to&teamId`, `GET /clocks/:id/status` (une fois par salarié) |
-| Fiche salarié | `GET /users/:id`, `GET /clocks/:id?from`, `GET /absences/user/:id`, `GET /teams`, `PUT /users/:id`, `DELETE /users/:id` |
+| Équipe | `GET /users`, `GET /teams`, `GET /kpi/report?from&to&teamId` (30 derniers jours pour les alertes, et période choisie), `GET /clocks/:id/status` (une fois par salarié), `POST /users` |
+| Équipes | `GET /teams`, `GET /users`, `POST /teams`, `PUT /teams/:id`, `DELETE /teams/:id`, `POST` · `DELETE /teams/:id/members/:userId` |
+| Fiche salarié | `GET /users/:id`, `GET /clocks/:id?from&to`, `GET /absences/user/:id`, `GET /teams`, `PUT /users/:id`, `DELETE /users/:id` |
 | Demandes | `GET /absences/pending`, `GET /account-requests/pending`, `PATCH /absences/:id/decision`, `PATCH /account-requests/:id/decision` |
 
-Vérifié le 8 octobre 2026 contre le backend de la branche `fix/backend-regles-securite` (PR #3), en mode démo et contre le vrai backend, avec le même script de contrat : formats, règles de sécurité, refus sans motif, nom du décideur, KPI.
+Vérifié le 8 octobre 2026 contre le backend de `main`, en mode démo et contre le vrai backend, avec le même script de contrat : formats, règles de sécurité, refus sans motif, nom du décideur, KPI, inscription d'un salarié, gestion des équipes, mot de passe oublié.
+
+### Connexion Microsoft
+
+L'app ouvre `GET /auth/microsoft?client=mobile` dans un onglet du navigateur (`expo-web-browser`). Après la connexion chez Microsoft, le backend doit rediriger vers **`timemanager://login?token=<notre JWT>`** (ou `?error=<message>`) au lieu du site : l'onglet se ferme et l'app ouvre la session. Voir `src/auth/microsoft.ts`.
 
 ## Règles communes à l'app et au backend
 
@@ -30,8 +35,9 @@ Vérifié le 8 octobre 2026 contre le backend de la branche `fix/backend-regles-
 1. **Historique des plannings** : changer l'heure d'arrivée d'un salarié recalcule ses retards passés. Il faut garder les plannings avec une date de début de validité.
 2. **Journées calculées** : `GET /workingtimes/:userId?from&to` pourrait renvoyer, par jour, `{ date, arrival, departure, workedMinutes, breakMinutes, lateMinutes, excused }`. Aujourd'hui l'app recalcule ces valeurs à partir des pointages (`src/domain/time.ts`), avec les mêmes règles.
 3. **Présence de l'équipe en un appel** : `GET /presence` → `[{ userId, state, since, lateMinutes, absent }]`. L'app fait aujourd'hui un appel `GET /clocks/:id/status` par salarié, et ne peut pas afficher « absent » ni « en retard aujourd'hui ».
-4. **Connexion Microsoft** : encore un commentaire dans `auth.controller.ts`.
-5. **Envoi du justificatif** : `attachmentPath` est une chaîne ; l'envoi du fichier lui-même n'existe pas encore.
-6. **Intégration continue** (GitHub Actions) : build, tests, analyse de sécurité, couverture.
+4. **Connexion Microsoft depuis l'app** : le retour vers l'app (`client=mobile` → `timemanager://login`) est proposé dans une PR backend, en plus des corrections de sécurité prévues sur le SSO (vérification de `state`, tenant de l'entreprise, comptes désactivés).
+5. **Envoi des emails** : activation du compte et mot de passe oublié. Aucun email n'est envoyé ; le manager partage le lien d'activation depuis l'app.
+6. **Envoi du justificatif** : `attachmentPath` est une chaîne ; l'envoi du fichier lui-même n'existe pas encore.
+7. **Intégration continue** (GitHub Actions) : build, tests, analyse de sécurité, couverture.
 
 Fait dans la PR #3 : routes limitées au périmètre de chacun, calculs à l'heure de Paris, absence validée = retard excusé, pointages à la milliseconde, changement de jour, motif de refus obligatoire, nom du décideur, filtre par dates sur les pointages, KPI corrigés, messages d'erreur en français, tests des routes.

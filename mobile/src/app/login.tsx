@@ -4,6 +4,8 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { signInWithMicrosoft } from '@/auth/microsoft';
+import { ForgotPasswordSheet } from '@/components/ForgotPasswordSheet';
 import { Badge, Button } from '@/components/ui';
 import { MOCK } from '@/lib/config';
 import { MOCK_ACCOUNTS, MOCK_PASSWORD } from '@/mock/data';
@@ -11,11 +13,13 @@ import { colors, radius, space } from '@/theme/tokens';
 
 // Maquette : docs/maquettes/mobile/m01-connexion.html
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithToken } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [microsoftLoading, setMicrosoftLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   async function submit(credentials = { email: email.trim(), password }) {
     setError(null);
@@ -26,6 +30,24 @@ export default function LoginScreen() {
       setError(e instanceof Error ? e.message : 'Connexion impossible.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  // Connexion Microsoft : la page de Microsoft s'ouvre dans le navigateur, le backend renvoie ensuite vers l'app avec notre jeton.
+  async function microsoft() {
+    setError(null);
+    if (MOCK) {
+      setError('Mode démo : la connexion Microsoft passe par le vrai backend, elle n’est pas simulée.');
+      return;
+    }
+    setMicrosoftLoading(true);
+    try {
+      const token = await signInWithMicrosoft();
+      if (token) await signInWithToken(token);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Connexion Microsoft impossible.');
+    } finally {
+      setMicrosoftLoading(false);
     }
   }
 
@@ -66,8 +88,14 @@ export default function LoginScreen() {
             </View>
           )}
 
-          {/* La connexion Microsoft attend l'implémentation côté backend (routes /auth/microsoft). */}
-          <Button label="Se connecter avec Microsoft" variant="secondary" disabled onPress={() => {}} />
+          <Button
+            label="Se connecter avec Microsoft"
+            variant="secondary"
+            icon="log-in"
+            loading={microsoftLoading}
+            disabled={loading}
+            onPress={microsoft}
+          />
           <Text style={styles.divider}>ou avec votre email</Text>
 
           <View style={styles.field}>
@@ -110,7 +138,9 @@ export default function LoginScreen() {
           )}
 
           <Button label="Se connecter" onPress={() => submit()} loading={loading} disabled={!email || !password} large />
+          <Button label="Mot de passe oublié ?" variant="ghost" onPress={() => setForgotOpen(true)} />
         </ScrollView>
+        <ForgotPasswordSheet key={`forgot-${forgotOpen}`} visible={forgotOpen} initialEmail={email.trim()} onClose={() => setForgotOpen(false)} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
