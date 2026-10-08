@@ -26,7 +26,7 @@ import {
   minutesToTime,
 } from '@/lib/format';
 import { isWorkingDay, plannedEndMin, weeklyHours } from '@/lib/planning';
-import { monthRange, weekRange } from '@/lib/period';
+import { dayRange, monthRange, weekRange } from '@/lib/period';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/PageHeader';
 import { KpiCard } from '@/components/KpiCard';
@@ -41,7 +41,7 @@ import { Alert } from '@/components/ui/alert';
 export function ClockPage() {
   const user = useCurrentUser();
   const now = useNow();
-  const clocks = useClocks(user.id);
+  const clocks = useClocks(user.id, dayRange(now));
   const action = useClockAction(user.id);
   const week = useWorkingTimes(user.id, weekRange(now));
   const month = useWorkingTimes(user.id, monthRange(now));

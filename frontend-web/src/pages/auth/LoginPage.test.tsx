@@ -55,7 +55,7 @@ describe('LoginPage', () => {
       statusText: '',
       headers: {},
       config: { headers: new AxiosHeaders() },
-      data: { message: 'Invalid credentials' },
+      data: { message: 'Email ou mot de passe incorrect' },
     });
     login.mockImplementation(async () => {
       throw error;
@@ -64,7 +64,7 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByLabelText('Adresse email'), 'employee@trinity.io');
     await userEvent.type(screen.getByLabelText('Mot de passe'), 'wrong');
     await userEvent.click(screen.getByRole('button', { name: 'Se connecter' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Email ou mot de passe incorrect.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Email ou mot de passe incorrect');
   });
 
   it('toggles password visibility', async () => {

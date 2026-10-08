@@ -82,7 +82,6 @@ Les calculs métier (heures travaillées, pauses, retards, heures sup, résumé 
 | `GET /auth/microsoft` (+ callback) | Connexion | Après le callback : poser le cookie de refresh puis rediriger vers `/` |
 
 Améliorations utiles :
-- `GET /absences/pending` et `GET /account-requests/pending` renvoient **toutes les branches** : le front filtre sur la branche du manager, mais le back devrait le faire (sécurité).
 - Un historique des demandes traitées pour un périmètre (aujourd'hui, l'onglet « Traitées » charge les demandes salarié par salarié).
-- `GET /clocks?date=` pour l'écran admin des pointages (même problème).
+- `GET /clocks?date=` (tous les pointages d'un jour) pour l'écran admin des pointages, qui charge aujourd'hui les pointages personne par personne.
 - L'envoi des emails (activation, mot de passe oublié) : en attendant, le lien d'activation est affiché au manager après la création, et le lien de réinitialisation n'apparaît qu'en développement.

@@ -12,14 +12,18 @@ function httpError(status: number, message?: string | string[]) {
 }
 
 describe('getErrorMessage', () => {
-  it('translates bad credentials', () => {
-    expect(getErrorMessage(httpError(401, 'Invalid credentials'))).toBe('Email ou mot de passe incorrect.');
+  it('shows the business message of the backend as is', () => {
+    expect(getErrorMessage(httpError(401, 'Email ou mot de passe incorrect'))).toBe(
+      'Email ou mot de passe incorrect',
+    );
   });
-  it('explains a non-activated account', () => {
-    expect(getErrorMessage(httpError(401, 'Account not activated'))).toMatch(/Compte non activé/);
+  it('falls back to a generic text for a bare 401', () => {
+    expect(getErrorMessage(httpError(401, 'Unauthorized'))).toBe('Session expirée.');
   });
   it('turns a refused clock transition into a readable message', () => {
-    expect(getErrorMessage(httpError(400, 'Invalid transition: last=IN next=IN'))).toMatch(/déjà été fait/);
+    expect(
+      getErrorMessage(httpError(400, 'Pointage impossible maintenant (dernier : IN, demandé : IN)')),
+    ).toMatch(/déjà été fait/);
   });
   it('joins NestJS validation messages', () => {
     expect(getErrorMessage(httpError(400, ['email must be an email', 'password too short']))).toBe(
@@ -30,7 +34,7 @@ describe('getErrorMessage', () => {
     expect(getErrorMessage(httpError(404, 'Cannot GET /teams'))).toMatch(/pas encore disponible/);
   });
   it('keeps a real "not found" message', () => {
-    expect(getErrorMessage(httpError(404, 'User not found'))).toBe('User not found');
+    expect(getErrorMessage(httpError(404, 'Utilisateur introuvable'))).toBe('Utilisateur introuvable');
   });
   it('handles network errors', () => {
     expect(getErrorMessage(new AxiosError('Network Error'))).toMatch(/injoignable/);

@@ -3,10 +3,11 @@ import { differenceInCalendarDays } from 'date-fns';
 import { Check, Edit3, Info, X } from 'lucide-react';
 import { useCurrentUser } from '@/auth/AuthProvider';
 import { useUsers } from '@/api/users';
+import { useTeams } from '@/api/teams';
 import { useAbsencesOf, useDecideAbsence } from '@/api/absences';
 import { useDecideRequest, useRequestsOf } from '@/api/accountRequests';
 import { getErrorMessage } from '@/api/client';
-import type { Absence, AccountRequest, RequestStatus, User } from '@/api/types';
+import type { Absence, AccountRequest, Requester, RequestStatus } from '@/api/types';
 import { usePendingInbox } from '@/hooks/usePendingInbox';
 import { formatDateTime, fullName } from '@/lib/format';
 import { ABSENCE_LABELS, formatAbsenceRange } from '@/lib/absences';
@@ -26,11 +27,18 @@ import { Segmented } from '@/components/ui/segmented';
 import { Dialog, DialogActions, DialogClose, DialogContent } from '@/components/ui/dialog';
 
 type Item =
-  | { kind: 'absence'; id: string; user: User; createdAt: string; status: RequestStatus; absence: Absence }
+  | {
+      kind: 'absence';
+      id: string;
+      user: Requester;
+      createdAt: string;
+      status: RequestStatus;
+      absence: Absence;
+    }
   | {
       kind: 'request';
       id: string;
-      user: User;
+      user: Requester;
       createdAt: string;
       status: RequestStatus;
       request: AccountRequest;
@@ -55,12 +63,16 @@ export function RequestsPage() {
   const inbox = usePendingInbox();
   // History: the backend only lists pending items globally, decided ones are read user by user.
   const users = useUsers();
+  const teams = useTeams();
+  const teamName = new Map(teams.data?.map((t) => [t.id, t.name]));
   const others = (users.data ?? []).filter((u) => u.id !== me.id).map((u) => u.id);
   const absenceHistory = useAbsencesOf(others, tab === 'done');
   const requestHistory = useRequestsOf(others, tab === 'done');
 
   const items = useMemo<Item[]>(() => {
-    const byId = new Map(users.data?.map((u) => [u.id, u]));
+    const byId = new Map<string, Requester>(
+      users.data?.map((u) => [u.id, { ...u, phone: u.phone ?? null, teamId: u.teamId ?? null }]),
+    );
     const toItems = (absences: Absence[], requests: AccountRequest[]): Item[] => [
       ...absences.flatMap((a): Item[] => {
         const user = a.user ?? byId.get(a.userId);
@@ -148,7 +160,7 @@ export function RequestsPage() {
                     <Person
                       firstName={item.user.firstName}
                       lastName={item.user.lastName}
-                      sub={item.user.team?.name ?? item.user.email}
+                      sub={item.user.teamId ? teamName.get(item.user.teamId) : 'Sans équipe'}
                     />
                   </Td>
                   <Td>
@@ -156,11 +168,7 @@ export function RequestsPage() {
                   </Td>
                   <Td>
                     <Detail item={item} />
-                    {tab === 'done' && decisionOf(item).decisionComment && (
-                      <p className="mt-1 text-xs text-muted">
-                        Réponse : « {decisionOf(item).decisionComment} »
-                      </p>
-                    )}
+                    {tab === 'done' && <DecisionNote item={item} />}
                   </Td>
                   <Td className="text-muted">{formatDateTime(item.createdAt)}</Td>
                   <Td>
@@ -195,6 +203,17 @@ export function RequestsPage() {
 
       {deciding && <DecisionDialog {...deciding} onClose={() => setDeciding(null)} />}
     </>
+  );
+}
+
+function DecisionNote({ item }: { item: Item }) {
+  const { decidedBy, decisionComment } = decisionOf(item);
+  if (!decidedBy && !decisionComment) return null;
+  return (
+    <p className="mt-1 text-xs text-muted">
+      {decidedBy && `Par ${decidedBy.firstName} ${decidedBy.lastName}`}
+      {decisionComment && ` : « ${decisionComment} »`}
+    </p>
   );
 }
 

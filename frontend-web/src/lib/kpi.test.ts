@@ -12,16 +12,19 @@ const row = (over: Partial<KpiRow>): KpiRow => ({
   breakMinutes: 0,
   lateDays: 0,
   lateAlert: false,
+  workedDays: 0,
+  weeklyHours: 0,
   ...over,
 });
 
 describe('summarizeRows (same formulas as the backend KPI summary)', () => {
-  it('computes weekly average, punctuality and alerts', () => {
+  it('averages weekly hours over people who worked, punctuality over worked days', () => {
     const s = summarizeRows([
-      row({ userId: 'a', avgDailyHours: 7 }),
-      row({ userId: 'b', avgDailyHours: 6, lateAlert: true }),
+      row({ userId: 'a', workedDays: 10, weeklyHours: 35, lateDays: 1 }),
+      row({ userId: 'b', workedDays: 10, weeklyHours: 30, lateDays: 4, lateAlert: true }),
+      row({ userId: 'c' }), // did not work: excluded from the average, still counted as a person
     ]);
-    expect(s).toEqual({ people: 2, avgWeeklyHours: 32.5, punctualityPct: 50, alerts: 1 });
+    expect(s).toEqual({ people: 3, avgWeeklyHours: 32.5, punctualityPct: 75, alerts: 1 });
   });
 
   it('is neutral for an empty group', () => {

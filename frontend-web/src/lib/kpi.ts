@@ -8,11 +8,15 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
  * team line and the dashboard header never disagree.
  */
 export function summarizeRows(rows: KpiRow[]): KpiSummary {
+  const active = rows.filter((r) => r.workedDays > 0);
+  const workedDays = rows.reduce((s, r) => s + r.workedDays, 0);
+  const lateDays = rows.reduce((s, r) => s + r.lateDays, 0);
   return {
     people: rows.length,
-    avgWeeklyHours: round2(rows.reduce((s, r) => s + r.avgDailyHours * 5, 0) / Math.max(1, rows.length)),
-    punctualityPct:
-      rows.length === 0 ? 100 : Math.round((rows.filter((r) => !r.lateAlert).length / rows.length) * 100),
+    // Average weekly hours of the people who worked over the period.
+    avgWeeklyHours: round2(active.reduce((s, r) => s + r.weeklyHours, 0) / Math.max(1, active.length)),
+    // Share of worked days started on time (100 when nobody worked).
+    punctualityPct: workedDays === 0 ? 100 : Math.round((1 - lateDays / workedDays) * 100),
     alerts: rows.filter((r) => r.lateAlert).length,
   };
 }

@@ -32,7 +32,7 @@ export function KpiCards({
         label="Taux de ponctualité"
         icon={TrendingUp}
         value={`${summary.punctualityPct} %`}
-        hint="Part des salariés sous le seuil de retards"
+        hint="Part des jours travaillés commencés à l'heure"
       >
         <PunctualityBar pct={summary.punctualityPct} />
       </KpiCard>

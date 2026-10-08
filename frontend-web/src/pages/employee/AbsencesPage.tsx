@@ -185,6 +185,7 @@ export function AbsencesPage() {
                             <div className="flex flex-col gap-1.5 rounded-md border border-border bg-white px-3.5 py-3">
                               <strong>
                                 {a.status === 'APPROVED' ? 'Validée' : 'Refusée'}
+                                {a.decidedBy && ` par ${a.decidedBy.firstName} ${a.decidedBy.lastName}`}
                                 {a.decidedAt && ` le ${formatDateTime(a.decidedAt)}`}
                               </strong>
                               {a.decisionComment && <p>« {a.decisionComment} »</p>}

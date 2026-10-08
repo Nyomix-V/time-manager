@@ -69,28 +69,28 @@ api.interceptors.response.use(
   },
 );
 
-/** Human-readable message from a NestJS error (the backend writes its business messages in French) (`message` can be a string or a list from ValidationPipe). */
+/**
+ * Human-readable message from a NestJS error. The backend writes its business
+ * messages in French ("Email ou mot de passe incorrect"…), so they are shown as is;
+ * `message` can also be a list (ValidationPipe).
+ */
 export function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     if (!error.response) return 'Serveur injoignable. Vérifiez votre connexion.';
     const data = error.response.data as { message?: string | string[] } | undefined;
     const msg = Array.isArray(data?.message) ? data.message.join(', ') : data?.message;
-    if (msg && MESSAGES[msg]) return MESSAGES[msg];
-    if (msg?.startsWith('Invalid transition'))
+    const status = error.response.status;
+    // The clock state machine refused the action (double click, other tab): the page refreshes itself.
+    if (msg?.startsWith('Pointage impossible'))
       return 'Ce pointage a déjà été fait. La page a été mise à jour.';
-    switch (error.response.status) {
-      case 401:
-        return 'Session expirée.';
-      case 403:
-        return "Vous n'avez pas les droits pour cette action.";
-      case 404:
-        // Nest answers "Cannot GET /x" for a route that does not exist (yet).
-        return msg && !msg.startsWith('Cannot ')
-          ? msg
-          : "Cette fonctionnalité n'est pas encore disponible côté serveur.";
-      default:
-        return msg ?? `Erreur serveur (${error.response.status}).`;
+    // Nest answers "Cannot GET /x" (in English) for a route that does not exist.
+    if (status === 404 && (!msg || msg.startsWith('Cannot '))) {
+      return "Cette fonctionnalité n'est pas encore disponible côté serveur.";
     }
+    if (msg && msg !== 'Unauthorized' && msg !== 'Forbidden resource') return msg;
+    if (status === 401) return 'Session expirée.';
+    if (status === 403) return "Vous n'avez pas les droits pour cette action.";
+    return `Erreur serveur (${status}).`;
   }
   return error instanceof Error ? error.message : 'Erreur inattendue.';
 }

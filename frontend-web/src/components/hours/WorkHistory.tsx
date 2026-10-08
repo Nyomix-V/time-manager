@@ -34,7 +34,7 @@ export function WorkHistory({
   exportName: string;
 }) {
   const summary = useWorkingTimes(userId, range);
-  const clocks = useClocks(userId);
+  const clocks = useClocks(userId, range);
   const dailyTarget = planning.workMinutesPerDay / 60;
   const weeklyTarget = weeklyHours(planning);
 

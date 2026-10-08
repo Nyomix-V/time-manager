@@ -29,7 +29,10 @@ export function useClocks(userId: string | undefined, range?: DateRange) {
 /** Clock events of several users (one request each — only for the rows currently displayed). */
 export function useClocksOf(userIds: string[], range?: DateRange) {
   return useQueries({
-    queries: userIds.map((id) => ({ queryKey: clockKeys.list(id, range), queryFn: () => fetchClocks(id, range) })),
+    queries: userIds.map((id) => ({
+      queryKey: clockKeys.list(id, range),
+      queryFn: () => fetchClocks(id, range),
+    })),
     combine: (results) => {
       const byUser = new Map<string, Clock[]>();
       results.forEach((r, i) => r.data && byUser.set(userIds[i], r.data));

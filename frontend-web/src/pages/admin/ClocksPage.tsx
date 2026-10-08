@@ -41,7 +41,7 @@ export function ClocksPage() {
     .sort((a, b) => a.lastName.localeCompare(b.lastName));
   const pagination = usePagination(filtered, PAGE_SIZE);
   const ids = pagination.visible.map((u) => u.id);
-  const clocks = useClocksOf(ids);
+  const clocks = useClocksOf(ids, range);
   const hours = useWorkingTimesOf(ids, range);
 
   const rows = pagination.visible.map((u) => {
