@@ -62,7 +62,7 @@ function usePendingCount(enabled: boolean) {
     if (!enabled) return;
     let alive = true;
     const load = () =>
-      Promise.all([api.absences.listPending(), api.profileRequests.listPending()])
+      Promise.all([api.absences.listPending(), api.accountRequests.listPending()])
         .then(([absences, requests]) => alive && setCount(absences.length + requests.length))
         .catch(() => {});
     load();

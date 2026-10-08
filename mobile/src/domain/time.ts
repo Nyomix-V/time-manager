@@ -1,7 +1,26 @@
 // Calculs d'heures : fonctions pures, utilisées par les écrans ET par le faux backend du mode démo,
 // pour que les chiffres soient toujours calculés de la même façon.
 // Tout est en heure LOCALE du téléphone (le backend actuel calcule en UTC, voir mobile/API.md).
-import type { Clock, ClockStatus, Planning } from '@/api/types';
+import type { Clock, ClockType, User } from '@/api/types';
+
+/** Planning d'un salarié. workDays : 1 = lundi … 7 = dimanche. La fin de journée se calcule, elle n'est pas stockée. */
+export type Planning = { workDays: number[]; startMin: number; dailyMinutes: number; breakMinutes: number };
+
+/** Le backend stocke le planning sur l'utilisateur. */
+export const planningOf = (u: User): Planning => ({
+  workDays: u.workingDays.split(',').map(Number).filter((d) => d >= 1 && d <= 7),
+  startMin: u.expectedStartMin,
+  dailyMinutes: u.workMinutesPerDay,
+  breakMinutes: u.breakMinutes,
+});
+
+/** Planning au format du backend, pour PUT /users/:id. */
+export const planningFields = (p: Planning) => ({
+  workingDays: [...p.workDays].sort().join(','),
+  expectedStartMin: p.startMin,
+  workMinutesPerDay: p.dailyMinutes,
+  breakMinutes: p.breakMinutes,
+});
 
 // Un retard commence dès la première minute après l'heure prévue.
 export const LATE_TOLERANCE_MIN = 0;
@@ -54,7 +73,7 @@ export const formatWorkDays = (days: number[]) => [...days].sort().map((d) => WE
 export type WorkState = 'NOT_STARTED' | 'WORKING' | 'ON_BREAK' | 'DONE';
 
 export function workState(dayClocks: Clock[]): WorkState {
-  switch (sortClocks(dayClocks).at(-1)?.status) {
+  switch (sortClocks(dayClocks).at(-1)?.type) {
     case 'IN':
     case 'BREAK_END':
       return 'WORKING';
@@ -67,12 +86,13 @@ export function workState(dayClocks: Clock[]): WorkState {
   }
 }
 
-// Pointages autorisés depuis chaque état. Pendant une pause, on ne peut que la terminer.
-export const NEXT_CLOCKS: Record<WorkState, ClockStatus[]> = {
+// Pointages autorisés depuis chaque état (mêmes règles que ClocksService.allowed dans le backend).
+// Pendant une pause, on ne peut que la terminer ; après un départ, une nouvelle arrivée est possible.
+export const NEXT_CLOCKS: Record<WorkState, ClockType[]> = {
   NOT_STARTED: ['IN'],
   WORKING: ['BREAK_START', 'OUT'],
   ON_BREAK: ['BREAK_END'],
-  DONE: [],
+  DONE: ['IN'],
 };
 
 // ---- Résumé d'une journée ----
@@ -104,14 +124,14 @@ export function summarizeDay(dayClocks: Clock[], planning: Planning | null, now 
 
   for (const clock of clocks) {
     const t = new Date(clock.time);
-    if (clock.status === 'IN') {
+    if (clock.type === 'IN') {
       arrival ??= t;
       workStart = t;
-    } else if (clock.status === 'BREAK_START') {
+    } else if (clock.type === 'BREAK_START') {
       if (workStart) worked += t.getTime() - workStart.getTime();
       workStart = null;
       breakStart = t;
-    } else if (clock.status === 'BREAK_END') {
+    } else if (clock.type === 'BREAK_END') {
       if (breakStart) breaks += t.getTime() - breakStart.getTime();
       breakStart = null;
       workStart = t;

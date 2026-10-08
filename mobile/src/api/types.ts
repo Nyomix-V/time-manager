@@ -1,91 +1,108 @@
-// Formats échangés avec l'API.
-// Ce qui existe déjà dans le backend garde ses noms de champs ; les ajouts sont marqués « NOUVEAU »
-// et décrits dans mobile/API.md pour l'équipe backend.
+// Formats échangés avec l'API : copie fidèle des entités du backend (backend/src/entities).
+// Le faux backend du mode démo (src/mock) renvoie exactement ces formats.
 import type { Role } from '@/auth/session';
 
 export type { Role };
+
+export type UserStatus = 'INVITED' | 'ACTIVE' | 'DISABLED';
+
+export type Branch = { id: string; name: string; description?: string | null };
+
+export type Team = {
+  id: string;
+  name: string;
+  description?: string | null;
+  branchId: string;
+  managerId?: string | null;
+  manager?: User | null;
+  members?: User[];
+};
 
 export type User = {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
-  phone: string | null;
+  phone?: string | null;
+  msOid?: string | null;
   role: Role;
-  branchId: string | null;
-  teamId: string | null; // NOUVEAU : équipe du salarié (null = sans équipe)
-  microsoftLinked: boolean; // NOUVEAU
-};
-
-export type Branch = { id: string; name: string };
-
-// NOUVEAU : les équipes n'existent pas encore côté backend (exigées par le sujet).
-export type Team = { id: string; name: string; description: string; branchId: string; managerId: string | null };
-
-// IN / OUT existent ; BREAK_START / BREAK_END sont NOUVEAUX (pointage des pauses).
-export type ClockStatus = 'IN' | 'OUT' | 'BREAK_START' | 'BREAK_END';
-export type Clock = { id: string; userId: string; status: ClockStatus; time: string };
-
-// NOUVEAU : planning d'un salarié. workDays : 1 = lundi … 7 = dimanche.
-// La fin de journée n'est pas stockée : elle se calcule (début + travail + pause).
-export type Planning = {
-  userId: string;
-  workDays: number[];
-  startMin: number; // minutes depuis minuit (540 = 09:00)
-  dailyMinutes: number;
+  status: UserStatus;
+  branchId?: string | null;
+  teamId?: string | null; // null = sans équipe
+  team?: Team | null;
+  branch?: Branch | null;
+  // Planning, fixé par le manager. workingDays : jours ISO séparés par des virgules ("1,2,3,4,5" = lun → ven).
+  workingDays: string;
+  expectedStartMin: number; // arrivée prévue, en minutes depuis minuit (540 = 09:00)
+  workMinutesPerDay: number;
   breakMinutes: number;
 };
 
-export type DecisionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+/** Champs modifiables par un manager (PUT /users/:id). */
+export type UserUpdate = Partial<
+  Pick<User, 'firstName' | 'lastName' | 'email' | 'phone' | 'teamId' | 'workingDays' | 'expectedStartMin' | 'workMinutesPerDay' | 'breakMinutes'>
+>;
+
+export type ClockType = 'IN' | 'OUT' | 'BREAK_START' | 'BREAK_END';
+export type Clock = { id: string; userId: string; time: string; type: ClockType };
+
+/** GET /clocks/:userId/status */
+export type ClockStatus = { state: 'OUT' | 'WORKING' | 'ON_BREAK'; since: string | null };
+
+export type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 type Decision = {
-  status: DecisionStatus;
+  status: RequestStatus;
+  decidedById?: string | null;
+  decisionComment?: string | null;
+  decidedAt?: string | null;
   createdAt: string;
-  decidedBy: string | null; // NOUVEAU
-  decidedByName: string | null; // NOUVEAU : un employé ne peut pas lire la fiche de son manager
-  decidedAt: string | null; // NOUVEAU
-  decisionComment: string | null; // NOUVEAU : commentaire, obligatoire en cas de refus
 };
 
-export type AbsenceType = 'SICK_LEAVE' | 'MEDICAL' | 'LEAVE' | 'FORGOTTEN_CLOCK' | 'OTHER';
+export type AbsenceType = 'SICK' | 'MEDICAL' | 'LEAVE' | 'MISSED_CLOCK' | 'OTHER';
 
 export type Absence = Decision & {
   id: string;
   userId: string;
-  type: AbsenceType; // NOUVEAU
+  type: AbsenceType;
   startDate: string;
   endDate: string;
-  reason: string; // commentaire libre du salarié
-  attachmentName: string | null; // NOUVEAU : justificatif
+  comment?: string | null;
+  attachmentPath?: string | null;
+  user?: User; // présent dans GET /absences/pending
 };
 
-// NOUVEAU : demandes de modification d'informations ou de suppression de compte.
-// Un salarié n'a qu'une demande en attente à la fois.
-export type ProfileField = 'firstName' | 'lastName' | 'email' | 'phone';
+export type AccountRequestType = 'INFO_CHANGE' | 'DELETION';
+/** Champs qu'un employé peut demander à modifier (le backend refuse les autres). */
+export type EditableField = 'phone' | 'firstName' | 'lastName';
 
-export type ProfileRequest = Decision & {
+export type AccountRequest = Decision & {
   id: string;
   userId: string;
-  kind: 'UPDATE' | 'DELETE';
-  field: ProfileField | null;
-  currentValue: string | null;
-  newValue: string | null;
-  reason: string | null;
+  type: AccountRequestType;
+  field?: EditableField | null;
+  newValue?: string | null;
+  reason?: string | null;
+  user?: User; // présent dans GET /account-requests/pending
 };
 
-// NOUVEAU : statut en direct des salariés (écran Équipe du manager).
-export type PresenceState = 'NOT_STARTED' | 'WORKING' | 'ON_BREAK' | 'DONE' | 'ABSENT' | 'OFF_DAY';
-export type Presence = { userId: string; state: PresenceState; since: string | null; lateMinutes: number };
-
-// GET /kpi/report existe ; workedDays est NOUVEAU (nécessaire au taux de ponctualité).
 export type KpiRow = {
   userId: string;
   name: string;
+  branchId?: string | null;
+  teamId?: string | null;
   totalHours: number;
-  overtimeHours: number;
   avgDailyHours: number;
+  overtimeHours: number;
+  breakMinutes: number;
   lateDays: number;
   lateAlert: boolean;
-  workedDays: number;
 };
-export type KpiReport = { from: string | null; to: string | null; rows: KpiRow[] };
+
+export type KpiReport = {
+  from: string | null;
+  to: string | null;
+  teamId?: string | null;
+  summary: { people: number; avgWeeklyHours: number; punctualityPct: number; alerts: number };
+  rows: KpiRow[];
+};

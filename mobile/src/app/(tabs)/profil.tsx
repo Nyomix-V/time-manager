@@ -2,22 +2,22 @@ import { useState } from 'react';
 import { Alert, Text, View } from 'react-native';
 
 import { api } from '@/api';
-import type { ProfileField, ProfileRequest, User } from '@/api/types';
+import type { AccountRequest, EditableField, User } from '@/api/types';
 import { useAuth, useSession } from '@/auth/AuthProvider';
 import { Avatar, ProgressBar, Row, RowIcon, StateView } from '@/components/data';
 import { Chips, TextField } from '@/components/forms';
 import { Sheet } from '@/components/Sheet';
 import { Badge, Banner, Button, Card, Screen, layout, text } from '@/components/ui';
 import { DECISION_LABELS, FIELD_LABELS, ROLE_LABELS, fullName } from '@/domain/labels';
-import { addDays, expectedEndMin, formatDate, formatDuration, formatMinutesOfDay, formatWorkDays } from '@/domain/time';
+import { addDays, expectedEndMin, formatDate, formatDuration, formatMinutesOfDay, formatWorkDays, planningOf } from '@/domain/time';
 import { useQuery } from '@/hooks/useQuery';
 import { errorMessage } from '@/lib/api';
 import { colors } from '@/theme/tokens';
 
 // Maquette : docs/maquettes/mobile/m05-profil.html
 // Les informations sont en lecture seule : on demande une modification, que le responsable valide.
-// Une seule demande en attente à la fois.
-type OpenSheet = 'update' | 'delete' | 'password' | null;
+// Une seule demande en attente à la fois (règle du backend : AccountRequestsService.create).
+type OpenSheet = 'change' | 'delete' | 'password' | null;
 
 export default function ProfileScreen() {
   const session = useSession();
@@ -25,13 +25,8 @@ export default function ProfileScreen() {
   const [sheet, setSheet] = useState<OpenSheet>(null);
 
   const { data, error, loading, reload, refreshing, refresh } = useQuery(async () => {
-    const [user, planning, requests, teams] = await Promise.all([
-      api.users.get(session.userId),
-      api.plannings.get(session.userId),
-      api.profileRequests.listForUser(session.userId),
-      api.teams.list(),
-    ]);
-    return { user, planning, requests, teams };
+    const [user, requests] = await Promise.all([api.users.get(session.userId), api.accountRequests.listForUser(session.userId)]);
+    return { user, requests };
   }, [session.userId]);
 
   if (!data) {
@@ -42,11 +37,11 @@ export default function ProfileScreen() {
     );
   }
 
-  const { user, planning, requests } = data;
+  const { user, requests } = data;
+  const planning = planningOf(user);
   const pending = requests.find((r) => r.status === 'PENDING');
   // Réponse récente (moins de 7 jours) à la dernière demande.
   const lastAnswer = requests.find((r) => r.status !== 'PENDING' && r.decidedAt && new Date(r.decidedAt) > addDays(new Date(), -7));
-  const team = data.teams.find((t) => t.id === user.teamId);
 
   const confirmSignOut = () =>
     Alert.alert('Se déconnecter ?', undefined, [
@@ -62,16 +57,17 @@ export default function ProfileScreen() {
           <Text style={[text.h2, { fontSize: 18 }]}>{fullName(user)}</Text>
           <Text style={text.muted}>
             {ROLE_LABELS[user.role]}
-            {team ? ` · ${team.name}` : ''}
+            {user.team ? ` · ${user.team.name}` : ''}
+            {user.branch ? ` · ${user.branch.name}` : ''}
           </Text>
-          {user.microsoftLinked && <Text style={text.small}>Compte Microsoft lié</Text>}
+          {!!user.msOid && <Text style={text.small}>Compte Microsoft lié</Text>}
         </View>
       </Card>
 
       <Card style={{ gap: 0, paddingVertical: 4 }}>
         <Row first left={<RowIcon name="mail" />} title={user.email} subtitle="Email" />
-        <Row left={<RowIcon name="phone" />} title={user.phone ?? 'Non renseigné'} subtitle="Téléphone" />
-        {planning && (
+        <Row left={<RowIcon name="phone" />} title={user.phone || 'Non renseigné'} subtitle="Téléphone" />
+        {session.role !== 'ADMIN' && (
           <Row
             left={<RowIcon name="calendar" />}
             title={`${formatMinutesOfDay(planning.startMin)} → ${formatMinutesOfDay(expectedEndMin(planning))} · ${formatDuration(planning.dailyMinutes)} / jour`}
@@ -88,8 +84,8 @@ export default function ProfileScreen() {
       )}
       {!pending && lastAnswer && (
         <Banner tone={DECISION_LABELS[lastAnswer.status].tone} icon={lastAnswer.status === 'APPROVED' ? 'check' : 'x'}>
-          Votre demande ({describeRequest(lastAnswer)}) a été {lastAnswer.status === 'APPROVED' ? 'validée' : 'refusée'} par{' '}
-          {lastAnswer.decidedByName ?? 'votre responsable'}.{lastAnswer.decisionComment ? ` « ${lastAnswer.decisionComment} »` : ''}
+          Votre demande ({describeRequest(lastAnswer)}) a été {lastAnswer.status === 'APPROVED' ? 'validée' : 'refusée'}.
+          {lastAnswer.decisionComment ? ` « ${lastAnswer.decisionComment} »` : ''}
         </Banner>
       )}
 
@@ -100,7 +96,7 @@ export default function ProfileScreen() {
           title="Demander une modification"
           subtitle={pending ? 'Indisponible : une demande est en attente' : 'Votre responsable la validera'}
           disabled={!!pending}
-          onPress={() => setSheet('update')}
+          onPress={() => setSheet('change')}
         />
         <Row left={<RowIcon name="lock" />} title="Changer mon mot de passe" onPress={() => setSheet('password')} />
         <Row left={<RowIcon name="log-out" />} title="Se déconnecter" onPress={confirmSignOut} />
@@ -115,21 +111,21 @@ export default function ProfileScreen() {
         onPress={() => setSheet('delete')}
       />
 
-      <UpdateSheet visible={sheet === 'update'} user={user} onClose={() => setSheet(null)} onDone={reload} />
+      <ChangeSheet visible={sheet === 'change'} user={user} onClose={() => setSheet(null)} onDone={reload} />
       <DeleteSheet visible={sheet === 'delete'} onClose={() => setSheet(null)} onDone={reload} />
       <PasswordSheet visible={sheet === 'password'} onClose={() => setSheet(null)} />
     </Screen>
   );
 }
 
-function describeRequest(r: ProfileRequest) {
-  return r.kind === 'DELETE' ? 'suppression du compte' : `${FIELD_LABELS[r.field!]} → ${r.newValue}`;
+function describeRequest(r: AccountRequest) {
+  return r.type === 'DELETION' ? 'suppression du compte' : `${r.field ? FIELD_LABELS[r.field] : 'information'} → ${r.newValue}`;
 }
 
-const FIELDS = (Object.keys(FIELD_LABELS) as ProfileField[]).map((value) => ({ value, label: FIELD_LABELS[value] }));
+const FIELDS = (Object.keys(FIELD_LABELS) as EditableField[]).map((value) => ({ value, label: FIELD_LABELS[value] }));
 
-function UpdateSheet({ visible, user, onClose, onDone }: { visible: boolean; user: User; onClose: () => void; onDone: () => void }) {
-  const [field, setField] = useState<ProfileField>('phone');
+function ChangeSheet({ visible, user, onClose, onDone }: { visible: boolean; user: User; onClose: () => void; onDone: () => void }) {
+  const [field, setField] = useState<EditableField>('phone');
   const [value, setValue] = useState('');
   const [sending, setSending] = useState(false);
   const current = user[field] ?? '';
@@ -137,7 +133,7 @@ function UpdateSheet({ visible, user, onClose, onDone }: { visible: boolean; use
   async function send() {
     setSending(true);
     try {
-      await api.profileRequests.requestUpdate(field, value.trim());
+      await api.accountRequests.requestChange(field, value.trim());
       setValue('');
       onClose();
       onDone();
@@ -150,16 +146,26 @@ function UpdateSheet({ visible, user, onClose, onDone }: { visible: boolean; use
 
   return (
     <Sheet visible={visible} onClose={onClose} title="Demander une modification" subtitle="Une seule demande à la fois : votre responsable la valide ou la refuse.">
-      <Chips label="Information" required options={FIELDS} value={field} onChange={(f) => { setField(f); setValue(''); }} />
+      <Chips
+        label="Information"
+        required
+        options={FIELDS}
+        value={field}
+        onChange={(f) => {
+          setField(f);
+          setValue('');
+        }}
+      />
       <TextField label="Valeur actuelle" value={current || 'Non renseignée'} readOnly />
       <TextField
         label="Nouvelle valeur"
         required
         value={value}
         onChangeText={setValue}
-        keyboardType={field === 'phone' ? 'phone-pad' : field === 'email' ? 'email-address' : 'default'}
-        autoCapitalize={field === 'email' ? 'none' : 'words'}
+        keyboardType={field === 'phone' ? 'phone-pad' : 'default'}
+        autoCapitalize="words"
       />
+      <Text style={text.small}>Pour changer d'adresse email, adressez-vous à votre responsable.</Text>
       <Button label="Envoyer la demande" large loading={sending} disabled={!value.trim() || value.trim() === current} onPress={send} />
     </Sheet>
   );
@@ -177,7 +183,7 @@ function DeleteSheet({ visible, onClose, onDone }: { visible: boolean; onClose: 
   async function send() {
     setSending(true);
     try {
-      await api.profileRequests.requestDeletion(reason);
+      await api.accountRequests.requestDeletion(reason);
       onClose();
       onDone();
     } catch (e) {
@@ -188,7 +194,12 @@ function DeleteSheet({ visible, onClose, onDone }: { visible: boolean; onClose: 
   }
 
   return (
-    <Sheet visible={visible} onClose={onClose} title="Supprimer mon compte" subtitle="Votre responsable recevra la demande. En attendant sa réponse, vous ne pourrez pas faire d'autre demande.">
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      title="Supprimer mon compte"
+      subtitle="Votre responsable recevra la demande. En attendant sa réponse, vous ne pourrez pas faire d'autre demande."
+    >
       <Chips label="Motif" options={DELETE_REASONS} value={reason} onChange={setReason} />
       <Banner tone="danger" icon="alert-triangle">
         Une fois validée, la suppression est irréversible. Vos pointages sont conservés de façon anonyme pour les obligations légales.
@@ -198,7 +209,7 @@ function DeleteSheet({ visible, onClose, onDone }: { visible: boolean; onClose: 
   );
 }
 
-// Règles du mot de passe : 12 caractères, une majuscule, un chiffre, un caractère spécial.
+// Même politique que le backend (auth.controller.ts) : 12 caractères, une majuscule, un chiffre, un caractère spécial.
 const PASSWORD_RULES: [RegExp, string][] = [
   [/.{12,}/, '12 caractères'],
   [/[A-Z]/, 'une majuscule'],

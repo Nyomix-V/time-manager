@@ -47,8 +47,8 @@ function NewAbsence({ onSent }: { onSent: () => void }) {
   const [attachment, setAttachment] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
-  const singleDay = type === 'FORGOTTEN_CLOCK' || type === 'MEDICAL';
-  const reasonRequired = type === 'FORGOTTEN_CLOCK' || type === 'OTHER';
+  const singleDay = type === 'MISSED_CLOCK' || type === 'MEDICAL';
+  const reasonRequired = type === 'MISSED_CLOCK' || type === 'OTHER';
   const canSend = !!type && (!reasonRequired || reason.trim().length > 0);
 
   async function pickFile() {
@@ -71,8 +71,8 @@ function NewAbsence({ onSent }: { onSent: () => void }) {
         type,
         startDate,
         endDate: singleDay ? endOfDay(startDate) : endOfDay(endDate),
-        reason: reason.trim(),
-        attachmentName: attachment,
+        comment: reason.trim() || undefined,
+        attachmentPath: attachment ?? undefined,
       });
       Alert.alert('Demande envoyée', 'Votre manager va la traiter. Vous suivez sa réponse dans l’historique.');
       onSent();
@@ -107,11 +107,11 @@ function NewAbsence({ onSent }: { onSent: () => void }) {
         </View>
       )}
       <TextField
-        label={type === 'FORGOTTEN_CLOCK' ? 'Heure oubliée et explication' : 'Commentaire'}
+        label={type === 'MISSED_CLOCK' ? 'Heure oubliée et explication' : 'Commentaire'}
         required={reasonRequired}
         value={reason}
         onChangeText={setReason}
-        placeholder={type === 'FORGOTTEN_CLOCK' ? 'Ex. : départ à 16:50, oublié de pointer' : 'Facultatif…'}
+        placeholder={type === 'MISSED_CLOCK' ? 'Ex. : départ à 16:50, oublié de pointer' : 'Facultatif…'}
         multiline
         maxLength={500}
       />
@@ -134,7 +134,7 @@ function NewAbsence({ onSent }: { onSent: () => void }) {
             <Text style={text.small}>PDF, JPG ou PNG · 5 Mo maximum</Text>
           </Pressable>
         )}
-        {type === 'SICK_LEAVE' && (
+        {type === 'SICK' && (
           <Text style={text.small}>Joignez seulement l'avis d'arrêt : aucune information médicale n'est demandée.</Text>
         )}
       </View>

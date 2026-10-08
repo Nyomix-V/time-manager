@@ -1,39 +1,10 @@
-// Faux backend du mode démo : mêmes routes et mêmes règles d'accès que celles attendues de l'API
-// (décrites dans mobile/API.md). Utilisé quand EXPO_PUBLIC_MOCK=1.
-import type {
-  Absence,
-  ClockStatus,
-  DecisionStatus,
-  KpiRow,
-  Planning,
-  Presence,
-  ProfileField,
-  ProfileRequest,
-  User,
-} from '@/api/types';
-import {
-  coversDay,
-  dayKey,
-  isWorkDay,
-  NEXT_CLOCKS,
-  periodStats,
-  plannedWeeklyMinutes,
-  startOfWeek,
-  summarizeDay,
-  summarizeDays,
-  workState,
-} from '@/domain/time';
-import {
-  absences,
-  branches,
-  clocks,
-  MOCK_ACCOUNTS,
-  MOCK_PASSWORD,
-  plannings,
-  profileRequests,
-  teams,
-  users,
-} from './data';
+// Faux backend du mode démo (EXPO_PUBLIC_MOCK=1) : mêmes routes et mêmes formats que le backend NestJS.
+// Il applique les règles d'accès PRÉVUES (on pointe pour soi, on ne lit et ne décide que dans son
+// périmètre, motif obligatoire pour un refus) : voir mobile/API.md pour ce qui reste à faire côté backend.
+import type { Absence, AccountRequest, ClockType, KpiRow, RequestStatus, User } from '@/api/types';
+import { canManage } from '@/domain/permissions';
+import { periodStats, planningOf, summarizeDays } from '@/domain/time';
+import { absences, accountRequests, branches, clocks, MOCK_ACCOUNTS, MOCK_PASSWORD, teams, users } from './data';
 
 export class MockError extends Error {
   constructor(
@@ -48,15 +19,13 @@ const passwords = new Map<string, string>(users.map((u) => [u.id, MOCK_PASSWORD]
 let nextId = 1;
 const newId = (prefix: string) => `${prefix}-new-${nextId++}`;
 
-// ---- Jeton ----
+// ---- Jeton : même contenu que celui du backend, marqué "mock" pour être refusé hors du mode démo ----
 
 // Le contenu du jeton (identifiants, emails) est en ASCII : btoa suffit.
-const base64Url = (value: object) =>
-  btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const base64Url = (value: object) => btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-// Même format que le jeton du backend, marqué "mock" pour être refusé hors du mode démo.
 function mockToken(u: User) {
-  const payload = { sub: u.id, email: u.email, role: u.role, branchId: u.branchId, exp: Math.floor(Date.now() / 1000) + 30 * 86400, mock: true };
+  const payload = { sub: u.id, email: u.email, role: u.role, branchId: u.branchId ?? null, exp: Math.floor(Date.now() / 1000) + 30 * 86400, mock: true };
   return `${base64Url({ alg: 'none', typ: 'JWT' })}.${base64Url(payload)}.mock`;
 }
 
@@ -71,29 +40,20 @@ function actorFrom(token: string | null): User {
   throw new MockError(401, 'Session expirée, reconnectez-vous.');
 }
 
-// ---- Droits ----
+// ---- Droits (backend/src/auth/scope.ts) ----
 
-const isSupervisor = (u: User) => u.role === 'MANAGER' || u.role === 'DIRECTEUR' || u.role === 'ADMIN';
+const SUPERVISORS: User['role'][] = ['MANAGER', 'DIRECTEUR', 'ADMIN'];
+const requireSupervisor = (actor: User) => {
+  if (!SUPERVISORS.includes(actor.role)) throw new MockError(403, 'Accès refusé.');
+};
+const asSession = (u: User) => ({ token: '', userId: u.id, email: u.email, role: u.role, branchId: u.branchId ?? null });
+const manages = (actor: User, target: User) => canManage(asSession(actor), target);
 
-/** Qui peut gérer (modifier, supprimer, valider les demandes de) qui. */
-function manages(actor: User, target: User) {
-  if (actor.id === target.id) return false;
-  if (actor.role === 'ADMIN') return true;
-  if (actor.role === 'DIRECTEUR') return target.branchId === actor.branchId && target.role !== 'ADMIN' && target.role !== 'DIRECTEUR';
-  if (actor.role === 'MANAGER') return teams.some((t) => t.id === target.teamId && t.managerId === actor.id);
-  return false;
-}
-
-/** Les demandes d'un manager vont à son directeur, celles d'un directeur à l'admin. */
-function decides(actor: User, target: User) {
-  if (target.role === 'MANAGER') return actor.role === 'DIRECTEUR' ? actor.branchId === target.branchId : actor.role === 'ADMIN';
-  if (target.role === 'DIRECTEUR') return actor.role === 'ADMIN';
-  return manages(actor, target);
-}
-
-// Les managers voient tous les salariés de l'entreprise ; un employé ne voit que lui-même.
-function assertCanRead(actor: User, userId: string) {
-  if (actor.id !== userId && !isSupervisor(actor)) throw new MockError(403, 'Accès refusé.');
+/** assertCanReadUser : soi-même, sa branche (manager, directeur), tout (admin). */
+function assertCanRead(actor: User, target: User) {
+  if (actor.role === 'ADMIN' || actor.id === target.id) return;
+  if ((actor.role === 'MANAGER' || actor.role === 'DIRECTEUR') && actor.branchId && actor.branchId === target.branchId) return;
+  throw new MockError(403, 'Vous ne pouvez pas consulter cette personne.');
 }
 
 function findUser(id: string) {
@@ -102,13 +62,22 @@ function findUser(id: string) {
   return found;
 }
 
-const planningOf = (userId: string) => plannings.find((p) => p.userId === userId) ?? null;
+const inBranchScope = (actor: User) => (u: User) => actor.role === 'ADMIN' || u.branchId === actor.branchId;
+
+// Relations renvoyées par le backend (relations: { team, branch } et { manager, members }).
+const withRelations = (u: User): User => ({
+  ...u,
+  team: teams.find((t) => t.id === u.teamId) ?? null,
+  branch: branches.find((b) => b.id === u.branchId) ?? null,
+});
+const withUser = <T extends { userId: string }>(item: T) => ({ ...item, user: users.find((u) => u.id === item.userId) });
+
 const visibleClocks = (userId: string) => clocks.filter((c) => c.userId === userId && new Date(c.time) <= new Date());
 
 // ---- Routes ----
 
-// Paramètres d'URL (?from=…&to=…). URLSearchParams est incomplet sur React Native.
 type Query = { get: (name: string) => string | null };
+// URLSearchParams est incomplet sur React Native.
 const parseQuery = (search: string): Query => {
   const values = new Map(
     search
@@ -121,137 +90,135 @@ const parseQuery = (search: string): Query => {
 
 type Handler = (ctx: { actor: () => User; params: string[]; query: Query; body: any }) => unknown;
 
+// Politique de mot de passe du backend (auth.controller.ts).
+const STRONG = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
+
+// Enchaînements autorisés : ClocksService.allowed (selon le dernier pointage).
+function allowed(last: ClockType | null, next: ClockType) {
+  if (next === 'IN') return last === null || last === 'OUT';
+  if (next === 'BREAK_START') return last === 'IN' || last === 'BREAK_END';
+  if (next === 'BREAK_END') return last === 'BREAK_START';
+  return last === 'IN' || last === 'BREAK_END';
+}
+
+const PUNCH_ROUTES: Record<string, ClockType> = { arrive: 'IN', 'break/start': 'BREAK_START', 'break/end': 'BREAK_END', depart: 'OUT' };
+
 const routes: [string, RegExp, Handler][] = [
+  // ---- Authentification ----
   ['POST', /^\/auth\/login$/, ({ body }) => {
     const email = String(body?.email ?? '').toLowerCase();
     const account = MOCK_ACCOUNTS.find((a) => a.email === email);
     const target = users.find((u) => u.id === account?.userId || u.email === email);
     if (!target || passwords.get(target.id) !== body?.password) throw new MockError(401, 'Email ou mot de passe incorrect.');
-    return { access_token: mockToken(target) };
+    if (target.status !== 'ACTIVE') throw new MockError(401, 'Compte non activé.');
+    return { access_token: mockToken(target), user: { id: target.id, email: target.email, role: target.role, branchId: target.branchId ?? null } };
   }],
-
-  ['POST', /^\/auth\/password$/, ({ actor, body }) => {
+  ['POST', /^\/auth\/change-password$/, ({ actor, body }) => {
     const me = actor();
-    if (passwords.get(me.id) !== body?.currentPassword) throw new MockError(400, 'Mot de passe actuel incorrect.');
-    if (String(body?.newPassword ?? '').length < 12) throw new MockError(400, 'Le nouveau mot de passe doit faire au moins 12 caractères.');
+    if (!STRONG.test(String(body?.newPassword ?? ''))) throw new MockError(400, 'Mot de passe trop faible.');
+    if (passwords.get(me.id) !== body?.currentPassword) throw new MockError(401, 'Mot de passe actuel incorrect.');
     passwords.set(me.id, body.newPassword);
-    return { updated: true };
+    return { changed: true };
   }],
 
   // ---- Utilisateurs, équipes ----
-  ['GET', /^\/users$/, ({ actor }) => {
-    if (!isSupervisor(actor())) throw new MockError(403, 'Accès refusé.');
-    return users;
+  ['GET', /^\/users$/, ({ actor, query }) => {
+    const me = actor();
+    requireSupervisor(me);
+    const teamId = query.get('teamId');
+    return users.filter(inBranchScope(me)).filter((u) => !teamId || u.teamId === teamId).map(withRelations);
   }],
   ['GET', /^\/users\/([^/]+)$/, ({ actor, params }) => {
-    assertCanRead(actor(), params[0]);
-    return findUser(params[0]);
+    const target = findUser(params[0]);
+    assertCanRead(actor(), target);
+    return withRelations(target);
   }],
   ['PUT', /^\/users\/([^/]+)$/, ({ actor, params, body }) => {
+    const me = actor();
+    requireSupervisor(me);
     const target = findUser(params[0]);
-    // Un salarié ne modifie pas ses informations lui-même : il passe par une demande.
-    if (!manages(actor(), target)) throw new MockError(403, 'Vous ne pouvez pas modifier ce salarié.');
-    const { firstName, lastName, email, phone, teamId } = body ?? {};
-    Object.assign(target, { firstName, lastName, email, phone, teamId });
-    return target;
+    if (!manages(me, target)) throw new MockError(403, 'Vous ne pouvez pas gérer cette personne.');
+    const fields = ['firstName', 'lastName', 'email', 'phone', 'teamId', 'workingDays', 'expectedStartMin', 'workMinutesPerDay', 'breakMinutes'] as const;
+    for (const field of fields) if (body?.[field] !== undefined) (target as any)[field] = body[field];
+    return withRelations(target);
   }],
   ['DELETE', /^\/users\/([^/]+)$/, ({ actor, params }) => {
+    const me = actor();
+    requireSupervisor(me);
     const target = findUser(params[0]);
-    if (!manages(actor(), target)) throw new MockError(403, 'Vous ne pouvez pas supprimer ce salarié.');
-    users.splice(users.indexOf(target), 1);
+    if (!manages(me, target)) throw new MockError(403, 'Vous ne pouvez pas gérer cette personne.');
+    users.splice(users.indexOf(target), 1); // suppression douce côté backend : la personne disparaît des listes
     return { deleted: true };
   }],
-  ['GET', /^\/teams$/, () => teams],
-  ['GET', /^\/branches$/, () => branches],
-
-  // ---- Plannings ----
-  ['GET', /^\/plannings\/([^/]+)$/, ({ actor, params }) => {
-    assertCanRead(actor(), params[0]);
-    return planningOf(params[0]);
-  }],
-  ['PUT', /^\/plannings\/([^/]+)$/, ({ actor, params, body }) => {
-    if (!manages(actor(), findUser(params[0]))) throw new MockError(403, 'Vous ne pouvez pas modifier ce planning.');
-    const next: Planning = { userId: params[0], workDays: body.workDays, startMin: body.startMin, dailyMinutes: body.dailyMinutes, breakMinutes: body.breakMinutes };
-    const existing = planningOf(params[0]);
-    if (existing) Object.assign(existing, next);
-    else plannings.push(next);
-    return next;
+  ['GET', /^\/teams$/, ({ actor }) => {
+    const me = actor();
+    return teams
+      .filter((t) => me.role === 'ADMIN' || t.branchId === me.branchId)
+      .map((t) => ({ ...t, manager: users.find((u) => u.id === t.managerId) ?? null, members: users.filter((u) => u.teamId === t.id) }));
   }],
 
   // ---- Pointages ----
-  ['GET', /^\/clocks\/([^/]+)$/, ({ actor, params, query }) => {
-    assertCanRead(actor(), params[0]);
-    const from = query.get('from');
-    const to = query.get('to');
-    return visibleClocks(params[0]).filter((c) => (!from || c.time >= from) && (!to || c.time <= to));
-  }],
-  ['POST', /^\/clocks\/([^/]+)$/, ({ actor, params, body }) => {
+  ['POST', /^\/clocks\/([^/]+)\/(arrive|break\/start|break\/end|depart)$/, ({ actor, params }) => {
     const me = actor();
-    // On ne pointe que pour soi-même, et l'admin ne pointe pas.
+    // On ne pointe que pour soi-même.
     if (me.id !== params[0]) throw new MockError(403, 'Vous ne pouvez pointer que pour vous-même.');
-    if (me.role === 'ADMIN') throw new MockError(403, "L'administrateur ne pointe pas.");
-    const todayClocks = visibleClocks(me.id).filter((c) => dayKey(new Date(c.time)) === dayKey(new Date()));
-    const status = body?.status as ClockStatus;
-    if (!NEXT_CLOCKS[workState(todayClocks)].includes(status)) throw new MockError(409, 'Ce pointage n’est pas possible maintenant.');
-    const clock = { id: newId('c'), userId: me.id, status, time: new Date().toISOString() };
+    if (me.role === 'ADMIN') throw new MockError(400, "L'administrateur ne pointe pas.");
+    const type = PUNCH_ROUTES[params[1]];
+    if (!allowed(visibleClocks(me.id).at(-1)?.type ?? null, type)) throw new MockError(400, 'Ce pointage n’est pas possible maintenant.');
+    const clock = { id: newId('c'), userId: me.id, type, time: new Date().toISOString() };
     clocks.push(clock);
     return clock;
   }],
-
-  // ---- Présence et KPI (manager, directeur, admin) ----
-  ['GET', /^\/presence$/, ({ actor }) => {
-    if (!isSupervisor(actor())) throw new MockError(403, 'Accès refusé.');
-    const now = new Date();
-    return users
-      .filter((u) => planningOf(u.id))
-      .map((u): Presence => {
-        const p = planningOf(u.id)!;
-        const todayClocks = visibleClocks(u.id).filter((c) => dayKey(new Date(c.time)) === dayKey(now));
-        const absent = absences.some((a) => a.userId === u.id && a.status !== 'REJECTED' && a.type !== 'MEDICAL' && a.type !== 'FORGOTTEN_CLOCK' && coversDay(a, now));
-        const state = todayClocks.length ? workState(todayClocks) : absent ? 'ABSENT' : isWorkDay(p, now) ? 'NOT_STARTED' : 'OFF_DAY';
-        return {
-          userId: u.id,
-          state,
-          since: todayClocks.at(-1)?.time ?? null,
-          lateMinutes: todayClocks.length ? summarizeDay(todayClocks, p, now).lateMinutes : 0,
-        };
-      });
+  ['GET', /^\/clocks\/([^/]+)\/status$/, ({ actor, params }) => {
+    assertCanRead(actor(), findUser(params[0]));
+    const last = visibleClocks(params[0]).at(-1);
+    const state = last?.type === 'IN' || last?.type === 'BREAK_END' ? 'WORKING' : last?.type === 'BREAK_START' ? 'ON_BREAK' : 'OUT';
+    return { state, since: last?.time ?? null };
   }],
+  ['GET', /^\/clocks\/([^/]+)$/, ({ actor, params }) => {
+    assertCanRead(actor(), findUser(params[0]));
+    return visibleClocks(params[0]);
+  }],
+
+  // ---- KPI (manager, directeur, admin) ----
   ['GET', /^\/kpi\/report$/, ({ actor, query }) => {
-    if (!isSupervisor(actor())) throw new MockError(403, 'Accès refusé.');
+    const me = actor();
+    requireSupervisor(me);
     const from = query.get('from');
     const to = query.get('to');
+    const teamId = query.get('teamId');
     const rows = users
-      .filter((u) => planningOf(u.id))
+      .filter(inBranchScope(me))
+      .filter((u) => u.role !== 'ADMIN' && (!teamId || u.teamId === teamId))
       .map((u): KpiRow => {
-        const p = planningOf(u.id)!;
         const range = visibleClocks(u.id).filter((c) => (!from || c.time >= from) && (!to || c.time <= to));
-        const days = summarizeDays(range, p);
-        const stats = periodStats(days);
-        const weeks = new Set(days.map((d) => dayKey(startOfWeek(d.date)))).size;
+        const stats = periodStats(summarizeDays(range, planningOf(u)));
+        const weeks = Math.max(1, stats.workedDays / 5);
+        const totalHours = stats.totalMinutes / 60;
         return {
           userId: u.id,
           name: `${u.firstName} ${u.lastName}`,
-          totalHours: round2(stats.totalMinutes / 60),
-          overtimeHours: round2(Math.max(0, stats.totalMinutes - plannedWeeklyMinutes(p) * weeks) / 60),
+          branchId: u.branchId ?? null,
+          teamId: u.teamId ?? null,
+          totalHours: round2(totalHours),
           avgDailyHours: round2(stats.avgPerDayMinutes / 60),
+          overtimeHours: round2(Math.max(0, totalHours - 35 * weeks)),
+          breakMinutes: Math.round(stats.breakMinutes),
           lateDays: stats.lateDays,
           lateAlert: stats.lateDays > 3,
-          workedDays: stats.workedDays,
         };
       });
-    return { from, to, rows };
+    // Même résumé que KpiService.report.
+    const summary = {
+      people: rows.length,
+      avgWeeklyHours: round2(rows.reduce((s, r) => s + r.avgDailyHours * 5, 0) / Math.max(1, rows.length)),
+      punctualityPct: rows.length ? Math.round((rows.filter((r) => !r.lateAlert).length / rows.length) * 100) : 100,
+      alerts: rows.filter((r) => r.lateAlert).length,
+    };
+    return { from, to, teamId, summary, rows };
   }],
 
   // ---- Absences ----
-  ['GET', /^\/absences\/user\/([^/]+)$/, ({ actor, params }) => {
-    assertCanRead(actor(), params[0]);
-    return absences.filter((a) => a.userId === params[0]).sort((a, b) => b.startDate.localeCompare(a.startDate));
-  }],
-  ['GET', /^\/absences$/, ({ actor, query }) => {
-    const me = actor();
-    return absences.filter((a) => (!query.get('status') || a.status === query.get('status')) && decidable(me, a.userId));
-  }],
   ['POST', /^\/absences$/, ({ actor, body }) => {
     const me = actor();
     if (!body?.type || !body?.startDate || !body?.endDate) throw new MockError(400, 'Motif et dates obligatoires.');
@@ -262,93 +229,97 @@ const routes: [string, RegExp, Handler][] = [
       type: body.type,
       startDate: body.startDate,
       endDate: body.endDate,
-      reason: body.reason ?? '',
-      attachmentName: body.attachmentName ?? null,
+      comment: body.comment ?? null,
+      attachmentPath: body.attachmentPath ?? null,
       status: 'PENDING',
       createdAt: new Date().toISOString(),
-      decidedBy: null,
-      decidedByName: null,
+      decidedById: null,
       decidedAt: null,
       decisionComment: null,
     };
     absences.push(created);
     return created;
   }],
+  ['GET', /^\/absences\/pending$/, ({ actor }) => {
+    const me = actor();
+    requireSupervisor(me);
+    return absences.filter((a) => a.status === 'PENDING' && decidable(me, a.userId)).map(withUser);
+  }],
+  ['GET', /^\/absences\/user\/([^/]+)$/, ({ actor, params }) => {
+    assertCanRead(actor(), findUser(params[0]));
+    return absences.filter((a) => a.userId === params[0]).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }],
   ['PATCH', /^\/absences\/([^/]+)\/decision$/, ({ actor, params, body }) => {
     const item = absences.find((a) => a.id === params[0]);
-    if (!item) throw new MockError(404, 'Demande introuvable.');
+    if (!item) throw new MockError(404, 'Absence introuvable.');
     return decide(actor(), item, body);
   }],
 
-  // ---- Demandes de modification / suppression du profil ----
-  ['GET', /^\/profile-requests\/user\/([^/]+)$/, ({ actor, params }) => {
-    assertCanRead(actor(), params[0]);
-    return profileRequests.filter((r) => r.userId === params[0]).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }],
-  ['GET', /^\/profile-requests$/, ({ actor, query }) => {
+  // ---- Demandes de compte (modification d'information, suppression) ----
+  ['POST', /^\/account-requests$/, ({ actor, body }) => {
     const me = actor();
-    return profileRequests.filter((r) => (!query.get('status') || r.status === query.get('status')) && decidable(me, r.userId));
-  }],
-  ['POST', /^\/profile-requests$/, ({ actor, body }) => {
-    const me = actor();
-    if (profileRequests.some((r) => r.userId === me.id && r.status === 'PENDING')) {
-      throw new MockError(409, 'Une demande est déjà en attente : attendez la réponse de votre manager.');
+    // Une seule demande en attente à la fois.
+    if (accountRequests.some((r) => r.userId === me.id && r.status === 'PENDING')) {
+      throw new MockError(400, 'Vous avez déjà une demande en attente.');
     }
-    const field = (body?.field ?? null) as ProfileField | null;
-    if (body?.kind === 'UPDATE' && (!field || !body?.newValue)) throw new MockError(400, 'Information et nouvelle valeur obligatoires.');
-    const created: ProfileRequest = {
-      id: newId('pr'),
+    if (body?.type === 'INFO_CHANGE' && (!['phone', 'firstName', 'lastName'].includes(body?.field) || !body?.newValue)) {
+      throw new MockError(400, 'Demande de modification invalide.');
+    }
+    const created: AccountRequest = {
+      id: newId('ar'),
       userId: me.id,
-      kind: body?.kind === 'DELETE' ? 'DELETE' : 'UPDATE',
-      field,
-      currentValue: field ? (me[field] ?? null) : null,
+      type: body?.type === 'DELETION' ? 'DELETION' : 'INFO_CHANGE',
+      field: body?.field ?? null,
       newValue: body?.newValue ?? null,
       reason: body?.reason ?? null,
       status: 'PENDING',
       createdAt: new Date().toISOString(),
-      decidedBy: null,
-      decidedByName: null,
+      decidedById: null,
       decidedAt: null,
       decisionComment: null,
     };
-    profileRequests.push(created);
+    accountRequests.push(created);
     return created;
   }],
-  ['PATCH', /^\/profile-requests\/([^/]+)\/decision$/, ({ actor, params, body }) => {
-    const item = profileRequests.find((r) => r.id === params[0]);
+  ['GET', /^\/account-requests\/pending$/, ({ actor }) => {
+    const me = actor();
+    requireSupervisor(me);
+    return accountRequests.filter((r) => r.status === 'PENDING' && decidable(me, r.userId)).map(withUser);
+  }],
+  ['GET', /^\/account-requests\/user\/([^/]+)$/, ({ actor, params }) => {
+    assertCanRead(actor(), findUser(params[0]));
+    return accountRequests.filter((r) => r.userId === params[0]).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }],
+  ['PATCH', /^\/account-requests\/([^/]+)\/decision$/, ({ actor, params, body }) => {
+    const item = accountRequests.find((r) => r.id === params[0]);
     if (!item) throw new MockError(404, 'Demande introuvable.');
-    const decided = decide(actor(), item, body);
-    if (decided.status === 'APPROVED') {
+    const result = decide(actor(), item, body);
+    if (result.status === 'APPROVED') {
       const target = findUser(item.userId);
-      if (item.kind === 'UPDATE' && item.field) target[item.field] = item.newValue ?? '';
-      if (item.kind === 'DELETE') users.splice(users.indexOf(target), 1);
+      if (item.type === 'INFO_CHANGE' && item.field) target[item.field] = item.newValue ?? '';
+      if (item.type === 'DELETION') users.splice(users.indexOf(target), 1);
     }
-    return decided;
+    return result;
   }],
 ];
 
 function decidable(actor: User, userId: string) {
   const target = users.find((u) => u.id === userId);
-  return !!target && decides(actor, target);
+  return !!target && manages(actor, target);
 }
 
-function decide<T extends { userId: string; status: DecisionStatus; decidedBy: string | null; decidedByName: string | null; decidedAt: string | null; decisionComment: string | null }>(
+function decide<T extends { userId: string; status: RequestStatus; decidedById?: string | null; decidedAt?: string | null; decisionComment?: string | null }>(
   actor: User,
   item: T,
-  body: { status?: DecisionStatus; comment?: string },
+  body: { status?: RequestStatus; decisionComment?: string },
 ): T {
+  requireSupervisor(actor);
   if (!decidable(actor, item.userId)) throw new MockError(403, 'Cette demande ne relève pas de vous.');
-  if (item.status !== 'PENDING') throw new MockError(409, 'Cette demande a déjà été traitée.');
+  if (item.status !== 'PENDING') throw new MockError(400, 'Cette demande a déjà été traitée.');
   if (body?.status !== 'APPROVED' && body?.status !== 'REJECTED') throw new MockError(400, 'Décision invalide.');
-  const comment = body.comment?.trim() || null;
+  const comment = body.decisionComment?.trim() || null;
   if (body.status === 'REJECTED' && !comment) throw new MockError(400, 'Le motif du refus est obligatoire.');
-  Object.assign(item, {
-    status: body.status,
-    decidedBy: actor.id,
-    decidedByName: `${actor.firstName} ${actor.lastName}`,
-    decidedAt: new Date().toISOString(),
-    decisionComment: comment,
-  });
+  Object.assign(item, { status: body.status, decidedById: actor.id, decidedAt: new Date().toISOString(), decisionComment: comment });
   return item;
 }
 

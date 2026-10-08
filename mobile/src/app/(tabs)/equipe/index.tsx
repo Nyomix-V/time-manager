@@ -4,40 +4,42 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '@/api';
-import type { Presence, PresenceState, Team, User } from '@/api/types';
+import type { ClockStatus, Team, User } from '@/api/types';
 import { useSession } from '@/auth/AuthProvider';
 import { Avatar, Kpi, Row, StateView } from '@/components/data';
 import { Sheet } from '@/components/Sheet';
-import { Badge, Banner, Card, Screen, layout, text, type Tone } from '@/components/ui';
+import { Badge, Banner, Card, Screen, layout, text } from '@/components/ui';
 import { PRESENCE_LABELS, fullName } from '@/domain/labels';
-import { myTeams } from '@/domain/permissions';
-import { addDays, formatDuration, formatTime, startOfDay } from '@/domain/time';
+import { addDays, formatTime, isSameDay, startOfDay } from '@/domain/time';
 import { useQuery } from '@/hooks/useQuery';
 import { colors, radius } from '@/theme/tokens';
 
 // Maquette : docs/maquettes/mobile/m06-manager-equipe.html
-// Statut en direct, actualisé chaque minute. Les managers voient tous les salariés de l'entreprise,
-// filtrés par défaut sur leurs équipes.
-type Filter = 'all' | 'mine' | 'none' | `team:${string}`;
+// Salariés de la branche (le backend limite le manager et le directeur à leur branche),
+// avec leur statut en direct, actualisé chaque minute.
+type Filter = 'all' | 'none' | `team:${string}`;
 
-const STATE_ORDER: PresenceState[] = ['WORKING', 'ON_BREAK', 'NOT_STARTED', 'DONE', 'ABSENT', 'OFF_DAY'];
+const STATE_ORDER: ClockStatus['state'][] = ['WORKING', 'ON_BREAK', 'OUT'];
 
 export default function TeamScreen() {
   const session = useSession();
-  const [filter, setFilter] = useState<Filter>('mine');
+  const [filter, setFilter] = useState<Filter>('all');
   const [picking, setPicking] = useState(false);
+  const teamId = filter.startsWith('team:') ? filter.slice(5) : undefined;
 
   const { data, error, loading, reload, refreshing, refresh, updatedAt } = useQuery(
     async () => {
-      const [users, teams, presence, kpi] = await Promise.all([
+      const [users, teams, kpi] = await Promise.all([
         api.users.list(),
         api.teams.list(),
-        api.presence.list(),
-        api.kpi.report(addDays(startOfDay(new Date()), -30), new Date()),
+        api.kpi.report(addDays(startOfDay(new Date()), -30), new Date(), teamId),
       ]);
-      return { users, teams, presence, kpi };
+      const people = users.filter((u) => u.role !== 'ADMIN' && u.id !== session.userId);
+      // Un appel par personne en attendant une route de présence groupée côté backend (voir API.md).
+      const statuses = await Promise.all(people.map((u) => api.clocks.status(u.id).catch(() => null)));
+      return { people, teams, kpi, statusById: new Map(people.map((u, i) => [u.id, statuses[i]])) };
     },
-    [],
+    [teamId],
     { refreshMs: 60_000 },
   );
 
@@ -50,35 +52,17 @@ export default function TeamScreen() {
     );
   }
 
-  const mine = myTeams(session, data.teams);
-  const people = data.users.filter((u) => u.role !== 'ADMIN' && u.id !== session.userId);
-  const inFilter = (u: User) =>
-    filter === 'all'
-      ? true
-      : filter === 'none'
-        ? !u.teamId
-        : filter === 'mine'
-          ? mine.some((t) => t.id === u.teamId)
-          : u.teamId === filter.slice(5);
-  const shown = people.filter(inFilter);
-  const shownIds = new Set(shown.map((u) => u.id));
-  const presenceById = new Map(data.presence.map((p) => [p.userId, p]));
-
-  // KPI des 30 derniers jours (glissants) sur les salariés affichés.
-  const rows = data.kpi.rows.filter((r) => shownIds.has(r.userId));
-  const weeksElapsed = 30 / 7;
-  const avgWeekly = rows.length ? rows.reduce((sum, r) => sum + r.totalHours, 0) / rows.length / weeksElapsed : 0;
-  const workedDays = rows.reduce((sum, r) => sum + r.workedDays, 0);
-  const punctuality = workedDays ? 1 - rows.reduce((sum, r) => sum + r.lateDays, 0) / workedDays : 1;
-  const alerts = rows.filter((r) => r.lateAlert);
-
+  const shown = data.people.filter((u) => (filter === 'all' ? true : filter === 'none' ? !u.teamId : u.teamId === teamId));
   const sorted = [...shown].sort((a, b) => {
-    const sa = STATE_ORDER.indexOf(presenceById.get(a.id)?.state ?? 'OFF_DAY');
-    const sb = STATE_ORDER.indexOf(presenceById.get(b.id)?.state ?? 'OFF_DAY');
+    const sa = STATE_ORDER.indexOf(data.statusById.get(a.id)?.state ?? 'OUT');
+    const sb = STATE_ORDER.indexOf(data.statusById.get(b.id)?.state ?? 'OUT');
     return sa - sb || fullName(a).localeCompare(fullName(b));
   });
-  const atWork = shown.filter((u) => ['WORKING', 'ON_BREAK'].includes(presenceById.get(u.id)?.state ?? '')).length;
-  const filterOptions = buildFilterOptions(people, mine, session.role === 'DIRECTEUR');
+  const atWork = shown.filter((u) => data.statusById.get(u.id)?.state !== 'OUT').length;
+  const alerts = data.kpi.rows.filter((r) => r.lateAlert && shown.some((u) => u.id === r.userId));
+  const kpiRow = (u: User) => data.kpi.rows.find((r) => r.userId === u.id);
+  const filterOptions = buildFilterOptions(data.people, data.teams, session.role === 'ADMIN');
+  const filterLabel = filterOptions.find((o) => o.value === filter)?.label;
 
   return (
     <Screen title={title} subtitle="30 derniers jours" refreshing={refreshing} onRefresh={refresh}>
@@ -89,21 +73,21 @@ export default function TeamScreen() {
       )}
 
       <View style={layout.grid2}>
-        <Kpi label="Moy. hebdo" value={formatDuration(avgWeekly * 60)} hint="par salarié" />
+        <Kpi label="Moy. hebdo" value={`${data.kpi.summary.avgWeeklyHours.toFixed(1).replace('.', ',')} h`} hint={teamId ? 'de l’équipe' : 'de la branche'} />
         <Kpi
           label="Ponctualité"
-          value={`${Math.round(punctuality * 100)} %`}
-          hint={`${rows.reduce((sum, r) => sum + r.lateDays, 0)} retards`}
-          hintTone={punctuality >= 0.9 ? 'success' : 'warning'}
+          value={`${data.kpi.summary.punctualityPct} %`}
+          hint={`${data.kpi.summary.alerts} alerte${data.kpi.summary.alerts > 1 ? 's' : ''}`}
+          hintTone={data.kpi.summary.alerts ? 'warning' : 'success'}
         />
       </View>
 
       <Card style={{ gap: 4 }}>
         <View style={layout.between}>
           <Text style={text.h2}>Maintenant</Text>
-          <Pressable onPress={() => setPicking(true)} accessibilityRole="button" accessibilityLabel={`Filtrer : ${filterOptions.find((o) => o.value === filter)?.label}`} style={styles.filter}>
+          <Pressable onPress={() => setPicking(true)} accessibilityRole="button" accessibilityLabel={`Filtrer : ${filterLabel}`} style={styles.filter}>
             <Text style={styles.filterText} numberOfLines={1}>
-              {filterOptions.find((o) => o.value === filter)?.label}
+              {filterLabel}
             </Text>
             <Feather name="chevron-down" size={16} color={colors.muted} />
           </Pressable>
@@ -119,16 +103,15 @@ export default function TeamScreen() {
           <StateView loading={false} error={null} onRetry={reload} empty="Personne dans ce filtre." />
         ) : (
           sorted.map((u, i) => {
-            const row = data.kpi.rows.find((r) => r.userId === u.id);
-            const team = data.teams.find((t) => t.id === u.teamId);
+            const row = kpiRow(u);
             return (
               <Row
                 key={u.id}
                 first={i === 0}
                 left={<Avatar name={fullName(u)} size={34} />}
                 title={fullName(u)}
-                subtitle={row?.lateAlert ? `${row.lateDays} retards sur 30 jours` : (team?.name ?? 'Sans équipe')}
-                right={<PresenceBadge presence={presenceById.get(u.id)} />}
+                subtitle={row?.lateAlert ? `${row.lateDays} retards sur 30 jours` : (u.team?.name ?? 'Sans équipe')}
+                right={<PresenceBadge status={data.statusById.get(u.id) ?? null} />}
                 onPress={() => router.push({ pathname: '/equipe/[id]', params: { id: u.id } })}
                 chevron={false}
               />
@@ -158,28 +141,25 @@ export default function TeamScreen() {
   );
 }
 
-function PresenceBadge({ presence }: { presence?: Presence }) {
-  if (!presence) return <Badge label="—" />;
-  const { label, tone } = PRESENCE_LABELS[presence.state];
-  const since = presence.since ? formatTime(new Date(presence.since)) : null;
-  let badgeTone: Tone = tone;
-  let badgeLabel = since && presence.state !== 'ABSENT' ? `${label} · ${since}` : label;
-  if (presence.state === 'WORKING' && presence.lateMinutes > 0) {
-    badgeTone = 'warning';
-    badgeLabel = `Retard · ${presence.lateMinutes} min`;
+function PresenceBadge({ status }: { status: ClockStatus | null }) {
+  if (!status) return <Badge label="—" />;
+  const since = status.since ? new Date(status.since) : null;
+  if (status.state === 'OUT') {
+    // Dernier pointage aujourd'hui = départ ; sinon, pas encore arrivé.
+    return since && isSameDay(since, new Date()) ? <Badge label={`Parti · ${formatTime(since)}`} /> : <Badge label="Pas encore pointé" />;
   }
-  return <Badge label={badgeLabel} tone={badgeTone} />;
+  const { label, tone } = PRESENCE_LABELS[status.state];
+  return <Badge label={since ? `${label} · ${formatTime(since)}` : label} tone={tone} />;
 }
 
 type FilterOption = { value: Filter; label: string; count: number; group?: boolean };
 
-function buildFilterOptions(people: User[], mine: Team[], director: boolean): FilterOption[] {
+function buildFilterOptions(people: User[], teams: Team[], admin: boolean): FilterOption[] {
   const count = (pred: (u: User) => boolean) => people.filter(pred).length;
   return [
-    { value: 'mine', label: director ? 'Ma branche' : 'Mes équipes', count: count((u) => mine.some((t) => t.id === u.teamId)) },
-    { value: 'all', label: "Toute l'entreprise", count: people.length },
+    { value: 'all', label: admin ? "Toute l'entreprise" : 'Toute la branche', count: people.length },
     { value: 'none', label: 'Sans équipe', count: count((u) => !u.teamId) },
-    ...mine.map((t, i) => ({ value: `team:${t.id}` as Filter, label: t.name, count: count((u) => u.teamId === t.id), group: i === 0 })),
+    ...teams.map((t, i) => ({ value: `team:${t.id}` as Filter, label: t.name, count: count((u) => u.teamId === t.id), group: i === 0 })),
   ];
 }
 

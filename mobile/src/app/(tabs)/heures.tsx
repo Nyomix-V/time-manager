@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
 import { api } from '@/api';
-import type { Absence, Planning } from '@/api/types';
+import type { Absence } from '@/api/types';
 import { useSession } from '@/auth/AuthProvider';
 import { BarChart, Kpi, Row, StateView, type Bar } from '@/components/data';
 import { DateField, Segmented } from '@/components/forms';
@@ -22,12 +22,14 @@ import {
   formatTime,
   isWorkDay,
   periodStats,
+  planningOf,
   plannedWeeklyMinutes,
   startOfDay,
   startOfMonth,
   startOfWeek,
   summarizeDays,
   type DaySummary,
+  type Planning,
 } from '@/domain/time';
 import { useQuery } from '@/hooks/useQuery';
 import { colors } from '@/theme/tokens';
@@ -45,12 +47,14 @@ export default function HoursScreen() {
   const { from, to } = useMemo(() => periodOf(mode, anchor, customFrom, customTo), [mode, anchor, customFrom, customTo]);
 
   const { data, error, loading, reload, refreshing, refresh } = useQuery(async () => {
-    const [planning, clocks, absences] = await Promise.all([
-      api.plannings.get(session.userId),
-      api.clocks.list(session.userId, from, endOfDay(to)),
+    const [user, clocks, absences] = await Promise.all([
+      api.users.get(session.userId),
+      api.clocks.list(session.userId),
       api.absences.listForUser(session.userId),
     ]);
-    return { planning, clocks, absences };
+    // GET /clocks/:userId n'a pas encore de filtre par dates : on garde la période ici.
+    const inRange = clocks.filter((c) => new Date(c.time) >= from && new Date(c.time) <= endOfDay(to));
+    return { planning: planningOf(user), clocks: inRange, absences };
   }, [session.userId, from.getTime(), to.getTime()]);
 
   const move = (direction: -1 | 1) =>

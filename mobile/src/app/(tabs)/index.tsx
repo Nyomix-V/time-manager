@@ -2,22 +2,23 @@ import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '@/api';
-import type { Clock, ClockStatus, Planning } from '@/api/types';
+import type { Clock, ClockType } from '@/api/types';
 import { useSession } from '@/auth/AuthProvider';
 import { clocksIn } from '@/auth/session';
 import { StateView, Timeline, type TimelineItem } from '@/components/data';
 import { Badge, Banner, Button, Card, Screen, layout, text } from '@/components/ui';
 import {
-  endOfDay,
   expectedEndMin,
   formatDuration,
   formatMinutesOfDay,
   formatTime,
   formatWorkDays,
+  isSameDay,
+  planningOf,
   sortClocks,
-  startOfDay,
   summarizeDay,
   type DaySummary,
+  type Planning,
 } from '@/domain/time';
 import { useNow, useQuery } from '@/hooks/useQuery';
 import { errorMessage } from '@/lib/api';
@@ -40,22 +41,18 @@ function AdminHome() {
 function ClockScreen() {
   const session = useSession();
   const now = useNow(15_000);
-  const [sending, setSending] = useState<ClockStatus | null>(null);
+  const [sending, setSending] = useState<ClockType | null>(null);
 
   const { data, error, loading, reload, refreshing, refresh } = useQuery(async () => {
-    const day = new Date();
-    const [user, planning, clocks] = await Promise.all([
-      api.users.get(session.userId),
-      api.plannings.get(session.userId),
-      api.clocks.list(session.userId, startOfDay(day), endOfDay(day)),
-    ]);
-    return { user, planning, clocks };
+    const [user, clocks] = await Promise.all([api.users.get(session.userId), api.clocks.list(session.userId)]);
+    // Le planning est porté par l'utilisateur ; on ne garde que les pointages du jour.
+    return { user, planning: planningOf(user), clocks: clocks.filter((c) => isSameDay(new Date(c.time), new Date())) };
   }, [session.userId]);
 
-  async function clock(status: ClockStatus) {
-    setSending(status);
+  async function clock(type: ClockType) {
+    setSending(type);
     try {
-      await api.clocks.add(session.userId, status);
+      await api.clocks.punch(session.userId, type);
       await reload();
     } catch (e) {
       Alert.alert('Pointage refusé', errorMessage(e));
@@ -149,7 +146,7 @@ function StatusBadge({ summary, last }: { summary: DaySummary; last?: Clock }) {
     case 'WORKING':
       return (
         <View style={styles.centerRow}>
-          <Badge label={last?.status === 'BREAK_END' ? `En poste · retour de pause ${since}` : `En poste depuis ${since}`} tone="success" />
+          <Badge label={last?.type === 'BREAK_END' ? `En poste · retour de pause ${since}` : `En poste depuis ${since}`} tone="success" />
         </View>
       );
     case 'ON_BREAK':
@@ -219,13 +216,13 @@ function timeline(clocks: Clock[], planning: Planning | null, summary: DaySummar
   let breakStart: Date | null = null;
   for (const clock of sortClocks(clocks)) {
     const t = new Date(clock.time);
-    if (clock.status === 'IN') items.push({ title: 'Arrivée', value: formatTime(t), state: 'done' });
-    if (clock.status === 'BREAK_START') breakStart = t;
-    if (clock.status === 'BREAK_END' && breakStart) {
+    if (clock.type === 'IN') items.push({ title: 'Arrivée', value: formatTime(t), state: 'done' });
+    if (clock.type === 'BREAK_START') breakStart = t;
+    if (clock.type === 'BREAK_END' && breakStart) {
       items.push({ title: 'Pause', value: `${formatTime(breakStart)} → ${formatTime(t)}`, state: 'done' });
       breakStart = null;
     }
-    if (clock.status === 'OUT') items.push({ title: 'Départ', value: formatTime(t), state: 'done' });
+    if (clock.type === 'OUT') items.push({ title: 'Départ', value: formatTime(t), state: 'done' });
   }
   if (breakStart) items.push({ title: 'Pause en cours', value: `depuis ${formatTime(breakStart)}`, state: 'live' });
   if (planning && summary.state === 'NOT_STARTED') {

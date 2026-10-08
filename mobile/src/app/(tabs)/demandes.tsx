@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { api } from '@/api';
-import type { Absence, ProfileRequest, User } from '@/api/types';
+import type { Absence, AccountRequest, User } from '@/api/types';
 import { Avatar, StateView } from '@/components/data';
 import { Chips, TextField } from '@/components/forms';
 import { Sheet } from '@/components/Sheet';
@@ -15,17 +15,18 @@ import { errorMessage } from '@/lib/api';
 import { colors } from '@/theme/tokens';
 
 // Maquette : docs/maquettes/mobile/m08-demandes.html
+// Absences (GET /absences/pending) et demandes de compte (GET /account-requests/pending).
 type Item =
-  | { kind: 'absence'; id: string; createdAt: string; userId: string; absence: Absence }
-  | { kind: 'update' | 'delete'; id: string; createdAt: string; userId: string; request: ProfileRequest };
+  | { kind: 'absence'; id: string; createdAt: string; user?: User; absence: Absence }
+  | { kind: 'change' | 'deletion'; id: string; createdAt: string; user?: User; request: AccountRequest };
 
 type Filter = 'all' | Item['kind'];
 type Decision = { item: Item; approve: boolean } | null;
 
 const KIND: Record<Item['kind'], { label: string; tone: Tone }> = {
   absence: { label: 'Absence', tone: 'info' },
-  update: { label: 'Modification', tone: 'warning' },
-  delete: { label: 'Suppression', tone: 'danger' },
+  change: { label: 'Modification', tone: 'warning' },
+  deletion: { label: 'Suppression', tone: 'danger' },
 };
 
 export default function RequestsScreen() {
@@ -33,15 +34,22 @@ export default function RequestsScreen() {
   const [decision, setDecision] = useState<Decision>(null);
 
   const { data, error, loading, reload, refreshing, refresh } = useQuery(async () => {
-    const [absences, requests, users] = await Promise.all([api.absences.listPending(), api.profileRequests.listPending(), api.users.list()]);
-    const items: Item[] = [
-      ...absences.map((absence): Item => ({ kind: 'absence', id: absence.id, createdAt: absence.createdAt, userId: absence.userId, absence })),
-      ...requests.map((request): Item => ({ kind: request.kind === 'DELETE' ? 'delete' : 'update', id: request.id, createdAt: request.createdAt, userId: request.userId, request })),
+    const [absences, requests] = await Promise.all([api.absences.listPending(), api.accountRequests.listPending()]);
+    return [
+      ...absences.map((absence): Item => ({ kind: 'absence', id: absence.id, createdAt: absence.createdAt, user: absence.user, absence })),
+      ...requests.map(
+        (request): Item => ({
+          kind: request.type === 'DELETION' ? 'deletion' : 'change',
+          id: request.id,
+          createdAt: request.createdAt,
+          user: request.user,
+          request,
+        }),
+      ),
     ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    return { items, users: new Map(users.map((u) => [u.id, u])) };
   }, []);
 
-  const items = data?.items ?? [];
+  const items = data ?? [];
   const count = (kind: Filter) => (kind === 'all' ? items.length : items.filter((i) => i.kind === kind).length);
   const shown = filter === 'all' ? items : items.filter((i) => i.kind === filter);
 
@@ -51,8 +59,8 @@ export default function RequestsScreen() {
         options={[
           { value: 'all' as Filter, label: `Toutes ${count('all')}` },
           { value: 'absence' as Filter, label: `Absences ${count('absence')}` },
-          { value: 'update' as Filter, label: `Modifs ${count('update')}` },
-          { value: 'delete' as Filter, label: `Suppr. ${count('delete')}` },
+          { value: 'change' as Filter, label: `Modifs ${count('change')}` },
+          { value: 'deletion' as Filter, label: `Suppr. ${count('deletion')}` },
         ]}
         value={filter}
         onChange={setFilter}
@@ -63,20 +71,12 @@ export default function RequestsScreen() {
       ) : shown.length === 0 ? (
         <StateView loading={false} error={null} onRetry={reload} empty="Aucune demande en attente." />
       ) : (
-        shown.map((item) => (
-          <RequestCard
-            key={item.id}
-            item={item}
-            user={data.users.get(item.userId)}
-            onDecide={(approve) => setDecision({ item, approve })}
-          />
-        ))
+        shown.map((item) => <RequestCard key={item.id} item={item} onDecide={(approve) => setDecision({ item, approve })} />)
       )}
 
-      {decision && data && (
+      {decision && (
         <DecisionSheet
           decision={decision}
-          user={data.users.get(decision.item.userId)}
           onClose={() => setDecision(null)}
           onDone={() => {
             setDecision(null);
@@ -93,27 +93,28 @@ function describe(item: Item) {
     const a = item.absence;
     return `${ABSENCE_LABELS[a.type]} · ${formatDateRange(new Date(a.startDate), new Date(a.endDate))}`;
   }
-  if (item.kind === 'delete') return `Suppression du compte${item.request.reason ? ` · ${item.request.reason}` : ''}`;
-  return `${FIELD_LABELS[item.request.field!]} → ${item.request.newValue}`;
+  if (item.kind === 'deletion') return `Suppression du compte${item.request.reason ? ` · ${item.request.reason}` : ''}`;
+  return `${item.request.field ? FIELD_LABELS[item.request.field] : 'Information'} → ${item.request.newValue}`;
 }
 
-function RequestCard({ item, user, onDecide }: { item: Item; user?: User; onDecide: (approve: boolean) => void }) {
-  const name = user ? fullName(user) : 'Salarié';
+const nameOf = (item: Item) => (item.user ? fullName(item.user) : 'Salarié');
+
+function RequestCard({ item, onDecide }: { item: Item; onDecide: (approve: boolean) => void }) {
   return (
     <Card style={{ padding: 14 }}>
       <View style={layout.row}>
-        <Avatar name={name} size={34} />
+        <Avatar name={nameOf(item)} size={34} />
         <View style={layout.grow}>
-          <Text style={text.h3}>{name}</Text>
+          <Text style={text.h3}>{nameOf(item)}</Text>
           <Text style={text.small}>{describe(item)}</Text>
         </View>
         <Badge label={KIND[item.kind].label} tone={KIND[item.kind].tone} />
       </View>
-      {item.kind === 'absence' && !!item.absence.reason && <Text style={text.body}>« {item.absence.reason} »</Text>}
-      {item.kind === 'absence' && item.absence.attachmentName && (
+      {item.kind === 'absence' && !!item.absence.comment && <Text style={text.body}>« {item.absence.comment} »</Text>}
+      {item.kind === 'absence' && !!item.absence.attachmentPath && (
         <View style={layout.row}>
           <Feather name="paperclip" size={14} color={colors.primary} />
-          <Text style={[text.small, { color: colors.primary }]}>{item.absence.attachmentName}</Text>
+          <Text style={[text.small, { color: colors.primary }]}>{item.absence.attachmentPath}</Text>
         </View>
       )}
       <Text style={text.small}>Envoyée le {formatDate(new Date(item.createdAt))}</Text>
@@ -129,22 +130,22 @@ function RequestCard({ item, user, onDecide }: { item: Item; user?: User; onDeci
   );
 }
 
-function DecisionSheet({ decision, user, onClose, onDone }: { decision: NonNullable<Decision>; user?: User; onClose: () => void; onDone: () => void }) {
+function DecisionSheet({ decision, onClose, onDone }: { decision: NonNullable<Decision>; onClose: () => void; onDone: () => void }) {
   const { item, approve } = decision;
   const [comment, setComment] = useState('');
   const [confirm, setConfirm] = useState('');
   const [sending, setSending] = useState(false);
-  const name = user ? fullName(user) : 'ce salarié';
+  const name = item.user ? fullName(item.user) : 'ce salarié';
 
   // Refus : motif obligatoire. Suppression de compte : il faut taper SUPPRIMER.
-  const ready = approve ? item.kind !== 'delete' || confirm.trim() === 'SUPPRIMER' : comment.trim().length > 0;
+  const ready = approve ? item.kind !== 'deletion' || confirm.trim() === 'SUPPRIMER' : comment.trim().length > 0;
 
   async function send() {
     setSending(true);
-    const payload = { status: approve ? ('APPROVED' as const) : ('REJECTED' as const), comment: comment.trim() || undefined };
+    const payload = { status: approve ? ('APPROVED' as const) : ('REJECTED' as const), decisionComment: comment.trim() || undefined };
     try {
       if (item.kind === 'absence') await api.absences.decide(item.id, payload);
-      else await api.profileRequests.decide(item.id, payload);
+      else await api.accountRequests.decide(item.id, payload);
       onDone();
     } catch (e) {
       Alert.alert('Décision impossible', errorMessage(e));
@@ -155,19 +156,19 @@ function DecisionSheet({ decision, user, onClose, onDone }: { decision: NonNulla
 
   const title = !approve
     ? 'Refuser la demande'
-    : item.kind === 'delete'
+    : item.kind === 'deletion'
       ? `Supprimer le compte de ${name} ?`
-      : item.kind === 'update'
+      : item.kind === 'change'
         ? 'Valider la modification'
         : 'Valider la demande';
 
   return (
     <Sheet visible onClose={onClose} title={title} subtitle={`${name} · ${describe(item)}`}>
-      {approve && item.kind === 'update' && (
+      {approve && item.kind === 'change' && item.request.field && (
         <Card style={{ padding: 14, gap: 6 }}>
-          <Text style={text.small}>{FIELD_LABELS[item.request.field!]}</Text>
+          <Text style={text.small}>{FIELD_LABELS[item.request.field]}</Text>
           <View style={layout.row}>
-            <Text style={[text.body, styles.old]}>{item.request.currentValue ?? '—'}</Text>
+            <Text style={[text.body, styles.old]}>{item.user?.[item.request.field] || '—'}</Text>
             <Feather name="arrow-right" size={16} color={colors.muted} />
             <Text style={[text.body, text.strong]}>{item.request.newValue}</Text>
           </View>
@@ -176,7 +177,7 @@ function DecisionSheet({ decision, user, onClose, onDone }: { decision: NonNulla
       {approve && item.kind === 'absence' && (
         <Banner icon="info">Une fois validée, cette absence ne comptera ni comme retard ni comme heures manquantes.</Banner>
       )}
-      {approve && item.kind === 'delete' && (
+      {approve && item.kind === 'deletion' && (
         <>
           <Banner tone="danger" icon="alert-triangle">
             Action irréversible. Les données personnelles sont supprimées ; les pointages sont conservés de façon anonyme.
@@ -194,8 +195,8 @@ function DecisionSheet({ decision, user, onClose, onDone }: { decision: NonNulla
         maxLength={300}
       />
       <Button
-        label={approve ? (item.kind === 'delete' ? 'Supprimer le compte' : 'Valider') : 'Refuser la demande'}
-        variant={approve && item.kind !== 'delete' ? 'primary' : 'danger'}
+        label={approve ? (item.kind === 'deletion' ? 'Supprimer le compte' : 'Valider') : 'Refuser la demande'}
+        variant={approve && item.kind !== 'deletion' ? 'primary' : 'danger'}
         large
         loading={sending}
         disabled={!ready}

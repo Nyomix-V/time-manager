@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Alert, Linking, Text, View } from 'react-native';
 
 import { api } from '@/api';
-import type { Planning, Team, User } from '@/api/types';
+import type { Team, User } from '@/api/types';
 import { useSession } from '@/auth/AuthProvider';
 import { AbsenceHistory } from '@/components/AbsenceHistory';
 import { BarChart, Kpi, Row, StateView } from '@/components/data';
@@ -11,7 +11,7 @@ import { Chips, DateField, DaysPicker, TextField } from '@/components/forms';
 import { Sheet } from '@/components/Sheet';
 import { Badge, Banner, Button, Card, IconButton, Screen, layout, text } from '@/components/ui';
 import { ROLE_LABELS, fullName } from '@/domain/labels';
-import { canManage, myTeams } from '@/domain/permissions';
+import { canManage } from '@/domain/permissions';
 import {
   WEEKDAYS,
   addDays,
@@ -24,10 +24,13 @@ import {
   formatWorkDays,
   minutesOfDay,
   periodStats,
+  planningFields,
+  planningOf,
   plannedWeeklyMinutes,
   startOfDay,
   startOfWeek,
   summarizeDays,
+  type Planning,
 } from '@/domain/time';
 import { useQuery } from '@/hooks/useQuery';
 import { errorMessage } from '@/lib/api';
@@ -39,14 +42,14 @@ export default function EmployeeScreen() {
   const [sheet, setSheet] = useState<'edit' | 'delete' | null>(null);
 
   const { data, error, loading, reload, refreshing, refresh } = useQuery(async () => {
-    const [user, planning, clocks, teams, absences] = await Promise.all([
+    const [user, clocks, teams, absences] = await Promise.all([
       api.users.get(id),
-      api.plannings.get(id),
-      api.clocks.list(id, addDays(startOfDay(new Date()), -35), new Date()),
+      api.clocks.list(id),
       api.teams.list(),
       api.absences.listForUser(id),
     ]);
-    return { user, planning, clocks, teams, absences };
+    const since = addDays(startOfDay(new Date()), -35);
+    return { user, planning: planningOf(user), clocks: clocks.filter((c) => new Date(c.time) >= since), teams, absences };
   }, [id]);
 
   if (!data) {
@@ -58,9 +61,9 @@ export default function EmployeeScreen() {
   }
 
   const { user, planning, clocks, teams, absences } = data;
-  const manageable = canManage(session, user, teams);
+  const manageable = canManage(session, user);
   const pendingAbsences = absences.filter((a) => a.status === 'PENDING').length;
-  const team = teams.find((t) => t.id === user.teamId);
+  const team = user.team;
   const days = summarizeDays(clocks, planning);
   const last4Weeks = periodStats(days.filter((d) => d.date >= addDays(startOfDay(new Date()), -28)));
   const last30Days = periodStats(days.filter((d) => d.date >= addDays(startOfDay(new Date()), -30)));
@@ -158,7 +161,7 @@ export default function EmployeeScreen() {
             visible={sheet === 'edit'}
             user={user}
             planning={planning}
-            teams={myTeams(session, teams)}
+            teams={teams}
             onClose={() => setSheet(null)}
             onSaved={reload}
           />
@@ -171,7 +174,6 @@ export default function EmployeeScreen() {
 
 const DAILY_OPTIONS = [360, 420, 450, 480].map((value) => ({ value, label: formatDuration(value) }));
 const BREAK_OPTIONS = [30, 45, 60].map((value) => ({ value, label: formatDuration(value) }));
-const DEFAULT_PLANNING: Omit<Planning, 'userId'> = { workDays: [1, 2, 3, 4, 5], startMin: 540, dailyMinutes: 420, breakMinutes: 45 };
 
 function EditSheet({
   visible,
@@ -183,7 +185,7 @@ function EditSheet({
 }: {
   visible: boolean;
   user: User;
-  planning: Planning | null;
+  planning: Planning;
   teams: Team[];
   onClose: () => void;
   onSaved: () => void;
@@ -195,7 +197,7 @@ function EditSheet({
     phone: user.phone ?? '',
     teamId: user.teamId ?? 'none',
   });
-  const [plan, setPlan] = useState<Omit<Planning, 'userId'>>(planning ?? DEFAULT_PLANNING);
+  const [plan, setPlan] = useState<Planning>(planning);
   const [saving, setSaving] = useState(false);
   const set = (changes: Partial<typeof form>) => setForm((f) => ({ ...f, ...changes }));
 
@@ -212,8 +214,8 @@ function EditSheet({
         email: form.email.trim(),
         phone: form.phone.trim() || null,
         teamId: form.teamId === 'none' ? null : form.teamId,
+        ...planningFields(plan),
       });
-      await api.plannings.update(user.id, plan);
       onClose();
       onSaved();
     } catch (e) {
@@ -248,7 +250,7 @@ function EditSheet({
       <Chips label="Travail par jour" options={DAILY_OPTIONS} value={plan.dailyMinutes} onChange={(dailyMinutes) => setPlan((p) => ({ ...p, dailyMinutes }))} />
       <Chips label="Pause" options={BREAK_OPTIONS} value={plan.breakMinutes} onChange={(breakMinutes) => setPlan((p) => ({ ...p, breakMinutes }))} />
       <Banner icon="info">
-        Fin de journée : {formatMinutesOfDay(expectedEndMin({ ...plan, userId: user.id }))} · {formatDuration(plannedWeeklyMinutes({ ...plan, userId: user.id }))} par semaine
+        Fin de journée : {formatMinutesOfDay(expectedEndMin(plan))} · {formatDuration(plannedWeeklyMinutes(plan))} par semaine
         (calculé automatiquement).
       </Banner>
       <Button label="Enregistrer" large loading={saving} disabled={!valid} onPress={save} />

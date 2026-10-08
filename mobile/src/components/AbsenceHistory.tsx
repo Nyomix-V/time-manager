@@ -68,14 +68,14 @@ function AbsenceItem({ absence, open, onToggle }: { absence: Absence; open: bool
         <View style={styles.itemBody}>
           <Text style={text.small}>
             Envoyée le {formatDate(new Date(absence.createdAt))}
-            {absence.attachmentName ? ` · ${absence.attachmentName}` : ''}
+            {absence.attachmentPath ? ` · ${absence.attachmentPath}` : ''}
           </Text>
-          {!!absence.reason && <Text style={text.body}>« {absence.reason} »</Text>}
+          {!!absence.comment && <Text style={text.body}>« {absence.comment} »</Text>}
           {absence.status === 'PENDING' ? (
             <Text style={text.muted}>Pas encore de réponse.</Text>
           ) : (
             <Banner tone={absence.status === 'APPROVED' ? 'success' : 'danger'} icon={absence.status === 'APPROVED' ? 'check' : 'x'}>
-              {absence.decidedByName ?? 'Responsable'} · {formatDate(new Date(absence.decidedAt!))}
+              {absence.status === 'APPROVED' ? 'Validée' : 'Refusée'} le {formatDate(new Date(absence.decidedAt!))}
               {absence.decisionComment ? `\n« ${absence.decisionComment} »` : ''}
             </Banner>
           )}

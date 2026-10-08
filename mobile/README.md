@@ -12,13 +12,33 @@ cp .env.example .env      # puis réglez EXPO_PUBLIC_API_URL
 npx expo start
 ```
 
-- **Émulateur Android** : touche `a` dans le terminal d'Expo. L'API est alors à `http://10.0.2.2:8080/api`.
-- **Téléphone réel** : installez l'app **Expo Go** et scannez le QR code. Le téléphone doit être sur le même Wi-Fi que le PC, et `EXPO_PUBLIC_API_URL` doit pointer vers l'IP du PC (`http://192.168.x.x:8080/api`).
-- Le backend doit tourner : `docker compose up` à la racine du projet.
+- **Émulateur Android** : touche `a` dans le terminal d'Expo. L'API est alors à `http://10.0.2.2:8080/api` (via le proxy) ou `http://10.0.2.2:3000` (backend en direct).
+- **Téléphone réel** : installez l'app **Expo Go** et scannez le QR code. Le téléphone doit être sur le même Wi-Fi que le PC, et `EXPO_PUBLIC_API_URL` doit pointer vers l'IP du PC (`http://192.168.x.x:3000`).
+
+### Avec le vrai backend
+
+À la racine du projet :
+
+```bash
+docker compose up -d database backend
+docker compose exec backend npm run seed
+```
+
+Comptes créés par le seed (mot de passe `password123`) : `employee@trinity.io`, `manager@trinity.io`, `directeur@trinity.io`, `admin@trinity.io`.
+
+Le plus simple pour un téléphone branché en USB : faire pointer son `localhost:3000` vers celui du PC, puis construire l'APK avec cette adresse.
+
+```bash
+adb reverse tcp:3000 tcp:3000
+```
+
+Dans le `.env` à la racine : `PUBLIC_API_URL=http://localhost:3000` et `MOBILE_MOCK=0`, puis construire l'APK (voir plus bas). La redirection `adb reverse` est à refaire à chaque fois que le téléphone est rebranché.
+
+Les routes utilisées et ce qui manque encore côté backend sont dans [API.md](API.md).
 
 ### Mode démo (sans backend)
 
-Avec `EXPO_PUBLIC_MOCK=1` dans `.env`, l'app n'appelle plus le backend : elle simule la connexion et le pointage avec des données en mémoire (remises à zéro à chaque redémarrage). L'écran de connexion propose un bouton par rôle.
+Avec `EXPO_PUBLIC_MOCK=1` dans `.env`, l'app n'appelle plus le backend : un faux backend (`src/mock`) répond sur les mêmes routes, avec deux mois d'historique en mémoire (remis à zéro à chaque redémarrage). L'écran de connexion propose un bouton par rôle.
 
 | Compte | Mot de passe | Rôle |
 |---|---|---|
@@ -87,20 +107,20 @@ src/
 └── theme/tokens.ts        → couleurs des maquettes
 ```
 
-Le contrat d'API attendu du backend (routes, formats, droits) est décrit dans [API.md](API.md).
+Les routes utilisées sont listées dans [API.md](API.md).
 
 ## État actuel
 
-Tous les écrans des maquettes sont développés et fonctionnent en **mode démo**. Pour le vrai backend, il manque des routes : voir [API.md](API.md).
+Tous les écrans des maquettes sont développés et **branchés sur le backend** de `main` (ou sur le mode démo). Ce qui reste à corriger côté backend (sécurité, fuseau horaire, absences qui annulent un retard…) est listé dans [API.md](API.md).
 
-| Écran | Rôles | Routes du backend |
-|---|---|---|
-| Connexion | tous | ✅ existe (Microsoft : à faire) |
-| Pointage avec pauses, planning du jour | sauf admin | 🟡 pauses et planning à ajouter |
-| Mes heures | employé | 🟡 filtre de dates à ajouter |
-| Absences (demande, historique) | sauf admin | 🟡 type, justificatif, motif de refus à ajouter |
-| Profil, demandes au responsable, mot de passe | tous | 🆕 à créer |
-| Équipe : présence en direct, KPI, fiche salarié | manager, directeur | 🟡 présence, équipes, plannings à ajouter |
-| Demandes à valider | manager, directeur | 🟡 / 🆕 |
+| Écran | Rôles |
+|---|---|
+| Connexion (Microsoft : bouton désactivé, route à faire) | tous |
+| Pointage avec pauses, planning du jour | sauf admin |
+| Mes heures | employé |
+| Absences (demande, historique) | sauf admin |
+| Profil, demandes au responsable, mot de passe | tous |
+| Équipe : présence en direct, KPI, fiche salarié avec absences | manager, directeur |
+| Demandes à valider | manager, directeur |
 
 **Sécurité :** le HTTP non chiffré est autorisé (`usesCleartextTraffic` dans `app.json`) pour joindre l'API de développement. En production, passez l'API en HTTPS et retirez ce réglage.

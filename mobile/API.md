@@ -1,128 +1,50 @@
-# Contrat d'API attendu par l'application mobile
+# API utilisée par l'application mobile
 
-L'app est développée avec un faux backend (mode démo, `src/mock/server.ts`) qui suit exactement ce contrat. Quand ces routes existeront dans le backend, il suffira de construire l'app sans le mode démo.
+L'app appelle le backend NestJS du dépôt (`backend/`). Toutes les routes sont dans `src/api/index.ts`, les formats dans `src/api/types.ts` (copie des entités de `backend/src/entities`). Le mode démo (`src/mock/server.ts`) répond sur **les mêmes routes avec les mêmes formats**.
 
-- Toutes les routes, sauf `POST /auth/login`, attendent l'en-tête `Authorization: Bearer <jeton>`.
-- Les dates sont en ISO 8601 (`2026-10-07T07:57:00.000Z`).
-- Les erreurs suivent le format NestJS : `{ "message": "..." }`. L'app affiche ce message tel quel : **il doit être en français**.
-- Les types TypeScript complets sont dans `src/api/types.ts` ; les appels dans `src/api/index.ts`.
+## Routes utilisées
 
-Légende : ✅ existe déjà · 🟡 existe, à compléter · 🆕 à créer
-
-## Authentification
-
-| | Route | Corps | Réponse |
-|---|---|---|---|
-| ✅ | `POST /auth/login` | `{ email, password }` | `{ access_token }` (contenu du jeton : `sub`, `email`, `role`, `branchId`) |
-| 🆕 | `POST /auth/password` | `{ currentPassword, newPassword }` | `{ updated: true }`. 400 si le mot de passe actuel est faux ou si le nouveau fait moins de 12 caractères |
-
-## Utilisateurs, équipes, branches
-
-| | Route | Qui | Notes |
-|---|---|---|---|
-| 🟡 | `GET /users` | manager, directeur, admin | **Tous les salariés de l'entreprise** (les managers voient tout le monde). Ajouter `teamId` et `microsoftLinked` à chaque utilisateur |
-| 🟡 | `GET /users/:id` | soi-même, ou manager / directeur / admin | Aujourd'hui, n'importe quel utilisateur connecté peut lire n'importe quelle fiche |
-| 🟡 | `PUT /users/:id` | voir « Droits » | Corps : `{ firstName, lastName, email, phone, teamId }`. **Un employé ne doit pas pouvoir se modifier lui-même** (il passe par une demande) |
-| ✅ | `DELETE /users/:id` | voir « Droits » | |
-| 🆕 | `GET /teams` | tous | `[{ id, name, description, branchId, managerId }]` |
-| ✅ | `GET /branches` | tous | `[{ id, name }]` (sans la liste des utilisateurs) |
-
-## Planning d'un salarié 🆕
-
-```json
-{ "userId": "…", "workDays": [1, 2, 3, 4, 5], "startMin": 540, "dailyMinutes": 420, "breakMinutes": 45 }
-```
-
-`workDays` : 1 = lundi … 7 = dimanche. `startMin` : minutes depuis minuit (540 = 09:00). **La fin de journée n'est pas stockée** : `startMin + dailyMinutes + breakMinutes`.
-
-| | Route | Qui |
-|---|---|---|
-| 🆕 | `GET /plannings/:userId` | soi-même, ou manager / directeur / admin. Renvoie `null` si aucun planning |
-| 🆕 | `PUT /plannings/:userId` | voir « Droits ». Corps : le planning sans `userId` |
-
-## Pointages
-
-| | Route | Notes |
-|---|---|---|
-| 🟡 | `GET /clocks/:userId?from=&to=` | Ajouter le filtre par dates. Lecture : soi-même, ou manager / directeur / admin |
-| 🟡 | `POST /clocks/:userId` | Corps : `{ status }` avec `IN`, `BREAK_START`, `BREAK_END` ou `OUT` (**les pauses sont nouvelles**). Uniquement pour soi-même ; l'admin ne pointe pas (403) |
-
-Enchaînements autorisés dans la journée (sinon 409) :
-
-```
-aucun pointage → IN → BREAK_START → BREAK_END → … → OUT (terminé)
-```
-
-Pendant une pause, seul `BREAK_END` est possible. Les pauses ne comptent pas dans le temps travaillé.
-
-## Présence en direct 🆕
-
-`GET /presence` (manager, directeur, admin) : une ligne par salarié ayant un planning.
-
-```json
-{ "userId": "…", "state": "WORKING", "since": "2026-10-07T07:57:00.000Z", "lateMinutes": 12 }
-```
-
-`state` : `NOT_STARTED`, `WORKING`, `ON_BREAK`, `DONE`, `ABSENT` (absence déclarée ce jour) ou `OFF_DAY` (jour non travaillé). `since` : heure du dernier pointage. L'app rafraîchit cet écran chaque minute.
-
-## KPI
-
-🟡 `GET /kpi/report?from=&to=` : la réponse actuelle convient. Ajouter `workedDays` (nombre de jours travaillés sur la période) à chaque ligne : il sert au taux de ponctualité. L'alerte reste `lateAlert = lateDays > 3`. L'app l'affiche sur les 30 derniers jours.
-
-## Absences
-
-```json
-{
-  "id": "…", "userId": "…", "type": "SICK_LEAVE", "startDate": "…", "endDate": "…",
-  "reason": "commentaire libre", "attachmentName": "avis-arret.pdf",
-  "status": "PENDING", "createdAt": "…",
-  "decidedBy": "…", "decidedByName": "Karim Benali", "decidedAt": "…", "decisionComment": "…"
-}
-```
-
-`type` 🆕 : `SICK_LEAVE` (arrêt maladie), `MEDICAL` (rendez-vous médical), `LEAVE` (congé), `FORGOTTEN_CLOCK` (oubli de pointage), `OTHER`.
-`decidedByName` 🆕 : un employé n'a pas le droit de lire la fiche de son manager, il faut donc renvoyer le nom.
-
-| | Route | Notes |
-|---|---|---|
-| 🟡 | `POST /absences` | Corps : `{ type, startDate, endDate, reason, attachmentName }`. L'envoi du fichier justificatif reste à définir |
-| ✅ | `GET /absences/user/:userId` | Plus récentes en premier. Lecture : soi-même, ou manager / directeur / admin |
-| 🆕 | `GET /absences?status=PENDING` | Demandes **que la personne connectée peut traiter** (voir « Droits ») |
-| 🟡 | `PATCH /absences/:id/decision` | Corps : `{ status: "APPROVED" \| "REJECTED", comment }`. **`comment` obligatoire en cas de refus** (400). 409 si déjà traitée |
-
-## Demandes de modification ou de suppression du profil 🆕
-
-Un employé ne modifie pas ses informations : il fait une demande, que son responsable valide. **Une seule demande en attente à la fois** (sinon 409).
-
-```json
-{
-  "id": "…", "userId": "…", "kind": "UPDATE", "field": "phone",
-  "currentValue": "+33 6 12 34 56 78", "newValue": "+33 6 98 76 54 32", "reason": null,
-  "status": "PENDING", "createdAt": "…",
-  "decidedBy": null, "decidedByName": null, "decidedAt": null, "decisionComment": null
-}
-```
-
-`kind` : `UPDATE` (avec `field` : `firstName`, `lastName`, `email` ou `phone`) ou `DELETE` (avec `reason`).
-
-| Route | Notes |
+| Écran | Routes |
 |---|---|
-| `POST /profile-requests` | `{ kind: "UPDATE", field, newValue }` ou `{ kind: "DELETE", reason }`. `currentValue` est rempli par le serveur |
-| `GET /profile-requests/user/:userId` | Historique de la personne |
-| `GET /profile-requests?status=PENDING` | Demandes que la personne connectée peut traiter |
-| `PATCH /profile-requests/:id/decision` | Comme pour les absences. Une fois validée : `UPDATE` applique la nouvelle valeur, `DELETE` supprime le compte (suppression douce) |
+| Connexion | `POST /auth/login` |
+| Pointage | `GET /users/:id` (planning), `GET /clocks/:id`, `POST /clocks/:id/arrive` · `break/start` · `break/end` · `depart` |
+| Mes heures | `GET /users/:id`, `GET /clocks/:id`, `GET /absences/user/:id` |
+| Absences | `POST /absences`, `GET /absences/user/:id` |
+| Profil | `GET /users/:id`, `GET /account-requests/user/:id`, `POST /account-requests`, `POST /auth/change-password` |
+| Équipe | `GET /users`, `GET /teams`, `GET /kpi/report?from&to&teamId`, `GET /clocks/:id/status` (une fois par salarié) |
+| Fiche salarié | `GET /users/:id`, `GET /clocks/:id`, `GET /absences/user/:id`, `GET /teams`, `PUT /users/:id`, `DELETE /users/:id` |
+| Demandes | `GET /absences/pending`, `GET /account-requests/pending`, `PATCH /absences/:id/decision`, `PATCH /account-requests/:id/decision` |
 
-## Droits
+Vérifié le 8 octobre contre le backend de `main` (script de contrat) : toutes ces routes répondent au format attendu.
 
-| Action | Employé | Manager | Directeur | Admin |
-|---|---|---|---|---|
-| Voir la liste des salariés, la présence, les KPI | ✗ | toute l'entreprise | toute l'entreprise | tout |
-| Modifier / supprimer un salarié, son planning | ✗ | salariés **de ses équipes** | salariés et managers **de sa branche** | tous |
-| Traiter les demandes (absences, profil) | ✗ | salariés de ses équipes | managers et salariés de sa branche | directeurs (et tous) |
-| Pointer | soi | soi | soi | ✗ |
+## Ce qui reste à faire dans le backend
 
-Les demandes d'un employé vont à son manager, celles d'un manager à son directeur, celles d'un directeur à l'admin.
+### Sécurité (le sujet exige des routes sécurisées)
 
-## Calculs d'heures : attention au fuseau horaire
+1. **Pointages** : `POST /clocks/:userId/*` doit refuser si `userId` n'est pas la personne connectée. Aujourd'hui, n'importe qui peut pointer pour n'importe qui.
+2. **Lecture** : `GET /clocks/:id`, `GET /clocks/:id/status`, `GET /workingtimes/:id`, `GET /absences/user/:id`, `GET /account-requests/user/:id` et `GET /teams/:id` doivent appliquer `assertCanReadUser` (soi-même, sa branche, ou admin).
+3. **Demandes en attente** : `GET /absences/pending` et `GET /account-requests/pending` renvoient celles de **toute l'entreprise**. Il faut ne renvoyer que celles que la personne connectée peut traiter, et vérifier ce droit dans `PATCH …/decision` (même règle que `assertCanManageUser`).
 
-L'app calcule en **heure locale** (Europe/Paris) : une arrivée à 09:12 avec un début prévu à 09:00 fait **12 minutes de retard**. Le backend actuel (`kpi/lateness.ts`, `workingtimes.service.ts`) calcule en **UTC** : en France, presque aucun retard n'est détecté, et les heures proches de minuit sont rattachées au mauvais jour. Les calculs de référence de l'app sont dans `src/domain/time.ts`.
+### Règles métier
+
+4. **Motif de refus obligatoire** : `decisionComment` requis si `status = REJECTED`. Refuser aussi une demande déjà traitée.
+5. **Fuseau horaire** : `kpi/lateness.ts` et `workingtimes.service.ts` calculent en UTC (`getUTCHours`, `toISOString().slice(0, 10)`). En France, une arrivée à 09:15 est enregistrée 07:15 UTC et **n'est pas comptée en retard**. Il faut calculer en **Europe/Paris**.
+6. **Absence validée = pas de retard** : un jour couvert par une absence validée (rendez-vous médical, oubli de pointage…) ne doit pas compter de retard ni d'heures manquantes.
+7. **Pointages à la milliseconde** : `clocks.time` est un `datetime` sans fraction. Deux pointages dans la même seconde (double appui) ne sont plus ordonnés, et le backend se trompe de dernier pointage (constaté pendant les tests). Utiliser `datetime(3)`.
+8. **Changement de jour** : `ClocksService.allowed` regarde le dernier pointage, quel que soit le jour. Si quelqu'un oublie de pointer son départ, il ne peut plus pointer son arrivée le lendemain.
+9. **Historique des plannings** : changer l'heure d'arrivée d'un salarié recalcule ses retards passés. Il faut garder les plannings avec une date de début de validité.
+
+### Pour que l'app (et le site) n'aient plus de calculs à faire
+
+10. **Journées calculées** : `GET /workingtimes/:userId?from&to` pourrait renvoyer, par jour, `{ date, arrival, departure, workedMinutes, breakMinutes, lateMinutes, excused }`. Aujourd'hui l'app recalcule ces valeurs à partir des pointages (`src/domain/time.ts`).
+11. **Présence de l'équipe en un appel** : `GET /presence` → `[{ userId, state, since, lateMinutes, absent }]`. L'app fait aujourd'hui un appel `GET /clocks/:id/status` par salarié, et ne peut pas afficher « absent » ni « en retard aujourd'hui ».
+12. **Filtre par dates** sur `GET /clocks/:userId?from&to` (l'app filtre elle-même pour l'instant).
+13. **Nom du décideur** dans les absences et les demandes (`decidedBy: { firstName, lastName }`) : un employé ne peut pas lire la fiche de son manager.
+14. **KPI** : `punctualityPct` compte la part de salariés *sans alerte* ; un taux de jours à l'heure (1 − jours en retard / jours travaillés) serait plus juste. `avgWeeklyHours` suppose 5 jours travaillés par semaine.
+
+### Divers
+
+15. **Messages d'erreur en français** : l'app affiche le message du backend tel quel (« Invalid credentials », « You already have a pending request »…).
+16. **Tests des routes** (e2e avec supertest) : aucune route n'est testée pour l'instant.
+17. **Connexion Microsoft** : encore un commentaire dans `auth.controller.ts`.
+18. **Envoi du justificatif** : `attachmentPath` est une chaîne ; l'envoi du fichier lui-même n'existe pas encore.
