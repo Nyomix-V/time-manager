@@ -1,6 +1,6 @@
 import { Feather } from '@expo/vector-icons';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthProvider';
@@ -20,6 +20,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [microsoftLoading, setMicrosoftLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const passwordInput = useRef<TextInput>(null);
 
   async function submit(credentials = { email: email.trim(), password }) {
     setError(null);
@@ -53,7 +54,9 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.safe}>
+      {/* Le formulaire reste visible et défilable au-dessus du clavier, sur Android aussi : en affichage
+          bord à bord, Android ne redimensionne plus la fenêtre quand le clavier s'ouvre. */}
+      <KeyboardAvoidingView behavior="padding" style={styles.safe}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.logo}>
             <Feather name="clock" size={26} color={colors.text} />
@@ -113,6 +116,10 @@ export default function LoginScreen() {
               keyboardType="email-address"
               textContentType="emailAddress"
               accessibilityLabelledBy="email-label"
+              // « Suivant » sur le clavier passe au mot de passe, sans avoir à toucher le champ.
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => passwordInput.current?.focus()}
             />
           </View>
           <View style={styles.field}>
@@ -120,13 +127,15 @@ export default function LoginScreen() {
               Mot de passe
             </Text>
             <TextInput
+              ref={passwordInput}
               style={styles.input}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               autoComplete="password"
               textContentType="password"
-              onSubmitEditing={() => submit()}
+              returnKeyType="go"
+              onSubmitEditing={() => email && password && submit()}
               accessibilityLabelledBy="password-label"
             />
           </View>
