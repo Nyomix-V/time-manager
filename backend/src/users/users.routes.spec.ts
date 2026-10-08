@@ -56,6 +56,20 @@ describe('Users routes', () => {
     expect(user('dirA')?.deletedAt).toBeUndefined();
   });
 
+  it('lets a manager register an employee of the branch, not a manager', async () => {
+    const post = (userId: string, body: object) => request(app.getHttpServer()).post('/users').set('x-user', userId).send(body);
+    const employee = { firstName: 'Léa', lastName: 'Nouvelle', email: 'lea.nouvelle@test.fr', role: 'EMPLOYEE', branchId: 'b1' };
+
+    const res = await post('mgrA', employee).expect(201);
+    expect(res.body).toMatchObject({ email: 'lea.nouvelle@test.fr', role: 'EMPLOYEE', activationToken: 'token' });
+
+    const dup = await post('mgrA', { ...employee, firstName: 'Autre' }).expect(409);
+    expect(dup.body.message).toBe('Cet email est déjà utilisé');
+    await post('mgrA', { ...employee, email: 'chef@test.fr', role: 'MANAGER' }).expect(403);
+    await post('mgrA', { ...employee, email: 'ailleurs@test.fr', branchId: 'b2' }).expect(403);
+    await post('dirA', { ...employee, email: 'chef@test.fr', role: 'MANAGER' }).expect(201);
+  });
+
   it('rejects fields that cannot be updated (role)', async () => {
     await as('dirA').put('/users/empA', { role: 'ADMIN' }).expect(400);
     expect(user('empA')?.role).toBe('EMPLOYEE');

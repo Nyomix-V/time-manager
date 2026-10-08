@@ -80,7 +80,7 @@ export class UsersService {
       withDeleted: true,
     });
     if (existing) {
-      throw new ConflictException('Email already in use');
+      throw new ConflictException('Cet email est déjà utilisé');
     }
 
     const saved = await this.users.save(user);

@@ -83,15 +83,29 @@ export class AuthController {
 
   // --- Microsoft SSO (server-side flow) ---
   // Step 1: send the user to Microsoft's sign-in page.
+  // ?client=mobile: the mobile app opened this page; step 2 sends the user back to the app.
   @Get('microsoft')
-  microsoft(@Res() res: Response) {
-    return res.redirect(this.auth.buildMicrosoftAuthUrl());
+  microsoft(@Query('client') client: string | undefined, @Res() res: Response) {
+    return res.redirect(this.auth.buildMicrosoftAuthUrl(client === 'mobile' ? 'mobile' : 'web'));
   }
 
   // Step 2: Microsoft redirects back here with ?code=... -> we issue our JWT.
-  // If FRONTEND_URL is set, redirect there with the token; else return JSON.
+  // Mobile app: redirect to the app (deep link) with the token, or the error to show.
+  // Web: if FRONTEND_URL is set, redirect there with the token; else return JSON.
   @Get('microsoft/callback')
-  async microsoftCallback(@Query('code') code: string, @Res() res: Response) {
+  async microsoftCallback(@Query('code') code: string, @Query('state') state: string | undefined, @Res() res: Response) {
+    if (AuthService.isMobileState(state)) {
+      const app = process.env.MOBILE_SSO_REDIRECT || 'timemanager://login';
+      if (!code) return res.redirect(`${app}?error=${encodeURIComponent('Connexion Microsoft annulée')}`);
+      try {
+        const { access_token } = await this.auth.handleMicrosoftCallback(code);
+        return res.redirect(`${app}?token=${encodeURIComponent(access_token)}`);
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Connexion Microsoft impossible';
+        return res.redirect(`${app}?error=${encodeURIComponent(message)}`);
+      }
+    }
+
     const result = await this.auth.handleMicrosoftCallback(code);
     const front = process.env.FRONTEND_URL;
     if (front) {
