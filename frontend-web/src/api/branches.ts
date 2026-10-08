@@ -7,19 +7,11 @@ export const branchKeys = {
   detail: (id: string) => ['branches', id] as const,
 };
 
-/** Includes `users` (relation loaded by the backend). */
+/** Includes `teams`. */
 export function useBranches() {
   return useQuery({
     queryKey: branchKeys.all,
     queryFn: async () => (await api.get<Branch[]>('/branches')).data,
-  });
-}
-
-export function useBranch(id: string | null | undefined) {
-  return useQuery({
-    queryKey: branchKeys.detail(id ?? ''),
-    queryFn: async () => (await api.get<Branch>(`/branches/${id}`)).data,
-    enabled: !!id,
   });
 }
 

@@ -4,7 +4,7 @@ import { Download } from 'lucide-react';
 import { useWorkingTimes } from '@/api/workingtimes';
 import { useClocks } from '@/api/clocks';
 import { groupByDay } from '@/lib/clocks';
-import { formatDayShort, formatHours, formatTime } from '@/lib/format';
+import { formatDayShort, formatHours, formatMinutes, formatTime } from '@/lib/format';
 import { describeRange, weeksIn, type DateRange, type PeriodKind } from '@/lib/period';
 import { downloadCsv } from '@/lib/csv';
 import { KpiCard } from '../KpiCard';
@@ -13,20 +13,21 @@ import { QueryState } from '../QueryState';
 import { Card, CardHead, CardTitle, FlushCard } from '../ui/card';
 import { Table, Td, Th, num } from '../ui/table';
 import { Button } from '../ui/button';
-import type { WorkingSummary } from '@/api/types';
-
-const DAILY_TARGET = 7;
-const WEEKLY_TARGET = 35;
+import type { Planning, WorkingSummary } from '@/api/types';
+import { weeklyHours } from '@/lib/planning';
 
 /** KPI cards + chart + per-day table for one user over a period ("Mes heures" and the employee page). */
 export function WorkHistory({
   userId,
   range,
   kind,
+  planning,
   extraKpi,
   exportName,
 }: {
   userId: string;
+  /** Targets (hours per day / per week) come from the person's planning. */
+  planning: Planning;
   range: DateRange;
   kind: PeriodKind;
   extraKpi?: ReactNode;
@@ -34,6 +35,8 @@ export function WorkHistory({
 }) {
   const summary = useWorkingTimes(userId, range);
   const clocks = useClocks(userId);
+  const dailyTarget = planning.workMinutesPerDay / 60;
+  const weeklyTarget = weeklyHours(planning);
 
   return (
     <QueryState query={summary}>
@@ -74,17 +77,17 @@ export function WorkHistory({
               <KpiCard
                 label="Moyenne par jour"
                 value={formatHours(days ? data.totalHours / days : 0)}
-                hint={`Objectif ${DAILY_TARGET} h`}
+                hint={`Objectif ${formatHours(dailyTarget)} · pauses : ${formatMinutes(days ? data.breakMinutes / days : 0)} / jour`}
               />
               <KpiCard
                 label="Moyenne par semaine"
                 value={formatHours(data.totalHours / weeks)}
                 hint={
-                  data.totalHours / weeks >= WEEKLY_TARGET
-                    ? `Objectif ${WEEKLY_TARGET} h atteint`
-                    : `Objectif ${WEEKLY_TARGET} h`
+                  data.totalHours / weeks >= weeklyTarget
+                    ? `Objectif ${formatHours(weeklyTarget)} atteint`
+                    : `Objectif ${formatHours(weeklyTarget)}`
                 }
-                hintTone={data.totalHours / weeks >= WEEKLY_TARGET ? 'up' : 'muted'}
+                hintTone={data.totalHours / weeks >= weeklyTarget ? 'up' : 'muted'}
               />
               {extraKpi}
             </div>
@@ -95,9 +98,9 @@ export function WorkHistory({
                   {kind === 'week' ? 'Heures par jour' : 'Heures par semaine'}
                 </CardTitle>
                 {kind === 'week' ? (
-                  <HoursChart title="Heures par jour" data={perDayPoints(data)} target={DAILY_TARGET} />
+                  <HoursChart title="Heures par jour" data={perDayPoints(data)} target={dailyTarget} />
                 ) : (
-                  <HoursChart title="Heures par semaine" data={perWeekPoints(data)} target={WEEKLY_TARGET} />
+                  <HoursChart title="Heures par semaine" data={perWeekPoints(data)} target={weeklyTarget} />
                 )}
               </Card>
 

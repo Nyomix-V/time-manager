@@ -6,6 +6,7 @@ import { useClocksOf } from '@/api/clocks';
 import { useWorkingTimesOf } from '@/api/workingtimes';
 import { ROLE_LABELS } from '@/auth/permissions';
 import { clocksOfDay } from '@/lib/clocks';
+import { isWorkingDay } from '@/lib/planning';
 import { formatHours, formatTime, fullName } from '@/lib/format';
 import { dayRange, toInputDate } from '@/lib/period';
 import { downloadCsv } from '@/lib/csv';
@@ -32,7 +33,6 @@ export function ClocksPage() {
 
   const date = useMemo(() => new Date(`${day}T12:00:00`), [day]);
   const range = useMemo(() => dayRange(date), [date]);
-  const branchName = new Map(branches.data?.map((b) => [b.id, b.name]));
 
   const filtered = (users.data ?? [])
     .filter((u) => u.role !== 'ADMIN')
@@ -46,9 +46,17 @@ export function ClocksPage() {
 
   const rows = pagination.visible.map((u) => {
     const today = clocksOfDay(clocks.get(u.id) ?? [], date);
-    const first = today.find((c) => c.status === 'IN');
+    const first = today.find((c) => c.type === 'IN');
     const last = today.at(-1);
-    return { user: u, first, last, open: last?.status === 'IN', total: hours.get(u.id)?.totalHours };
+    return {
+      user: u,
+      first,
+      last,
+      open: !!last && last.type !== 'OUT',
+      onBreak: last?.type === 'BREAK_START',
+      workingDay: isWorkingDay(u, date),
+      total: hours.get(u.id)?.totalHours,
+    };
   });
 
   return (
@@ -62,7 +70,7 @@ export function ClocksPage() {
               ...rows.map((r) => [
                 fullName(r.user),
                 ROLE_LABELS[r.user.role],
-                r.user.branchId ? (branchName.get(r.user.branchId) ?? '') : '',
+                r.user.branch?.name ?? '',
                 r.first ? formatTime(r.first.time) : '',
                 r.last && !r.open ? formatTime(r.last.time) : '',
                 r.total ?? '',
@@ -134,8 +142,8 @@ export function ClocksPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map(({ user: u, first, last, open, total }) => (
-                  <Tr key={u.id} highlight={!first}>
+                {rows.map(({ user: u, first, last, open, onBreak, workingDay, total }) => (
+                  <Tr key={u.id} highlight={!first && workingDay && u.status === 'ACTIVE'}>
                     <Td>
                       <Person firstName={u.firstName} lastName={u.lastName} />
                     </Td>
@@ -144,7 +152,7 @@ export function ClocksPage() {
                         {ROLE_LABELS[u.role]}
                       </Badge>
                     </Td>
-                    <Td>{u.branchId ? branchName.get(u.branchId) : '—'}</Td>
+                    <Td>{u.branch?.name ?? '—'}</Td>
                     <Td>{first ? formatTime(first.time) : <span className="text-muted">—</span>}</Td>
                     <Td>
                       {open ? (
@@ -159,8 +167,16 @@ export function ClocksPage() {
                       {total ? formatHours(total) : <span className="text-muted">—</span>}
                     </Td>
                     <Td>
-                      {!first ? (
-                        <Badge tone="danger">Aucun pointage</Badge>
+                      {u.status !== 'ACTIVE' ? (
+                        <Badge tone="neutral">Compte non activé</Badge>
+                      ) : !first ? (
+                        workingDay ? (
+                          <Badge tone="danger">Pointage manquant</Badge>
+                        ) : (
+                          <Badge tone="neutral">Jour non travaillé</Badge>
+                        )
+                      ) : onBreak ? (
+                        <Badge tone="info">En pause</Badge>
                       ) : open ? (
                         <Badge tone="success">En poste</Badge>
                       ) : (

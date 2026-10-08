@@ -3,9 +3,8 @@ import { NavLink, Outlet, useLocation } from 'react-router';
 import { Clock, LogOut, Menu, X } from 'lucide-react';
 import { useAuth, useCurrentUser } from '@/auth/AuthProvider';
 import { NAV_BY_ROLE } from '@/auth/navigation';
-import { can, ROLE_LABELS } from '@/auth/permissions';
-import { useScopeRequests } from '@/api/requests';
-import { useBranch } from '@/api/branches';
+import { ROLE_LABELS } from '@/auth/permissions';
+import { usePendingInbox } from '@/hooks/usePendingInbox';
 import { Avatar } from '../ui/avatar';
 import { cn } from '@/lib/utils';
 
@@ -69,9 +68,7 @@ function Logo() {
 function Sidebar({ open }: { open: boolean }) {
   const user = useCurrentUser();
   const { logout } = useAuth();
-  const branch = useBranch(user.branchId);
-  const requests = useScopeRequests(can(user.role, 'decideRequests'));
-  const pending = requests.data?.filter((r) => r.status === 'PENDING').length ?? 0;
+  const pending = usePendingInbox().count;
 
   return (
     <aside
@@ -117,7 +114,7 @@ function Sidebar({ open }: { open: boolean }) {
           </strong>
           <span className="text-xs text-sidebar-text">
             {ROLE_LABELS[user.role]}
-            {branch.data && ` · ${branch.data.name}`}
+            {user.branch && ` · ${user.branch.name}`}
           </span>
         </div>
       </div>

@@ -15,6 +15,12 @@ describe('getErrorMessage', () => {
   it('translates bad credentials', () => {
     expect(getErrorMessage(httpError(401, 'Invalid credentials'))).toBe('Email ou mot de passe incorrect.');
   });
+  it('explains a non-activated account', () => {
+    expect(getErrorMessage(httpError(401, 'Account not activated'))).toMatch(/Compte non activé/);
+  });
+  it('turns a refused clock transition into a readable message', () => {
+    expect(getErrorMessage(httpError(400, 'Invalid transition: last=IN next=IN'))).toMatch(/déjà été fait/);
+  });
   it('joins NestJS validation messages', () => {
     expect(getErrorMessage(httpError(400, ['email must be an email', 'password too short']))).toBe(
       'email must be an email, password too short',

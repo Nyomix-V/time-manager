@@ -19,6 +19,7 @@ const schema = z.object({
 
 export function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
+  const [devToken, setDevToken] = useState<string>();
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
@@ -29,8 +30,10 @@ export function ForgotPasswordPage() {
   const onSubmit = async ({ email }: z.infer<typeof schema>) => {
     setServerError(null);
     try {
-      await requestPasswordReset(email);
+      const { token } = await requestPasswordReset(email);
       setSent(true);
+      // No email is sent yet: in development the backend returns the token, we show the link.
+      if (import.meta.env.DEV) setDevToken(token);
     } catch (e) {
       setServerError(getErrorMessage(e));
     }
@@ -57,6 +60,17 @@ export function ForgotPasswordPage() {
         {sent ? (
           <Alert tone="success" role="status">
             Si un compte correspond à cette adresse, un email vient de vous être envoyé.
+            {devToken && (
+              <>
+                {' '}
+                <Link
+                  className="font-semibold underline"
+                  to={`${ROUTES.resetPassword}?token=${encodeURIComponent(devToken)}`}
+                >
+                  (dev) Ouvrir le lien reçu
+                </Link>
+              </>
+            )}
           </Alert>
         ) : (
           <>

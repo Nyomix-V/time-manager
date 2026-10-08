@@ -1,14 +1,10 @@
-import { formatAbsenceRange, splitReason } from './absences';
+import { ABSENCE_LABELS, formatAbsenceRange } from './absences';
 
-describe('splitReason', () => {
-  it('splits motif and comment', () => {
-    expect(splitReason('Congé — vacances en famille')).toEqual({
-      motif: 'Congé',
-      comment: 'vacances en famille',
-    });
+describe('ABSENCE_LABELS', () => {
+  it('translates the backend absence types', () => {
+    expect(ABSENCE_LABELS.SICK).toBe('Arrêt maladie');
+    expect(ABSENCE_LABELS.MISSED_CLOCK).toBe('Oubli de pointage');
   });
-  it('handles a motif alone', () =>
-    expect(splitReason('Autre')).toEqual({ motif: 'Autre', comment: undefined }));
 });
 
 describe('formatAbsenceRange', () => {

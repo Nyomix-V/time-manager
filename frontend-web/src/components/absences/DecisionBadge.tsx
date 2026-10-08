@@ -1,4 +1,4 @@
-import type { DecisionStatus } from '@/api/types';
+import type { RequestStatus } from '@/api/types';
 import { Badge } from '../ui/badge';
 
 const STATUS = {
@@ -7,6 +7,6 @@ const STATUS = {
   REJECTED: { label: 'Refusée', tone: 'danger' },
 } as const;
 
-export function DecisionBadge({ status }: { status: DecisionStatus }) {
+export function DecisionBadge({ status }: { status: RequestStatus }) {
   return <Badge tone={STATUS[status].tone}>{STATUS[status].label}</Badge>;
 }

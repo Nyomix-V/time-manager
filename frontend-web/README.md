@@ -56,12 +56,13 @@ src/
 └── router.tsx    routes et rôles autorisés
 ```
 
-Les calculs métier (heures travaillées, retards, heures sup) sont faits **par le back**. Le front ne fait que les agréger pour l'affichage (moyennes d'équipe), plus le compteur en direct de la journée en cours.
+Les calculs métier (heures travaillées, pauses, retards, heures sup, résumé KPI) sont faits **par le back**. Le front ne fait que regrouper les lignes KPI par équipe ou par branche, avec les mêmes formules que le back, et calcule le compteur en direct de la journée en cours.
 
 ## Sécurité
 
 - **Access token en mémoire uniquement**, jamais dans `localStorage`, donc illisible par un script injecté (XSS).
-- **Refresh token en cookie httpOnly** (à implémenter côté back) : au rechargement de la page, `POST /auth/refresh` redonne un access token. Sur une 401, le client rafraîchit une fois puis rejoue la requête.
+- **Refresh token en cookie httpOnly** (pas encore implémenté côté back) : au rechargement de la page, `POST /auth/refresh` redonnera un access token. Sur une 401, le client rafraîchit une fois puis rejoue la requête.
+- **Pas d'auto-inscription** : un compte est créé par un manager, un directeur ou l'admin (statut « invité »), puis activé par la personne via un lien valable 48 h.
 - Les pages sont protégées par rôle, mais **c'est le back qui fait foi** : masquer un bouton n'est qu'un confort.
 - En prod, nginx ajoute une CSP stricte, limite `/api/auth/login` à 5 essais par minute et par IP, et la police est servie localement (aucune IP envoyée à Google Fonts, RGPD).
 
@@ -73,21 +74,15 @@ Les calculs métier (heures travaillées, retards, heures sup) sont faits **par 
 - Libellés liés aux champs, erreurs annoncées (`role="alert"`, `aria-invalid`, `aria-describedby`).
 - Mise en page responsive, testée à 390 px de large.
 
-## Endpoints attendus côté back
-
-Le front est déjà branché sur ces routes, qui n'existent pas encore. En attendant, les écrans concernés affichent « Cette fonctionnalité n'est pas encore disponible côté serveur ».
+## Ce qui manque encore côté back
 
 | Route | Écran | Note |
 |---|---|---|
-| `POST /auth/refresh`, `POST /auth/logout` | Toutes | Refresh token en cookie httpOnly `SameSite=Strict`. Sans cette route, un rechargement de page déconnecte. |
-| `GET/POST/PUT/DELETE /teams` | Équipes, Branches | `{ id, name, description, branchId, managerId, memberIds[] }`. Exigé par le sujet. |
-| `GET /requests/me`, `GET /requests`, `POST /requests`, `PATCH /requests/:id/decision` | Profil, Demandes à valider | Demandes de modification ou de suppression de compte validées par le manager |
-| `PUT /auth/password` | Profil | `{ currentPassword, newPassword }` |
-| `POST /auth/forgot-password` | Mot de passe oublié | Même réponse que le compte existe ou non |
+| `POST /auth/refresh`, `POST /auth/logout` | Toutes | Refresh token en cookie httpOnly `SameSite=Strict`. Sans cette route, **un rechargement de page déconnecte**. |
 | `GET /auth/microsoft` (+ callback) | Connexion | Après le callback : poser le cookie de refresh puis rediriger vers `/` |
 
 Améliorations utiles :
-- `GET /absences?status=PENDING` : aujourd'hui, l'écran du manager charge les absences salarié par salarié.
-- `GET /clocks?date=` : même chose pour l'écran admin des pointages.
-- Un type de pointage `PAUSE` : le back ne connaît que IN/OUT. Le front retient localement qu'un OUT était une pause.
-- Un `comment` dans `PATCH /absences/:id/decision`, pour expliquer un refus.
+- `GET /absences/pending` et `GET /account-requests/pending` renvoient **toutes les branches** : le front filtre sur la branche du manager, mais le back devrait le faire (sécurité).
+- Un historique des demandes traitées pour un périmètre (aujourd'hui, l'onglet « Traitées » charge les demandes salarié par salarié).
+- `GET /clocks?date=` pour l'écran admin des pointages (même problème).
+- L'envoi des emails (activation, mot de passe oublié) : en attendant, le lien d'activation est affiché au manager après la création, et le lien de réinitialisation n'apparaît qu'en développement.

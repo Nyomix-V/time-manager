@@ -1,14 +1,22 @@
+import { Link } from 'react-router';
 import { addDays, format, subWeeks } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { Bell, Calendar, Coffee, LogIn, LogOut, Pause, Play, Timer } from 'lucide-react';
+import { Calendar, Coffee, LogIn, LogOut, Pause, Play, Timer } from 'lucide-react';
 import { useCurrentUser } from '@/auth/AuthProvider';
-import { useClocks, useToggleClock } from '@/api/clocks';
+import { ROUTES } from '@/auth/navigation';
+import { useClockAction, useClocks, type ClockAction } from '@/api/clocks';
 import { useWorkingTimes } from '@/api/workingtimes';
-import { useBranch } from '@/api/branches';
 import { getErrorMessage } from '@/api/client';
+import type { Planning } from '@/api/types';
 import { useNow } from '@/hooks/useNow';
-import { usePauseFlag } from '@/hooks/usePauseFlag';
-import { clocksOfDay, currentState, dayStats, timeline, type TimelineItem } from '@/lib/clocks';
+import {
+  clocksOfDay,
+  currentState,
+  dayStats,
+  timeline,
+  type ClockState,
+  type TimelineItem,
+} from '@/lib/clocks';
 import {
   formatDateLong,
   formatDayShort,
@@ -17,6 +25,7 @@ import {
   formatTime,
   minutesToTime,
 } from '@/lib/format';
+import { isWorkingDay, plannedEndMin, weeklyHours } from '@/lib/planning';
 import { monthRange, weekRange } from '@/lib/period';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/PageHeader';
@@ -27,44 +36,35 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert } from '@/components/ui/alert';
-import { Link } from 'react-router';
-import { ROUTES } from '@/auth/navigation';
 
-const WEEKLY_TARGET = 35;
-
+/** Clock-in page (mockup 04): arrival, breaks, departure. */
 export function ClockPage() {
   const user = useCurrentUser();
   const now = useNow();
   const clocks = useClocks(user.id);
-  const toggle = useToggleClock(user.id);
-  const [pauseFlag, setPauseFlag] = usePauseFlag(user.id);
-  const branch = useBranch(user.branchId);
+  const action = useClockAction(user.id);
   const week = useWorkingTimes(user.id, weekRange(now));
   const month = useWorkingTimes(user.id, monthRange(now));
 
   const today = clocks.data ? clocksOfDay(clocks.data, now) : [];
   const state = currentState(today);
-  const inPause = state === 'out' && pauseFlag;
   const stats = dayStats(today, now);
-
-  const clock = (pause: boolean) => {
-    setPauseFlag(pause);
-    toggle.mutate();
-  };
-
-  const expected = branch.data ? `Arrivée prévue : ${minutesToTime(branch.data.expectedStartMin)}` : null;
+  const weeklyTarget = weeklyHours(user);
   const monthDays = month.data?.perDay.length ?? 0;
+  const workingToday = isWorkingDay(user, now);
+
+  const punch = (a: ClockAction) => action.mutate(a);
 
   return (
     <>
       <PageHeader
         title={`Bonjour ${user.firstName}`}
-        subtitle={[formatDateLong(now), expected].filter(Boolean).join(' · ')}
-      >
-        <Button variant="secondary" size="icon" aria-label="Notifications (bientôt disponible)" disabled>
-          <Bell aria-hidden />
-        </Button>
-      </PageHeader>
+        subtitle={`${formatDateLong(now)} · ${
+          workingToday
+            ? `Horaires prévus : ${minutesToTime(user.expectedStartMin)} – ${minutesToTime(plannedEndMin(user))} · Pause ${user.breakMinutes} min`
+            : 'Jour non travaillé selon votre planning'
+        }`}
+      />
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="items-center p-8 text-center xl:col-span-2" aria-labelledby="clock-title">
@@ -78,56 +78,66 @@ export function ClockPage() {
           ) : (
             <>
               <div role="status" aria-live="polite">
-                <StateBadge state={state} inPause={inPause} since={stats.since} />
+                <StateBadge state={state} since={stats.since} />
               </div>
               <div className="text-[56px] font-bold tabular-nums tracking-tight">{format(now, 'HH:mm')}</div>
-              {inPause ? (
-                <span className="inline-flex items-center gap-2 rounded-full bg-primary-soft px-3.5 py-2 text-sm font-semibold text-primary">
+              {state === 'break' ? (
+                <span
+                  role="timer"
+                  className="inline-flex items-center gap-2 rounded-full bg-primary-soft px-3.5 py-2 text-sm font-semibold text-primary"
+                >
                   <Coffee className="size-[18px]" aria-hidden />
                   Pause en cours ·{' '}
-                  {formatMinutes((now.getTime() - (stats.since?.getTime() ?? now.getTime())) / 60_000)}
+                  {formatMinutes(
+                    (now.getTime() - (stats.since?.getTime() ?? now.getTime())) / 60_000,
+                  )} sur {user.breakMinutes} prévues
                 </span>
               ) : (
                 <p className="text-sm text-muted">
                   Travaillé : <strong className="text-text">{formatHours(stats.workedMs / 3_600_000)}</strong>{' '}
                   · Pause prise :{' '}
-                  <strong className="text-text">{formatMinutes(stats.pauseMs / 60_000)}</strong>
+                  <strong className="text-text">{formatMinutes(stats.breakMs / 60_000)}</strong>
                 </p>
               )}
 
               <div className="flex flex-wrap justify-center gap-3">
-                {state === 'in' && (
+                {state === 'working' && (
                   <>
-                    <Button variant="pause" size="xl" onClick={() => clock(true)} disabled={toggle.isPending}>
+                    <Button
+                      variant="pause"
+                      size="xl"
+                      onClick={() => punch('break/start')}
+                      disabled={action.isPending}
+                    >
                       <Pause aria-hidden />
                       Commencer une pause
                     </Button>
-                    <Button size="xl" onClick={() => clock(false)} disabled={toggle.isPending}>
+                    <Button size="xl" onClick={() => punch('depart')} disabled={action.isPending}>
                       <LogOut aria-hidden />
                       Pointer mon départ
                     </Button>
                   </>
                 )}
-                {inPause && (
-                  <Button size="xl" onClick={() => clock(false)} disabled={toggle.isPending}>
+                {state === 'break' && (
+                  <Button size="xl" onClick={() => punch('break/end')} disabled={action.isPending}>
                     <Play aria-hidden />
                     Pointer la fin de pause
                   </Button>
                 )}
-                {(state === 'none' || (state === 'out' && !inPause)) && (
-                  <Button size="xl" onClick={() => clock(false)} disabled={toggle.isPending}>
+                {(state === 'none' || state === 'out') && (
+                  <Button size="xl" onClick={() => punch('arrive')} disabled={action.isPending}>
                     <LogIn aria-hidden />
                     {state === 'none' ? 'Pointer mon arrivée' : 'Pointer une nouvelle arrivée'}
                   </Button>
                 )}
               </div>
-              {toggle.isError && (
+              {action.isError && (
                 <Alert tone="danger" role="alert">
-                  {getErrorMessage(toggle.error)}
+                  {getErrorMessage(action.error)}
                 </Alert>
               )}
               <p className="text-xs text-muted">
-                {inPause
+                {state === 'break'
                   ? 'Le compteur d’heures est arrêté. Pointez la fin de pause pour reprendre ; le départ se pointe ensuite.'
                   : 'Pendant une pause, le compteur d’heures s’arrête. Oubli de pointage ? Signalez-le depuis l’onglet Absences.'}
               </p>
@@ -140,19 +150,19 @@ export function ClockPage() {
             label="Cette semaine"
             icon={Timer}
             value={week.data ? formatHours(week.data.totalHours) : '…'}
-            unit={`/ ${WEEKLY_TARGET} h`}
+            unit={`/ ${formatHours(weeklyTarget)}`}
             hint="Heures validées (pointages clôturés)"
           >
             <Progress
               label="Avancement de la semaine"
-              value={((week.data?.totalHours ?? 0) / WEEKLY_TARGET) * 100}
+              value={((week.data?.totalHours ?? 0) / (weeklyTarget || 1)) * 100}
             />
           </KpiCard>
           <KpiCard
             label={`Moyenne par jour (${format(now, 'MMMM', { locale: fr })})`}
             icon={Calendar}
             value={month.data ? formatHours(monthDays ? month.data.totalHours / monthDays : 0) : '…'}
-            hint={`${monthDays} jour${monthDays > 1 ? 's' : ''} travaillé${monthDays > 1 ? 's' : ''} ce mois-ci`}
+            hint={`Objectif ${formatHours(user.workMinutesPerDay / 60)} · ${monthDays} jour${monthDays > 1 ? 's' : ''} travaillé${monthDays > 1 ? 's' : ''}`}
           />
         </div>
       </div>
@@ -160,66 +170,99 @@ export function ClockPage() {
       <div className="grid gap-6 xl:grid-cols-3">
         <Card aria-labelledby="today-title">
           <CardTitle id="today-title">Aujourd'hui</CardTitle>
-          <Timeline items={timeline(today, inPause)} />
+          <Timeline items={timeline(today)} planning={user} done={state === 'out'} />
         </Card>
-        <LastWeekCard userId={user.id} now={now} />
+        <LastWeekCard userId={user.id} now={now} weeklyTarget={weeklyTarget} />
       </div>
     </>
   );
 }
 
-function StateBadge({ state, inPause, since }: { state: string; inPause: boolean; since?: Date }) {
-  if (state === 'none') return <Badge tone="neutral">Pas encore pointé aujourd'hui</Badge>;
+function StateBadge({ state, since }: { state: ClockState; since?: Date }) {
   const at = since ? formatTime(since) : '';
-  if (inPause) return <Badge tone="info">En pause depuis {at}</Badge>;
-  if (state === 'in') return <Badge tone="success">En poste depuis {at}</Badge>;
-  return <Badge tone="neutral">Départ pointé à {at}</Badge>;
+  switch (state) {
+    case 'none':
+      return <Badge tone="neutral">Pas encore pointé aujourd'hui</Badge>;
+    case 'working':
+      return <Badge tone="success">En poste depuis {at}</Badge>;
+    case 'break':
+      return <Badge tone="info">En pause depuis {at}</Badge>;
+    case 'out':
+      return <Badge tone="neutral">Départ pointé à {at}</Badge>;
+  }
 }
 
-function Timeline({ items }: { items: TimelineItem[] }) {
-  if (items.length === 0) return <p className="text-sm text-muted">Aucun pointage pour l'instant.</p>;
+function Timeline({ items, planning, done }: { items: TimelineItem[]; planning: Planning; done: boolean }) {
   return (
     <ol className="flex flex-col">
+      {items.length === 0 && (
+        <TimelineRow
+          tone="pending"
+          title={`Arrivée prévue · ${minutesToTime(planning.expectedStartMin)}`}
+          hint="Pas encore pointé"
+        />
+      )}
       {items.map((item, i) => {
-        const live = item.kind === 'pause' && !item.to;
-        const title =
-          item.kind === 'arrival'
-            ? `Arrivée · ${formatTime(item.at)}`
-            : item.kind === 'departure'
-              ? `Départ · ${formatTime(item.at)}`
-              : item.to
-                ? `Pause · ${formatTime(item.from)} → ${formatTime(item.to)}`
-                : `Pause en cours · depuis ${formatTime(item.from)}`;
-        const hint =
-          item.kind === 'pause' && item.to
-            ? formatMinutes((item.to.getTime() - item.from.getTime()) / 60_000)
-            : live
-              ? 'Fin de pause à pointer'
-              : null;
-        return (
-          <li
+        if (item.kind === 'arrival')
+          return <TimelineRow key={i} tone="done" title={`Arrivée · ${formatTime(item.at)}`} />;
+        if (item.kind === 'departure')
+          return <TimelineRow key={i} tone="done" title={`Départ · ${formatTime(item.at)}`} />;
+        return item.to ? (
+          <TimelineRow
             key={i}
-            className="relative flex gap-3.5 pb-[18px] before:absolute before:bottom-0 before:left-[7px] before:top-[18px] before:w-0.5 before:bg-border last:before:hidden"
-          >
-            <span
-              aria-hidden
-              className={cn(
-                'mt-0.5 size-4 shrink-0 rounded-full border-[3px] border-primary',
-                live ? 'bg-primary-light shadow-[0_0_0_4px_var(--color-primary-soft)]' : 'bg-primary',
-              )}
-            />
-            <div>
-              <h3 className="text-sm font-semibold">{title}</h3>
-              {hint && <p className="text-xs text-muted">{hint}</p>}
-            </div>
-          </li>
+            tone="done"
+            title={`Pause · ${formatTime(item.from)} → ${formatTime(item.to)}`}
+            hint={formatMinutes((item.to.getTime() - item.from.getTime()) / 60_000)}
+          />
+        ) : (
+          <TimelineRow
+            key={i}
+            tone="live"
+            title={`Pause en cours · depuis ${formatTime(item.from)}`}
+            hint="Fin de pause à pointer"
+          />
         );
       })}
+      {items.length > 0 && !done && (
+        <TimelineRow
+          tone="pending"
+          title={`Départ prévu · ${minutesToTime(plannedEndMin(planning))}`}
+          hint={`Calculé : arrivée prévue + ${formatHours(planning.workMinutesPerDay / 60)} + pause`}
+        />
+      )}
     </ol>
   );
 }
 
-function LastWeekCard({ userId, now }: { userId: string; now: Date }) {
+function TimelineRow({
+  tone,
+  title,
+  hint,
+}: {
+  tone: 'done' | 'live' | 'pending';
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <li className="relative flex gap-3.5 pb-[18px] before:absolute before:bottom-0 before:left-[7px] before:top-[18px] before:w-0.5 before:bg-border last:before:hidden">
+      <span
+        aria-hidden
+        className={cn(
+          'mt-0.5 size-4 shrink-0 rounded-full border-[3px]',
+          tone === 'done' && 'border-primary bg-primary',
+          tone === 'live' && 'border-primary bg-primary-light shadow-[0_0_0_4px_var(--color-primary-soft)]',
+          tone === 'pending' && 'border-border bg-white',
+        )}
+      />
+      <div>
+        <h3 className={cn('text-sm font-semibold', tone === 'pending' && 'text-muted')}>{title}</h3>
+        {hint && <p className="text-xs text-muted">{hint}</p>}
+      </div>
+    </li>
+  );
+}
+
+function LastWeekCard({ userId, now, weeklyTarget }: { userId: string; now: Date; weeklyTarget: number }) {
   const range = weekRange(subWeeks(now, 1));
   const summary = useWorkingTimes(userId, range);
   const hoursByDay = new Map(summary.data?.perDay.map((d) => [d.date, d.hours]));
@@ -259,9 +302,9 @@ function LastWeekCard({ userId, now }: { userId: string; now: Date }) {
             <span className="text-muted">Total semaine {format(range.from, 'I')}</span>
             <strong>
               {formatHours(total)}{' '}
-              <Badge tone={total >= WEEKLY_TARGET ? 'info' : 'warning'} dot={false}>
-                {total >= WEEKLY_TARGET && '+'}
-                {formatHours(total - WEEKLY_TARGET)} vs {WEEKLY_TARGET} h
+              <Badge tone={total >= weeklyTarget ? 'info' : 'warning'} dot={false}>
+                {total >= weeklyTarget && '+'}
+                {formatHours(total - weeklyTarget)} vs {formatHours(weeklyTarget)}
               </Badge>
             </strong>
           </div>

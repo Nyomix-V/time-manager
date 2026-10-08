@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { LoginPage } from '@/pages/auth/LoginPage';
 import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage';
+import { SetPasswordPage } from '@/pages/auth/SetPasswordPage';
 
 const WORKERS: Role[] = ['EMPLOYEE', 'MANAGER', 'DIRECTEUR']; // everybody who clocks in
 const SUPERVISORS: Role[] = ['MANAGER', 'DIRECTEUR'];
@@ -21,6 +22,8 @@ export const router = createBrowserRouter([
         children: [
           { path: ROUTES.login, element: <LoginPage /> },
           { path: ROUTES.forgotPassword, element: <ForgotPasswordPage /> },
+          { path: ROUTES.resetPassword, element: <SetPasswordPage mode="reset" /> },
+          { path: ROUTES.activate, element: <SetPasswordPage mode="activate" /> },
         ],
       },
     ],
@@ -101,7 +104,7 @@ export const router = createBrowserRouter([
             ],
           },
           {
-            element: <RequireRole roles={['MANAGER', 'ADMIN']} />,
+            element: <RequireRole roles={[...SUPERVISORS, 'ADMIN']} />,
             children: [
               {
                 path: ROUTES.newEmployee,

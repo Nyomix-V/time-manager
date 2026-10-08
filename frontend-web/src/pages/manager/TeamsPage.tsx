@@ -1,39 +1,36 @@
-import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Building2, ChevronRight, Info, Plus, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronRight, Info, Plus } from 'lucide-react';
 import { useCurrentUser } from '@/auth/AuthProvider';
-import { useDeleteTeam, useSaveTeam, useTeams } from '@/api/teams';
+import { useTeams } from '@/api/teams';
 import { useUsers } from '@/api/users';
-import { getErrorMessage } from '@/api/client';
-import type { Team, User } from '@/api/types';
-import { fullName } from '@/lib/format';
+import { useKpiReport } from '@/api/kpi';
+import type { KpiSummary, Team } from '@/api/types';
+import { groupRows, summarizeRows } from '@/lib/kpi';
+import { formatHours } from '@/lib/format';
+import { monthRange } from '@/lib/period';
+import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/PageHeader';
 import { QueryState } from '@/components/QueryState';
 import { Person } from '@/components/Person';
-import { Field } from '@/components/Field';
-import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
+import { TeamDialog } from '@/components/teams/TeamDialog';
 import { Avatar } from '@/components/ui/avatar';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Input, Select } from '@/components/ui/input';
-import { Dialog, DialogActions, DialogClose, DialogContent } from '@/components/ui/dialog';
 
-/** Teams (mockup 12): cards, click to edit name / manager / members. */
+/** Teams of the branch (mockup 12): cards with this month's KPIs, click to edit. */
 export function TeamsPage() {
+  const me = useCurrentUser();
   const teams = useTeams();
   const users = useUsers();
+  const kpi = useKpiReport(monthRange());
   const [editing, setEditing] = useState<Team | 'new' | null>(null);
-  const usersById = useMemo(() => new Map(users.data?.map((u) => [u.id, u])), [users.data]);
-  const withoutTeam = (users.data ?? []).filter(
-    (u) => u.role === 'EMPLOYEE' && !teams.data?.some((t) => t.memberIds.includes(u.id)),
-  );
+  const kpiByTeam = groupRows(kpi.data?.rows ?? [], 'teamId');
+  const withoutTeam = (users.data ?? []).filter((u) => u.role === 'EMPLOYEE' && !u.teamId);
 
   return (
     <>
       <PageHeader title="Équipes" subtitle="Cliquez sur une équipe pour voir ses membres et la modifier.">
-        <Button onClick={() => setEditing('new')} disabled={teams.isError}>
+        <Button onClick={() => setEditing('new')} disabled={!me.branchId}>
           <Plus aria-hidden />
           Créer une équipe
         </Button>
@@ -50,7 +47,11 @@ export function TeamsPage() {
               <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
                 {list.map((team) => (
                   <li key={team.id}>
-                    <TeamCard team={team} usersById={usersById} onOpen={() => setEditing(team)} />
+                    <TeamCard
+                      team={team}
+                      kpi={kpi.data ? summarizeRows(kpiByTeam.get(team.id) ?? []) : undefined}
+                      onOpen={() => setEditing(team)}
+                    />
                   </li>
                 ))}
               </ul>
@@ -59,7 +60,8 @@ export function TeamsPage() {
               <Alert tone="info">
                 <Info aria-hidden />
                 <span>
-                  {withoutTeam.length} salarié{withoutTeam.length > 1 ? 's sont' : ' est'}{' '}
+                  {withoutTeam.length} salarié
+                  {withoutTeam.length > 1 ? 's de la branche sont' : ' de la branche est'}{' '}
                   <strong>sans équipe</strong>. Ajoutez-les depuis la fenêtre d'une équipe.
                 </span>
               </Alert>
@@ -68,10 +70,12 @@ export function TeamsPage() {
         )}
       </QueryState>
 
-      {editing && (
+      {editing && me.branchId && (
         <TeamDialog
           team={editing === 'new' ? null : editing}
+          branchId={editing === 'new' ? me.branchId : editing.branchId}
           users={users.data ?? []}
+          defaultManagerId={me.role === 'MANAGER' ? me.id : undefined}
           onClose={() => setEditing(null)}
         />
       )}
@@ -79,17 +83,8 @@ export function TeamsPage() {
   );
 }
 
-function TeamCard({
-  team,
-  usersById,
-  onOpen,
-}: {
-  team: Team;
-  usersById: Map<string, User>;
-  onOpen: () => void;
-}) {
-  const manager = team.managerId ? usersById.get(team.managerId) : undefined;
-  const members = team.memberIds.map((id) => usersById.get(id)).filter((u): u is User => !!u);
+function TeamCard({ team, kpi, onOpen }: { team: Team; kpi?: KpiSummary; onOpen: () => void }) {
+  const members = team.members ?? [];
   return (
     <button
       type="button"
@@ -101,8 +96,8 @@ function TeamCard({
         <ChevronRight className="size-5 text-muted" aria-hidden />
       </span>
       {team.description && <span className="text-sm text-muted">{team.description}</span>}
-      {manager ? (
-        <Person firstName={manager.firstName} lastName={manager.lastName} sub="Manager" />
+      {team.manager ? (
+        <Person firstName={team.manager.firstName} lastName={team.manager.lastName} sub="Manager" />
       ) : (
         <span className="text-sm text-warning">Sans manager</span>
       )}
@@ -127,167 +122,20 @@ function TeamCard({
           {members.length} membre{members.length > 1 ? 's' : ''}
         </span>
       </span>
-    </button>
-  );
-}
-
-const schema = z.object({
-  name: z.string().trim().min(1, "Le nom de l'équipe est obligatoire."),
-  description: z.string().optional(),
-  managerId: z.string(),
-});
-
-function TeamDialog({ team, users, onClose }: { team: Team | null; users: User[]; onClose: () => void }) {
-  const me = useCurrentUser();
-  const save = useSaveTeam();
-  const remove = useDeleteTeam();
-  const [memberIds, setMemberIds] = useState<string[]>(team?.memberIds ?? []);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<z.infer<typeof schema>>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      name: team?.name ?? '',
-      description: team?.description ?? '',
-      managerId: team?.managerId ?? (me.role === 'MANAGER' ? me.id : ''),
-    },
-  });
-
-  const managers = users.filter((u) => u.role === 'MANAGER');
-  const members = memberIds.map((id) => users.find((u) => u.id === id)).filter((u): u is User => !!u);
-  const candidates = users.filter((u) => u.role === 'EMPLOYEE' && !memberIds.includes(u.id));
-
-  return (
-    <>
-      <Dialog open onOpenChange={(o) => !o && onClose()}>
-        <DialogContent
-          size="lg"
-          icon={team ? <Building2 /> : <Plus />}
-          title={team ? team.name : 'Créer une équipe'}
-          description={
-            team ? `${memberIds.length} membres` : 'Regroupez des salariés pour suivre leurs KPI ensemble.'
-          }
-        >
-          <form
-            noValidate
-            className="flex flex-col gap-4"
-            onSubmit={handleSubmit((v) =>
-              save.mutate(
-                {
-                  id: team?.id,
-                  name: v.name,
-                  description: v.description || null,
-                  managerId: v.managerId || null,
-                  branchId: team?.branchId ?? me.branchId ?? null,
-                  memberIds,
-                },
-                { onSuccess: onClose },
-              ),
-            )}
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Nom de l'équipe" required error={errors.name?.message}>
-                <Input placeholder="Ex. : Paie" {...register('name')} />
-              </Field>
-              <Field label="Manager">
-                <Select {...register('managerId')}>
-                  <option value="">Aucun</option>
-                  {managers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {fullName(m)}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            </div>
-            <Field label="Description">
-              <Input placeholder="Facultatif…" {...register('description')} />
-            </Field>
-
-            <fieldset className="flex flex-col gap-2">
-              <legend className="mb-2 text-[13px] font-medium">Membres ({members.length})</legend>
-              <div className="flex justify-end">
-                <Select
-                  aria-label="Ajouter un salarié à l'équipe"
-                  className="min-h-[34px] w-64 py-1.5"
-                  value=""
-                  onChange={(e) => e.target.value && setMemberIds((ids) => [...ids, e.target.value])}
-                >
-                  <option value="">+ Ajouter un salarié…</option>
-                  {candidates.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {fullName(u)}
-                    </option>
-                  ))}
-                </Select>
-              </div>
-              <ul className="max-h-64 overflow-y-auto">
-                {members.map((m) => (
-                  <li
-                    key={m.id}
-                    className="flex items-center gap-2.5 border-t border-border py-2 text-sm first:border-t-0"
-                  >
-                    <Avatar firstName={m.firstName} lastName={m.lastName} size="sm" />
-                    <strong className="flex-1">{fullName(m)}</strong>
-                    <Button
-                      size="icon"
-                      aria-label={`Retirer ${fullName(m)} de l'équipe`}
-                      onClick={() => setMemberIds((ids) => ids.filter((id) => id !== m.id))}
-                    >
-                      <X aria-hidden />
-                    </Button>
-                  </li>
-                ))}
-                {members.length === 0 && <li className="py-2 text-sm text-muted">Aucun membre.</li>}
-              </ul>
-            </fieldset>
-
-            {save.isError && (
-              <Alert tone="danger" role="alert">
-                {getErrorMessage(save.error)}
-              </Alert>
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              {team ? (
-                <Button
-                  variant="ghost"
-                  className="text-danger hover:bg-danger-soft"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  <Trash2 aria-hidden />
-                  Supprimer l'équipe
-                </Button>
-              ) : (
-                <span />
-              )}
-              <DialogActions>
-                <DialogClose asChild>
-                  <Button variant="secondary">Annuler</Button>
-                </DialogClose>
-                <Button type="submit" disabled={save.isPending}>
-                  {team ? 'Enregistrer' : "Créer l'équipe"}
-                </Button>
-              </DialogActions>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-      {team && (
-        <ConfirmDeleteDialog
-          open={confirmDelete}
-          onOpenChange={setConfirmDelete}
-          title={`Supprimer l'équipe ${team.name} ?`}
-          description="Les membres ne sont pas supprimés : ils redeviennent « sans équipe »."
-          confirmLabel="Supprimer l'équipe"
-          onConfirm={async () => {
-            await remove.mutateAsync(team.id);
-            onClose();
-          }}
-        />
+      {kpi && (
+        <span className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+          <span className="flex flex-col gap-0.5">
+            <span className="text-xs text-muted">Moyenne hebdo</span>
+            <strong className="text-lg">{formatHours(kpi.avgWeeklyHours)}</strong>
+          </span>
+          <span className="flex flex-col gap-0.5">
+            <span className="text-xs text-muted">Ponctualité</span>
+            <strong className={cn('text-lg', kpi.punctualityPct >= 90 ? 'text-success' : 'text-danger')}>
+              {kpi.punctualityPct} %
+            </strong>
+          </span>
+        </span>
       )}
-    </>
+    </button>
   );
 }

@@ -1,24 +1,24 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
-import { format } from 'date-fns';
 import { Edit3, Eye, Plus, Search, Trash2 } from 'lucide-react';
 import { useCurrentUser } from '@/auth/AuthProvider';
 import { ROUTES } from '@/auth/navigation';
-import { can, ROLE_LABELS } from '@/auth/permissions';
+import { can, canManageUser, ROLE_LABELS } from '@/auth/permissions';
 import { useDeleteUser, useUsers } from '@/api/users';
 import { useBranches } from '@/api/branches';
-import { useClocksOf } from '@/api/clocks';
+import { useTeams } from '@/api/teams';
+import { useClockStatusOf } from '@/api/clocks';
 import { useKpiReport } from '@/api/kpi';
-import type { Clock, Role, User } from '@/api/types';
-import { clocksOfDay, currentState } from '@/lib/clocks';
-import { formatHours, formatTime, fullName } from '@/lib/format';
+import type { Role, User } from '@/api/types';
+import { formatHours, fullName } from '@/lib/format';
 import { monthRange, weekRange } from '@/lib/period';
+import { usePagination } from '@/hooks/usePagination';
 import { PageHeader } from '../PageHeader';
 import { QueryState } from '../QueryState';
 import { Person } from '../Person';
 import { ConfirmDeleteDialog } from '../ConfirmDeleteDialog';
 import { Pagination } from '../Pagination';
-import { usePagination } from '@/hooks/usePagination';
+import { LiveStatusBadge, UserStatusBadge } from './UserStatusBadge';
 import { FlushCard } from '../ui/card';
 import { Table, Td, Th, Tr, num } from '../ui/table';
 import { Badge, type BadgeTone } from '../ui/badge';
@@ -32,22 +32,23 @@ const ROLE_TONES: Record<Role, BadgeTone> = {
   DIRECTEUR: 'info',
   ADMIN: 'success',
 };
+const NO_TEAM = '__none__';
 
 /**
  * User list shared by "Salariés" (manager/director, mockup 08) and "Utilisateurs" (admin, mockup 15).
- * Live status and hours are only loaded for the rows of the current page.
+ * Live status and KPIs are only loaded for what is displayed.
  */
 export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) {
   const me = useCurrentUser();
   const users = useUsers();
   const branches = useBranches();
+  const teams = useTeams();
   const [search, setSearch] = useState('');
   const [role, setRole] = useState<Role | ''>('');
   const [branchId, setBranchId] = useState('');
+  const [teamId, setTeamId] = useState('');
   const [toDelete, setToDelete] = useState<User | null>(null);
   const deleteUser = useDeleteUser();
-
-  const branchName = useMemo(() => new Map(branches.data?.map((b) => [b.id, b.name])), [branches.data]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -55,13 +56,13 @@ export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) 
       .filter((u) => !q || `${fullName(u)} ${u.email}`.toLowerCase().includes(q))
       .filter((u) => !role || u.role === role)
       .filter((u) => !branchId || u.branchId === branchId)
+      .filter((u) => !teamId || (teamId === NO_TEAM ? !u.teamId : u.teamId === teamId))
       .sort((a, b) => a.lastName.localeCompare(b.lastName));
-  }, [users.data, search, role, branchId]);
+  }, [users.data, search, role, branchId, teamId]);
 
   const pagination = usePagination(filtered, PAGE_SIZE);
   const visible = pagination.visible;
-
-  const clocks = useClocksOf(
+  const statuses = useClockStatusOf(
     visible.map((u) => u.id),
     { refetchInterval: 60_000 },
   );
@@ -69,6 +70,14 @@ export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) 
   const monthKpi = useKpiReport(monthRange(), { enabled: variant === 'employees' });
   const weekHours = new Map(weekKpi.data?.rows.map((r) => [r.userId, r.totalHours]));
   const monthLate = new Map(monthKpi.data?.rows.map((r) => [r.userId, r]));
+
+  const live = (users.data ?? []).filter((u) => u.role !== 'ADMIN');
+  const counts = {
+    total: users.data?.length ?? 0,
+    managers: users.data?.filter((u) => u.role === 'MANAGER').length ?? 0,
+    noTeam: live.filter((u) => !u.teamId).length,
+    invited: users.data?.filter((u) => u.status === 'INVITED').length ?? 0,
+  };
 
   const resetPage =
     <T,>(setter: (v: T) => void) =>
@@ -84,8 +93,8 @@ export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) 
         subtitle={
           users.data &&
           (variant === 'admin'
-            ? `${users.data.length} comptes · ${users.data.filter((u) => u.role === 'MANAGER').length} managers`
-            : `${users.data.length} personnes dans votre périmètre. Modification et suppression depuis la fiche.`)
+            ? `${counts.total} comptes · ${counts.managers} managers · ${counts.invited} invitation(s) en attente`
+            : `${counts.total} personnes dans votre branche. Modification et suppression depuis la fiche.`)
         }
       >
         {variant === 'employees' && (
@@ -93,7 +102,7 @@ export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) 
             Statuts actualisés chaque minute
           </span>
         )}
-        {can(me.role, 'createUser') && (
+        {can(me.role, 'manageUsers') && (
           <Button asChild>
             <Link to={ROUTES.newEmployee}>
               <Plus aria-hidden />
@@ -118,19 +127,6 @@ export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) 
             onChange={(e) => resetPage(setSearch)(e.target.value)}
           />
         </div>
-        <Select
-          aria-label="Filtrer par rôle"
-          className="w-44"
-          value={role}
-          onChange={(e) => resetPage(setRole)(e.target.value as Role | '')}
-        >
-          <option value="">Tous les rôles</option>
-          {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
-            <option key={r} value={r}>
-              {ROLE_LABELS[r]}
-            </option>
-          ))}
-        </Select>
         {variant === 'admin' && (
           <Select
             aria-label="Filtrer par branche"
@@ -146,6 +142,33 @@ export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) 
             ))}
           </Select>
         )}
+        <Select
+          aria-label="Filtrer par équipe"
+          className="w-52"
+          value={teamId}
+          onChange={(e) => resetPage(setTeamId)(e.target.value)}
+        >
+          <option value="">Toutes les équipes</option>
+          <option value={NO_TEAM}>Sans équipe ({counts.noTeam})</option>
+          {teams.data?.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </Select>
+        <Select
+          aria-label="Filtrer par rôle"
+          className="w-44"
+          value={role}
+          onChange={(e) => resetPage(setRole)(e.target.value as Role | '')}
+        >
+          <option value="">Tous les rôles</option>
+          {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+            <option key={r} value={r}>
+              {ROLE_LABELS[r]}
+            </option>
+          ))}
+        </Select>
       </div>
 
       <FlushCard aria-label="Liste des utilisateurs">
@@ -160,6 +183,7 @@ export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) 
                     <Th>{variant === 'admin' ? 'Utilisateur' : 'Salarié'}</Th>
                     <Th>Rôle</Th>
                     {variant === 'admin' && <Th>Branche</Th>}
+                    <Th>Équipe</Th>
                     <Th>Statut actuel</Th>
                     {variant === 'employees' && <Th className={num}>Heures / sem.</Th>}
                     {variant === 'employees' && <Th className={num}>Retards / mois</Th>}
@@ -180,12 +204,24 @@ export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) 
                           </Badge>
                         </Td>
                         {variant === 'admin' && (
-                          <Td>
-                            {u.branchId ? branchName.get(u.branchId) : <span className="text-muted">—</span>}
-                          </Td>
+                          <Td>{u.branch?.name ?? <span className="text-muted">—</span>}</Td>
                         )}
                         <Td>
-                          <LiveStatus user={u} clocks={clocks.get(u.id)} />
+                          {u.team?.name ??
+                            (u.role === 'ADMIN' ? (
+                              <span className="text-muted">—</span>
+                            ) : (
+                              <Badge tone="neutral" dot={false}>
+                                Sans équipe
+                              </Badge>
+                            ))}
+                        </Td>
+                        <Td>
+                          {variant === 'admin' && u.status !== 'ACTIVE' ? (
+                            <UserStatusBadge user={u} />
+                          ) : (
+                            <LiveStatusBadge user={u} status={statuses.get(u.id)} />
+                          )}
                         </Td>
                         {variant === 'employees' && (
                           <Td className={num}>
@@ -194,16 +230,14 @@ export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) 
                         )}
                         {variant === 'employees' && (
                           <Td className={num}>
-                            {late ? (
-                              late.lateAlert ? (
-                                <Badge tone="danger" dot={false}>
-                                  {late.lateDays}
-                                </Badge>
-                              ) : (
-                                late.lateDays
-                              )
-                            ) : (
+                            {!late ? (
                               '—'
+                            ) : late.lateAlert ? (
+                              <Badge tone="danger" dot={false}>
+                                {late.lateDays}
+                              </Badge>
+                            ) : (
+                              late.lateDays
                             )}
                           </Td>
                         )}
@@ -217,7 +251,7 @@ export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) 
                                 {variant === 'admin' ? <Edit3 aria-hidden /> : <Eye aria-hidden />}
                               </Link>
                             </Button>
-                            {variant === 'admin' && can(me.role, 'deleteUser') && u.id !== me.id && (
+                            {variant === 'admin' && canManageUser(me, u) && u.id !== me.id && (
                               <Button
                                 size="icon"
                                 className="text-danger"
@@ -248,21 +282,5 @@ export function UsersDirectory({ variant }: { variant: 'employees' | 'admin' }) 
         onConfirm={() => deleteUser.mutateAsync(toDelete!.id)}
       />
     </>
-  );
-}
-
-function LiveStatus({ user, clocks }: { user: User; clocks?: Clock[] }) {
-  if (user.role === 'ADMIN') return <span className="text-muted">—</span>;
-  if (!clocks) return <span className="text-muted">…</span>;
-  const today = clocksOfDay(clocks);
-  const state = currentState(today);
-  const last = today.at(-1);
-  if (state === 'in') return <Badge tone="success">En poste · depuis {formatTime(last!.time)}</Badge>;
-  if (state === 'out') return <Badge tone="info">Sorti · {formatTime(last!.time)}</Badge>;
-  const lastEver = clocks.at(-1);
-  return (
-    <Badge tone="neutral">
-      Pas encore pointé{lastEver ? ` · dernier le ${format(new Date(lastEver.time), 'dd/MM')}` : ''}
-    </Badge>
   );
 }

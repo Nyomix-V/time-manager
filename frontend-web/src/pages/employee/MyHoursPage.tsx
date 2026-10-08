@@ -12,7 +12,13 @@ export function MyHoursPage() {
       <PageHeader title="Mes heures" subtitle="Vos heures par jour et vos moyennes sur la période choisie.">
         <PeriodFilter period={period} />
       </PageHeader>
-      <WorkHistory userId={user.id} range={period.range} kind={period.kind} exportName="mes-heures" />
+      <WorkHistory
+        userId={user.id}
+        range={period.range}
+        kind={period.kind}
+        planning={user}
+        exportName="mes-heures"
+      />
     </>
   );
 }

@@ -3,11 +3,17 @@ import { api } from './client';
 import { toApiParams, type DateRange } from '@/lib/period';
 import type { KpiReport } from './types';
 
-/** KPI per user over the range (overtime, average daily hours, late days). Scoped by the backend. */
-export function useKpiReport(range: DateRange, options: { enabled?: boolean } = {}) {
+/** Per-user KPI rows + summary over the range. Scoped by the backend (branch, or everything for the admin). */
+export function useKpiReport(range: DateRange, options: { enabled?: boolean; teamId?: string } = {}) {
+  const { teamId, enabled } = options;
   return useQuery({
-    queryKey: ['kpi', range.from.toISOString(), range.to.toISOString()],
-    queryFn: async () => (await api.get<KpiReport>('/kpi/report', { params: toApiParams(range) })).data,
-    ...options,
+    queryKey: ['kpi', range.from.toISOString(), range.to.toISOString(), teamId ?? 'all'],
+    queryFn: async () =>
+      (
+        await api.get<KpiReport>('/kpi/report', {
+          params: { ...toApiParams(range), ...(teamId ? { teamId } : {}) },
+        })
+      ).data,
+    enabled,
   });
 }

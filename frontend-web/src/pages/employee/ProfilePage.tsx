@@ -4,13 +4,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Clock, Edit3, Lock, Mail, Phone, Trash2 } from 'lucide-react';
 import { useCurrentUser } from '@/auth/AuthProvider';
-import { useBranch } from '@/api/branches';
-import { useCreateRequest, useMyRequests } from '@/api/requests';
+import { useUser } from '@/api/users';
+import { useCreateRequest, useUserRequests } from '@/api/accountRequests';
 import { changePassword } from '@/api/auth';
 import { getErrorMessage } from '@/api/client';
 import type { EditableField, User } from '@/api/types';
 import { ROLE_LABELS } from '@/auth/permissions';
-import { formatDateShort, minutesToTime } from '@/lib/format';
+import { formatDateShort, formatHours, minutesToTime } from '@/lib/format';
+import { parseDays, plannedEndMin, WEEKDAYS } from '@/lib/planning';
+import { cn } from '@/lib/utils';
 import { passwordSchema, passwordStrength } from '@/lib/password';
 import { PageHeader } from '@/components/PageHeader';
 import { Field, ReadOnlyField } from '@/components/Field';
@@ -26,14 +28,15 @@ import { Dialog, DialogActions, DialogClose, DialogContent } from '@/components/
 const FIELD_LABELS: Record<EditableField, string> = {
   firstName: 'Prénom',
   lastName: 'Nom',
-  email: 'Adresse email',
   phone: 'Téléphone',
 };
 
 export function ProfilePage() {
-  const user = useCurrentUser();
-  const branch = useBranch(user.branchId);
-  const myRequests = useMyRequests();
+  const session = useCurrentUser();
+  // Fresh copy: an approved change request updates the profile server-side.
+  const user = useUser(session.id).data ?? session;
+  const myRequests = useUserRequests(user.id);
+  const lastDecided = myRequests.data?.find((r) => r.status !== 'PENDING');
   const pending = myRequests.data?.find((r) => r.status === 'PENDING');
   const [modal, setModal] = useState<'update' | 'delete' | null>(null);
 
@@ -66,19 +69,33 @@ export function ProfilePage() {
           <ReadOnlyField label="Adresse email" value={user.email} icon={<Mail aria-hidden />} />
           <ReadOnlyField label="Téléphone" value={user.phone} icon={<Phone aria-hidden />} />
           <div className="grid gap-4 sm:grid-cols-2">
-            <ReadOnlyField label="Branche" value={branch.data?.name} />
-            <ReadOnlyField label="Rôle" value={ROLE_LABELS[user.role]} />
+            <ReadOnlyField label="Branche" value={user.branch?.name} />
+            <ReadOnlyField
+              label="Équipe"
+              value={user.team?.name ?? (user.role === 'ADMIN' ? '—' : 'Sans équipe')}
+            />
           </div>
+          <ReadOnlyField label="Rôle" value={ROLE_LABELS[user.role]} />
           {pending && (
             <Alert tone="warning" role="status">
               <Clock aria-hidden />
               <span>
                 <strong>Demande en attente</strong> ·{' '}
-                {pending.type === 'DELETE'
+                {pending.type === 'DELETION'
                   ? 'suppression du compte'
                   : `${FIELD_LABELS[pending.field!]} → ${pending.newValue}`}
-                , envoyée le {formatDateShort(pending.createdAt)}. Vous pourrez en faire une nouvelle dès
+                , envoyée le {formatDateShort(pending.createdAt)} — vous pourrez en faire une nouvelle dès
                 qu'elle sera acceptée ou refusée.
+              </span>
+            </Alert>
+          )}
+          {!pending && lastDecided && (
+            <Alert tone={lastDecided.status === 'APPROVED' ? 'success' : 'danger'} role="status">
+              <span>
+                Votre dernière demande (
+                {lastDecided.type === 'DELETION' ? 'suppression' : FIELD_LABELS[lastDecided.field!]}) a été{' '}
+                <strong>{lastDecided.status === 'APPROVED' ? 'acceptée' : 'refusée'}</strong>
+                {lastDecided.decisionComment && ` : « ${lastDecided.decisionComment} »`}.
               </span>
             </Alert>
           )}
@@ -97,20 +114,19 @@ export function ProfilePage() {
         <div className="flex flex-col gap-6">
           {user.role !== 'ADMIN' && (
             <Card aria-labelledby="plan-title">
-              <div>
-                <CardTitle id="plan-title">Mon planning</CardTitle>
-                <p className="text-[13px] text-muted">Défini par votre branche.</p>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <CardTitle id="plan-title">Mon planning</CardTitle>
+                  <p className="text-[13px] text-muted">Défini par votre manager.</p>
+                </div>
+                <WorkingDays days={parseDays(user.workingDays)} />
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <PlanningItem
-                  label="Arrivée prévue"
-                  value={branch.data ? minutesToTime(branch.data.expectedStartMin) : '—'}
-                />
+                <PlanningItem label="Arrivée" value={minutesToTime(user.expectedStartMin)} />
+                <PlanningItem label="Travail / jour" value={formatHours(user.workMinutesPerDay / 60)} />
+                <PlanningItem label="Pause" value={`${user.breakMinutes} min`} />
+                <PlanningItem label="Fin prévue" value={minutesToTime(plannedEndMin(user))} />
               </div>
-              <p className="text-xs text-muted">
-                Le planning individuel (jours travaillés, durée, pause) sera disponible quand le serveur le
-                gérera.
-              </p>
             </Card>
           )}
           <PasswordCard />
@@ -144,6 +160,28 @@ export function ProfilePage() {
   );
 }
 
+function WorkingDays({ days }: { days: number[] }) {
+  const names = WEEKDAYS.filter((d) => days.includes(d.iso)).map((d) => d.short.toLowerCase());
+  return (
+    <ul className="flex gap-1.5" aria-label={`Jours travaillés : ${names.join(', ')}`}>
+      {WEEKDAYS.map((d) => (
+        <li
+          key={d.iso}
+          aria-hidden
+          className={cn(
+            'grid h-[30px] w-[34px] place-items-center rounded-lg border text-xs font-semibold',
+            days.includes(d.iso)
+              ? 'border-primary bg-primary text-white'
+              : 'border-border bg-white text-muted',
+          )}
+        >
+          {d.letter}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function PlanningItem({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-0.5 text-xs text-muted">
@@ -154,7 +192,7 @@ function PlanningItem({ label, value }: { label: string; value: string }) {
 }
 
 const updateSchema = z.object({
-  field: z.enum(['firstName', 'lastName', 'email', 'phone']),
+  field: z.enum(['firstName', 'lastName', 'phone']),
   newValue: z.string().trim().min(1, 'La nouvelle valeur est obligatoire.'),
   comment: z.string().optional(),
 });
@@ -189,7 +227,9 @@ function UpdateRequestDialog({ user, open, onClose }: { user: User; open: boolea
         <form
           className="flex flex-col gap-[18px]"
           noValidate
-          onSubmit={handleSubmit((v) => create.mutate({ type: 'UPDATE', ...v }, { onSuccess: close }))}
+          onSubmit={handleSubmit(({ comment, ...v }) =>
+            create.mutate({ type: 'INFO_CHANGE', ...v, reason: comment || undefined }, { onSuccess: close }),
+          )}
         >
           <Field label="Information à modifier" required>
             <Select {...register('field')}>
@@ -270,7 +310,7 @@ function DeleteRequestDialog({ open, onClose }: { open: boolean; onClose: () => 
           <Button
             variant="danger"
             disabled={create.isPending}
-            onClick={() => create.mutate({ type: 'DELETE', comment: reason }, { onSuccess: close })}
+            onClick={() => create.mutate({ type: 'DELETION', reason }, { onSuccess: close })}
           >
             Envoyer la demande
           </Button>

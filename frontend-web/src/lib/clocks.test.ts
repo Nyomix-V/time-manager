@@ -1,67 +1,75 @@
-import type { Clock } from '@/api/types';
+import type { Clock, ClockType } from '@/api/types';
 import { clocksOfDay, currentState, dayStats, groupByDay, timeline } from './clocks';
 
 const at = (hhmm: string, day = '2026-10-06') => new Date(`${day}T${hhmm}:00`).toISOString();
-const clock = (status: 'IN' | 'OUT', hhmm: string, day?: string): Clock => ({
-  id: `${status}-${hhmm}-${day}`,
+const clock = (type: ClockType, hhmm: string, day?: string): Clock => ({
+  id: `${type}-${hhmm}-${day}`,
   userId: 'u1',
-  status,
+  type,
   time: at(hhmm, day),
 });
 
-const day = new Date('2026-10-06T12:00:00');
+const fullDay = [
+  clock('IN', '08:57'),
+  clock('BREAK_START', '12:30'),
+  clock('BREAK_END', '13:15'),
+  clock('OUT', '16:50'),
+];
 
 describe('currentState', () => {
-  it('is none without clocks', () => expect(currentState([])).toBe('none'));
-  it('is in after an arrival', () => expect(currentState([clock('IN', '08:57')])).toBe('in'));
-  it('is out after a departure', () =>
-    expect(currentState([clock('IN', '08:57'), clock('OUT', '12:30')])).toBe('out'));
+  it('follows the IN -> BREAK -> OUT state machine', () => {
+    expect(currentState([])).toBe('none');
+    expect(currentState(fullDay.slice(0, 1))).toBe('working');
+    expect(currentState(fullDay.slice(0, 2))).toBe('break');
+    expect(currentState(fullDay.slice(0, 3))).toBe('working');
+    expect(currentState(fullDay)).toBe('out');
+  });
 });
 
 describe('clocksOfDay', () => {
   it('keeps only the given day, sorted', () => {
-    const list = [clock('OUT', '12:30'), clock('IN', '08:57'), clock('IN', '09:00', '2026-10-05')];
-    expect(clocksOfDay(list, day).map((c) => c.status)).toEqual(['IN', 'OUT']);
+    const list = [clock('OUT', '16:50'), clock('IN', '08:57'), clock('IN', '09:00', '2026-10-05')];
+    expect(clocksOfDay(list, new Date('2026-10-06T12:00:00')).map((c) => c.type)).toEqual(['IN', 'OUT']);
   });
 });
 
-describe('dayStats', () => {
-  it('counts worked time and pauses, including the open interval until now', () => {
-    const today = [clock('IN', '09:00'), clock('OUT', '12:30'), clock('IN', '13:15')];
-    const stats = dayStats(today, new Date(at('14:15')));
-    expect(stats.workedMs / 60_000).toBe(3.5 * 60 + 60); // 09:00-12:30 + 13:15-14:15
-    expect(stats.pauseMs / 60_000).toBe(45);
+describe('dayStats (same rules as the backend WorkingTimesService)', () => {
+  it('excludes breaks from worked time', () => {
+    const stats = dayStats(fullDay);
+    expect(stats.workedMs / 60_000).toBe(3 * 60 + 33 + 3 * 60 + 35); // 08:57-12:30 + 13:15-16:50
+    expect(stats.breakMs / 60_000).toBe(45);
   });
 
-  it('ignores an OUT without a previous IN', () => {
-    expect(dayStats([clock('OUT', '10:00')], new Date(at('11:00'))).workedMs).toBe(0);
+  it('counts the open interval until now while working', () => {
+    expect(dayStats([clock('IN', '09:00')], new Date(at('10:30'))).workedMs / 60_000).toBe(90);
+  });
+
+  it('counts an ongoing break until now and stops the work counter', () => {
+    const stats = dayStats(fullDay.slice(0, 2), new Date(at('12:42')));
+    expect(stats.breakMs / 60_000).toBe(12);
+    expect(stats.workedMs / 60_000).toBe(3 * 60 + 33);
   });
 });
 
 describe('timeline', () => {
-  const today = [clock('IN', '08:57'), clock('OUT', '12:30'), clock('IN', '13:15'), clock('OUT', '17:00')];
-
-  it('turns IN/OUT pairs into arrival, pause and departure', () => {
-    expect(timeline(today, false).map((i) => i.kind)).toEqual(['arrival', 'pause', 'departure']);
+  it('turns events into arrival, pause and departure', () => {
+    expect(timeline(fullDay).map((i) => i.kind)).toEqual(['arrival', 'pause', 'departure']);
   });
 
-  it('shows a trailing OUT as an ongoing pause when flagged', () => {
-    const items = timeline(today.slice(0, 2), true);
-    expect(items.at(-1)).toEqual({ kind: 'pause', from: new Date(at('12:30')) });
+  it('keeps an ongoing pause open', () => {
+    expect(timeline(fullDay.slice(0, 2)).at(-1)).toEqual({ kind: 'pause', from: new Date(at('12:30')) });
   });
 });
 
 describe('groupByDay', () => {
   it('keeps first arrival and last departure of each day', () => {
-    const days = groupByDay([
-      clock('IN', '08:57'),
-      clock('OUT', '12:30'),
-      clock('IN', '13:15'),
-      clock('OUT', '17:00'),
-    ]);
-    const d = days.get('2026-10-06')!;
+    const d = groupByDay(fullDay).get('2026-10-06')!;
     expect(d.firstIn?.toISOString()).toBe(at('08:57'));
-    expect(d.lastOut?.toISOString()).toBe(at('17:00'));
+    expect(d.lastOut?.toISOString()).toBe(at('16:50'));
     expect(d.open).toBe(false);
+  });
+
+  it('marks a day still in progress (on break) as open', () => {
+    expect(groupByDay(fullDay.slice(0, 2)).get('2026-10-06')!.open).toBe(true);
   });
 });

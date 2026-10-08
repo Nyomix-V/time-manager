@@ -13,6 +13,11 @@ const user = (role: Role): User => ({
   lastName: 'Martin',
   email: 'lea@trinity.io',
   role,
+  status: 'ACTIVE',
+  workingDays: '1,2,3,4,5',
+  expectedStartMin: 540,
+  workMinutesPerDay: 420,
+  breakMinutes: 45,
   createdAt: '',
   updatedAt: '',
 });

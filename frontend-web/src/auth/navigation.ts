@@ -22,6 +22,8 @@ export interface NavItem {
 export const ROUTES = {
   login: '/connexion',
   forgotPassword: '/mot-de-passe-oublie',
+  resetPassword: '/reinitialiser-mot-de-passe', // ?token=
+  activate: '/activer-mon-compte', // ?token=
   clock: '/pointage',
   myHours: '/mes-heures',
   absences: '/absences',

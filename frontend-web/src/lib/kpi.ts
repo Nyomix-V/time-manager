@@ -1,27 +1,35 @@
-import type { KpiRow } from '@/api/types';
-import { weeksIn, type DateRange } from './period';
+import type { KpiRow, KpiSummary } from '@/api/types';
 
-export interface KpiSummary {
-  headcount: number;
-  avgWeeklyHours: number;
-  avgDailyHours: number;
-  overtimeHours: number;
-  lateDays: number;
-  alerts: KpiRow[];
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+/**
+ * Summary of a GROUP of KPI rows (one team, one branch), computed with the SAME
+ * formulas as the backend summary of GET /kpi/report (KpiService.report), so a
+ * team line and the dashboard header never disagree.
+ */
+export function summarizeRows(rows: KpiRow[]): KpiSummary {
+  return {
+    people: rows.length,
+    avgWeeklyHours: round2(rows.reduce((s, r) => s + r.avgDailyHours * 5, 0) / Math.max(1, rows.length)),
+    punctualityPct:
+      rows.length === 0 ? 100 : Math.round((rows.filter((r) => !r.lateAlert).length / rows.length) * 100),
+    alerts: rows.filter((r) => r.lateAlert).length,
+  };
 }
 
-// Aggregates the per-user KPI rows returned by GET /kpi/report into team/branch figures.
-// Averages are over the people who worked during the period, so new hires or absent
-// people don't drag the team average down to zero.
-export function summarizeKpi(rows: KpiRow[], range: DateRange): KpiSummary {
-  const active = rows.filter((r) => r.totalHours > 0);
-  const weeks = weeksIn(range);
-  const mean = (values: number[]) => (values.length ? values.reduce((a, b) => a + b, 0) / values.length : 0);
+/** Rows grouped by a key (teamId, branchId); rows without a key go under `null`. */
+export function groupRows(rows: KpiRow[], key: 'teamId' | 'branchId'): Map<string | null, KpiRow[]> {
+  const groups = new Map<string | null, KpiRow[]>();
+  for (const r of rows) {
+    const k = r[key] ?? null;
+    groups.set(k, [...(groups.get(k) ?? []), r]);
+  }
+  return groups;
+}
+
+export function totals(rows: KpiRow[]) {
   return {
-    headcount: rows.length,
-    avgWeeklyHours: mean(active.map((r) => r.totalHours / weeks)),
-    avgDailyHours: mean(active.map((r) => r.avgDailyHours)),
-    overtimeHours: rows.reduce((s, r) => s + r.overtimeHours, 0),
+    overtimeHours: round2(rows.reduce((s, r) => s + r.overtimeHours, 0)),
     lateDays: rows.reduce((s, r) => s + r.lateDays, 0),
     alerts: rows.filter((r) => r.lateAlert).sort((a, b) => b.lateDays - a.lateDays),
   };

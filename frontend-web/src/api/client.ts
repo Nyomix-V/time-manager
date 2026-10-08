@@ -69,19 +69,22 @@ api.interceptors.response.use(
   },
 );
 
-/** Human-readable message from a NestJS error (`message` can be a string or a list from ValidationPipe). */
+/** Human-readable message from a NestJS error (the backend writes its business messages in French) (`message` can be a string or a list from ValidationPipe). */
 export function getErrorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
     if (!error.response) return 'Serveur injoignable. Vérifiez votre connexion.';
     const data = error.response.data as { message?: string | string[] } | undefined;
     const msg = Array.isArray(data?.message) ? data.message.join(', ') : data?.message;
+    if (msg && MESSAGES[msg]) return MESSAGES[msg];
+    if (msg?.startsWith('Invalid transition'))
+      return 'Ce pointage a déjà été fait. La page a été mise à jour.';
     switch (error.response.status) {
       case 401:
-        return msg === 'Invalid credentials' ? 'Email ou mot de passe incorrect.' : 'Session expirée.';
+        return 'Session expirée.';
       case 403:
         return "Vous n'avez pas les droits pour cette action.";
       case 404:
-        // Nest answers "Cannot GET /teams" for a route that does not exist (yet).
+        // Nest answers "Cannot GET /x" for a route that does not exist (yet).
         return msg && !msg.startsWith('Cannot ')
           ? msg
           : "Cette fonctionnalité n'est pas encore disponible côté serveur.";

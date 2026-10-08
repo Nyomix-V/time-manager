@@ -5,14 +5,19 @@ import { z } from 'zod';
 import { Building2, Edit3, Plus, Trash2 } from 'lucide-react';
 import { useBranches, useDeleteBranch, useSaveBranch } from '@/api/branches';
 import { useTeams } from '@/api/teams';
+import { useUsers } from '@/api/users';
+import { useKpiReport } from '@/api/kpi';
 import { getErrorMessage } from '@/api/client';
-import type { Branch } from '@/api/types';
-import { fullName, minutesToTime, timeToMinutes } from '@/lib/format';
+import type { Branch, KpiRow, Team, User } from '@/api/types';
+import { formatHours, fullName } from '@/lib/format';
+import { groupRows, summarizeRows } from '@/lib/kpi';
+import { monthRange } from '@/lib/period';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/PageHeader';
-import { QueryState, ErrorState } from '@/components/QueryState';
+import { ErrorState, QueryState } from '@/components/QueryState';
 import { Field } from '@/components/Field';
 import { ConfirmDeleteDialog } from '@/components/ConfirmDeleteDialog';
+import { TeamDialog } from '@/components/teams/TeamDialog';
 import { Card, CardHead, CardTitle, FlushCard } from '@/components/ui/card';
 import { Table, Td, Th, num } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -24,10 +29,14 @@ import { Dialog, DialogActions, DialogClose, DialogContent } from '@/components/
 /** Branches & teams (mockup 16). */
 export function BranchesPage() {
   const branches = useBranches();
+  const users = useUsers();
+  const kpi = useKpiReport(monthRange());
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editing, setEditing] = useState<Branch | 'new' | null>(null);
   const [deleting, setDeleting] = useState<Branch | null>(null);
   const remove = useDeleteBranch();
+  const headcount = (id: string) => users.data?.filter((u) => u.branchId === id).length ?? 0;
+  const kpiByBranch = groupRows(kpi.data?.rows ?? [], 'branchId');
 
   return (
     <>
@@ -68,7 +77,9 @@ export function BranchesPage() {
                           />
                           <span className="flex-1">
                             <strong className={cn(on && 'text-primary')}>{b.name}</strong>
-                            <span className="block text-xs text-muted">{b.users?.length ?? 0} personnes</span>
+                            <span className="block text-xs text-muted">
+                              {headcount(b.id)} personnes · {b.teams?.length ?? 0} équipes
+                            </span>
                           </span>
                         </button>
                       </li>
@@ -78,6 +89,8 @@ export function BranchesPage() {
               </FlushCard>
               <BranchDetail
                 branch={selected}
+                users={users.data?.filter((u) => u.branchId === selected.id) ?? []}
+                kpiRows={kpiByBranch.get(selected.id) ?? []}
                 onEdit={() => setEditing(selected)}
                 onDelete={() => setDeleting(selected)}
               />
@@ -93,7 +106,7 @@ export function BranchesPage() {
         open={!!deleting}
         onOpenChange={(o) => !o && setDeleting(null)}
         title={`Supprimer la branche ${deleting?.name ?? ''} ?`}
-        description="Les personnes rattachées perdront leur branche. Pensez à les réaffecter avant."
+        description="Ses équipes sont supprimées ; les personnes rattachées perdent leur branche. Pensez à les réaffecter avant."
         confirmLabel="Supprimer la branche"
         onConfirm={async () => {
           await remove.mutateAsync(deleting!.id);
@@ -106,17 +119,21 @@ export function BranchesPage() {
 
 function BranchDetail({
   branch,
+  users,
+  kpiRows,
   onEdit,
   onDelete,
 }: {
   branch: Branch;
+  users: User[];
+  kpiRows: KpiRow[];
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const teams = useTeams();
-  const users = branch.users ?? [];
-  const managers = users.filter((u) => u.role === 'MANAGER');
-  const branchTeams = teams.data?.filter((t) => t.branchId === branch.id) ?? [];
+  const teams = useTeams(branch.id);
+  const [editingTeam, setEditingTeam] = useState<Team | 'new' | null>(null);
+  const summary = summarizeRows(kpiRows);
+  const byTeam = groupRows(kpiRows, 'teamId');
 
   return (
     <div className="flex flex-col gap-6">
@@ -143,21 +160,25 @@ function BranchDetail({
         </div>
         <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <Stat label="Effectif" value={users.length} />
-          <Stat label="Managers" value={managers.length} />
-          <Stat label="Arrivée attendue" value={minutesToTime(branch.expectedStartMin)} />
-          <Stat label="Équipes" value={teams.isSuccess ? branchTeams.length : '—'} />
+          <Stat label="Managers" value={users.filter((u) => u.role === 'MANAGER').length} />
+          <Stat label="Moyenne hebdo (mois)" value={formatHours(summary.avgWeeklyHours)} />
+          <Stat label="Ponctualité (mois)" value={`${summary.punctualityPct} %`} />
         </dl>
       </Card>
 
       <FlushCard aria-labelledby="teams-title">
         <CardHead>
           <CardTitle id="teams-title">Équipes de la branche</CardTitle>
+          <Button variant="secondary" onClick={() => setEditingTeam('new')}>
+            <Plus aria-hidden />
+            Nouvelle équipe
+          </Button>
         </CardHead>
         {teams.isError ? (
           <div className="px-4 pb-4">
             <ErrorState error={teams.error} />
           </div>
-        ) : branchTeams.length === 0 ? (
+        ) : !teams.data?.length ? (
           <p className="p-6 text-center text-sm text-muted">Aucune équipe dans cette branche.</p>
         ) : (
           <Table>
@@ -166,11 +187,13 @@ function BranchDetail({
                 <Th>Équipe</Th>
                 <Th>Manager</Th>
                 <Th className={num}>Membres</Th>
+                <Th className={num}>Ponctualité</Th>
+                <Th className={num}>Actions</Th>
               </tr>
             </thead>
             <tbody>
-              {branchTeams.map((t) => {
-                const manager = users.find((u) => u.id === t.managerId);
+              {teams.data.map((t) => {
+                const s = summarizeRows(byTeam.get(t.id) ?? []);
                 return (
                   <tr key={t.id}>
                     <Td>
@@ -178,15 +201,29 @@ function BranchDetail({
                       {t.description && <div className="text-xs text-muted">{t.description}</div>}
                     </Td>
                     <Td>
-                      {manager ? (
-                        fullName(manager)
+                      {t.manager ? (
+                        fullName(t.manager)
                       ) : (
                         <Badge tone="warning" dot={false}>
                           Sans manager
                         </Badge>
                       )}
                     </Td>
-                    <Td className={num}>{t.memberIds.length}</Td>
+                    <Td className={num}>{t.members?.length ?? 0}</Td>
+                    <Td className={cn(num, s.punctualityPct >= 90 ? 'text-success' : 'text-danger')}>
+                      {s.punctualityPct} %
+                    </Td>
+                    <Td>
+                      <div className="flex justify-end">
+                        <Button
+                          size="icon"
+                          aria-label={`Modifier l'équipe ${t.name}`}
+                          onClick={() => setEditingTeam(t)}
+                        >
+                          <Edit3 aria-hidden />
+                        </Button>
+                      </div>
+                    </Td>
                   </tr>
                 );
               })}
@@ -194,6 +231,15 @@ function BranchDetail({
           </Table>
         )}
       </FlushCard>
+
+      {editingTeam && (
+        <TeamDialog
+          team={editingTeam === 'new' ? null : editingTeam}
+          branchId={branch.id}
+          users={users}
+          onClose={() => setEditingTeam(null)}
+        />
+      )}
     </div>
   );
 }
@@ -210,7 +256,6 @@ function Stat({ label, value }: { label: string; value: string | number }) {
 const schema = z.object({
   name: z.string().trim().min(1, 'Le nom est obligatoire.'),
   description: z.string().optional(),
-  expectedStart: z.string().regex(/^\d{2}:\d{2}$/, 'Heure invalide.'),
 });
 
 function BranchDialog({ branch, onClose }: { branch: Branch | null; onClose: () => void }) {
@@ -221,11 +266,7 @@ function BranchDialog({ branch, onClose }: { branch: Branch | null; onClose: () 
     formState: { errors },
   } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      name: branch?.name ?? '',
-      description: branch?.description ?? '',
-      expectedStart: minutesToTime(branch?.expectedStartMin ?? 540),
-    },
+    defaultValues: { name: branch?.name ?? '', description: branch?.description ?? '' },
   });
 
   return (
@@ -236,12 +277,7 @@ function BranchDialog({ branch, onClose }: { branch: Branch | null; onClose: () 
           className="flex flex-col gap-4"
           onSubmit={handleSubmit((v) =>
             save.mutate(
-              {
-                id: branch?.id,
-                name: v.name,
-                description: v.description || undefined,
-                expectedStartMin: timeToMinutes(v.expectedStart),
-              },
+              { id: branch?.id, name: v.name, description: v.description || undefined },
               { onSuccess: onClose },
             ),
           )}
@@ -251,14 +287,6 @@ function BranchDialog({ branch, onClose }: { branch: Branch | null; onClose: () 
           </Field>
           <Field label="Description">
             <Input {...register('description')} />
-          </Field>
-          <Field
-            label="Heure d'arrivée attendue"
-            required
-            error={errors.expectedStart?.message}
-            hint="Au-delà, le pointage d'arrivée compte comme un retard."
-          >
-            <Input type="time" {...register('expectedStart')} />
           </Field>
           {save.isError && (
             <Alert tone="danger" role="alert">

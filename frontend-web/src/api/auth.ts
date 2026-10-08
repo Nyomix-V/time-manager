@@ -8,17 +8,26 @@ export async function login(email: string, password: string) {
   return data;
 }
 
-// ⚠ Backend: to implement (refresh token in an httpOnly cookie, see README).
+// ⚠ Backend: not implemented yet (refresh token in an httpOnly cookie, see README).
 export async function logout() {
   await api.post('/auth/logout');
 }
 
-// ⚠ Backend: to implement.
+/** The backend always answers 200 (no account enumeration). In dev it also returns the token, since no email is sent yet. */
 export async function requestPasswordReset(email: string) {
-  await api.post('/auth/forgot-password', { email });
+  const { data } = await api.post<{ token?: string }>('/auth/forgot-password', { email });
+  return data;
 }
 
-// ⚠ Backend: to implement.
+export async function resetPassword(token: string, password: string) {
+  await api.post('/auth/reset-password', { token, password });
+}
+
+/** First password of an invited user (link valid 48 h). */
+export async function activateAccount(token: string, password: string) {
+  await api.post('/auth/activate', { token, password });
+}
+
 export async function changePassword(currentPassword: string, newPassword: string) {
-  await api.put('/auth/password', { currentPassword, newPassword });
+  await api.post('/auth/change-password', { currentPassword, newPassword });
 }
