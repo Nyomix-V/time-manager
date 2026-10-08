@@ -24,7 +24,7 @@ export default function TeamsScreen() {
 
   if (!data) {
     return (
-      <Screen title="Équipes" safeTop={false}>
+      <Screen title="" safeTop={false}>
         <StateView loading={loading} error={error} onRetry={reload} />
       </Screen>
     );
@@ -35,7 +35,7 @@ export default function TeamsScreen() {
   const count = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`;
 
   return (
-    <Screen title="Équipes" subtitle={count(teams.length, 'équipe')} safeTop={false} refreshing={refreshing} onRefresh={refresh}>
+    <Screen title={count(teams.length, 'équipe')} subtitle="Dans votre branche" safeTop={false} refreshing={refreshing} onRefresh={refresh}>
       <Button label="Nouvelle équipe" icon="plus" onPress={() => setEditing('new')} />
 
       <Card style={{ gap: 0 }}>

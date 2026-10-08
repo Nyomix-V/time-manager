@@ -87,7 +87,7 @@ export function EmployeeCreateSheet({
         <Text style={[text.small, { color: colors.text }]} selectable>
           {link ?? created.activationToken}
         </Text>
-        <Button label="Partager le lien" icon="share-2" large onPress={share} />
+        <Button label={link ? 'Partager le lien' : 'Partager le code'} icon="share-2" large onPress={share} />
         <Button label="Terminé" variant="secondary" large onPress={onClose} />
       </Sheet>
     );
