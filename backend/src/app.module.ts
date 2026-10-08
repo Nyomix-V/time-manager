@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ENTITIES } from './database/data-source';
+import { ENTITIES, MIGRATIONS } from './database/data-source';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { BranchesModule } from './branches/branches.module';
@@ -24,6 +24,8 @@ import { KpiModule } from './kpi/kpi.module';
         // DEV: synchronize auto-creates/updates tables from entities.
         // PROD: set DB_SYNC=false and run migrations instead.
         synchronize: config.get<string>('DB_SYNC', 'true') !== 'false',
+        migrations: MIGRATIONS,
+        migrationsRun: true,
       }),
     }),
     AuthModule,

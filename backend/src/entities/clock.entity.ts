@@ -20,7 +20,9 @@ export class Clock {
   @Column({ type: 'uuid' })
   userId: string;
 
-  @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
+  // Millisecond precision: two clocks in the same second (double tap) must
+  // still come back in the right order, or the "last clock" is wrong.
+  @Column({ type: 'datetime', precision: 3, default: () => 'CURRENT_TIMESTAMP(3)' })
   time: Date;
 
   @Column({ type: 'enum', enum: ClockType })

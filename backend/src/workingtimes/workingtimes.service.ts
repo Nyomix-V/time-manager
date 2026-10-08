@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { Clock } from '../entities/clock.entity';
+import { businessDay } from '../common/time';
 
 export interface WorkedDay {
   date: string; // YYYY-MM-DD
@@ -52,7 +53,8 @@ export class WorkingTimesService {
 
     const addWorked = (end: Date) => {
       if (!workingSince) return;
-      const day = workingSince.toISOString().slice(0, 10);
+      // Day in the business time zone, not UTC (a 00:30 Paris arrival belongs to that Paris day).
+      const day = businessDay(workingSince);
       workedMsByDay.set(
         day,
         (workedMsByDay.get(day) ?? 0) + (end.getTime() - workingSince.getTime()),
