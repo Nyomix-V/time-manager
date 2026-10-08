@@ -68,6 +68,13 @@ function ClockScreen() {
       { text: 'Pointer mon départ', onPress: () => clock('OUT') },
     ]);
 
+  // Après un départ (pointé par erreur, ou retour au travail), le backend accepte une nouvelle arrivée.
+  const confirmResume = () =>
+    Alert.alert('Reprendre le travail ?', `Une nouvelle arrivée sera pointée à ${formatTime(new Date())}.`, [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Reprendre', onPress: () => clock('IN') },
+    ]);
+
   const subtitle = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
   const title = data ? `Bonjour ${data.user.firstName}` : 'Pointage';
 
@@ -126,7 +133,10 @@ function ClockScreen() {
           </>
         )}
         {summary.state === 'DONE' && (
-          <Text style={[text.body, styles.center]}>Journée terminée. Bonne soirée !</Text>
+          <>
+            <Text style={[text.body, styles.center]}>Journée terminée. Bonne soirée !</Text>
+            <Button label="Reprendre le travail" icon="rotate-ccw" variant="ghost" loading={sending === 'IN'} onPress={confirmResume} />
+          </>
         )}
       </Card>
 
