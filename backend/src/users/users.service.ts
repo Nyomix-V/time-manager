@@ -39,7 +39,7 @@ export class UsersService {
       where: { id },
       relations: { team: true, branch: true },
     });
-    if (!user) throw new NotFoundException('User not found');
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
     return user;
   }
 
@@ -91,6 +91,10 @@ export class UsersService {
       branchId: target.branchId ?? null,
       role: target.role,
     });
+    // Moving someone to another branch: only towards a branch the actor manages (admin: any).
+    if (dto.branchId !== undefined && dto.branchId !== target.branchId) {
+      assertSameBranchOrGlobal(actor, dto.branchId);
+    }
     await this.users.update(id, dto);
     return this.findOne(id);
   }

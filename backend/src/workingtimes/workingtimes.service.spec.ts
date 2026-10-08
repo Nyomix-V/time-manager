@@ -39,6 +39,21 @@ describe('WorkingTimesService.compute', () => {
     ]);
   });
 
+  it('groups by Paris day, not UTC day', () => {
+    // Night shift 23:00 -> 06:00 Paris (21:00Z -> 04:00Z): counted on the day it started.
+    // An arrival at 00:30 Paris (22:30Z the day before) belongs to that Paris day.
+    const r = WorkingTimesService.compute([
+      { type: 'IN', time: d('2026-10-01T21:00:00Z') },
+      { type: 'OUT', time: d('2026-10-02T04:00:00Z') },
+      { type: 'IN', time: d('2026-10-02T22:30:00Z') },
+      { type: 'OUT', time: d('2026-10-03T02:30:00Z') },
+    ]);
+    expect(r.perDay).toEqual([
+      { date: '2026-10-01', hours: 7 },
+      { date: '2026-10-03', hours: 4 },
+    ]);
+  });
+
   it('ignores a dangling IN with no OUT', () => {
     const r = WorkingTimesService.compute([
       { type: 'IN', time: d('2026-10-01T09:00:00Z') },

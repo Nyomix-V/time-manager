@@ -10,7 +10,7 @@ import { Role, UserStatus, ClockType } from '../entities/enums';
 // Seeds a small but realistic org: branches, teams, users (all roles), and a
 // day of clocks (with a break) for the demo employee.
 async function main() {
-  AppDataSource.setOptions({ synchronize: true }); // dev: create tables if needed
+  AppDataSource.setOptions({ migrationsRun: true, synchronize: true }); // dev: create tables if needed
   await AppDataSource.initialize();
 
   const branches = AppDataSource.getRepository(Branch);
@@ -62,15 +62,16 @@ async function main() {
     role: Role.EMPLOYEE, branchId: finance.id, teamId: compta.id,
   });
 
-  // A day of clocks for the employee: arrive 08:57, break 12:30-13:15, leave 16:50.
+  // A day of clocks for the employee: arrive 08:57, break 12:30-13:15, leave 16:50
+  // (Paris time: UTC+2 in October, stored in UTC).
   const existingClocks = await clocks.count({ where: { userId: employee.id } });
   if (existingClocks === 0) {
     const day = '2026-10-06T';
     await clocks.save([
-      clocks.create({ userId: employee.id, type: ClockType.IN, time: new Date(day + '08:57:00Z') }),
-      clocks.create({ userId: employee.id, type: ClockType.BREAK_START, time: new Date(day + '12:30:00Z') }),
-      clocks.create({ userId: employee.id, type: ClockType.BREAK_END, time: new Date(day + '13:15:00Z') }),
-      clocks.create({ userId: employee.id, type: ClockType.OUT, time: new Date(day + '16:50:00Z') }),
+      clocks.create({ userId: employee.id, type: ClockType.IN, time: new Date(day + '08:57:00+02:00') }),
+      clocks.create({ userId: employee.id, type: ClockType.BREAK_START, time: new Date(day + '12:30:00+02:00') }),
+      clocks.create({ userId: employee.id, type: ClockType.BREAK_END, time: new Date(day + '13:15:00+02:00') }),
+      clocks.create({ userId: employee.id, type: ClockType.OUT, time: new Date(day + '16:50:00+02:00') }),
     ]);
   }
 
