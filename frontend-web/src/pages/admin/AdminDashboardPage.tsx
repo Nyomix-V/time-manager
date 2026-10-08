@@ -30,7 +30,7 @@ export function AdminDashboardPage() {
     <>
       <PageHeader
         title="Dashboard global"
-        subtitle={branches.data && `Trinity Market · ${branches.data.length} branches`}
+        subtitle={branches.data && `${branches.data.length} branches`}
       >
         <PeriodFilter period={period} />
         <Button

@@ -68,7 +68,7 @@ export function LoginPage() {
           <Input
             type="email"
             autoComplete="username"
-            placeholder="prenom.nom@trinity-market.com"
+            placeholder="prenom.nom@example.com"
             {...register('email')}
           />
         </Field>
