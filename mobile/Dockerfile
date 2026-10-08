@@ -5,7 +5,7 @@
 #    android-sdk -> Node + JDK 17 + SDK Android (lourd, mis en cache)
 #    build       -> npm ci, expo prebuild, gradle assembleRelease
 #    artifact    -> image légère qui ne contient que l'APK
-#  Lancement :  docker compose --profile mobile up --build mobile-builder
+#  Lancement :  docker compose up (avec le reste), ou seul : docker compose up --build mobile-builder
 #  Résultat  :  mobile/artifacts/time-manager.apk
 # =============================================================
 

@@ -60,10 +60,10 @@ Ajoutez toujours une dépendance avec `npx expo install <paquet>` (pas `npm inst
 
 ## Construire l'APK (Docker)
 
-Depuis la racine du projet :
+`docker compose up` à la racine construit l'APK avec le reste du projet. Pour ne reconstruire que l'APK :
 
 ```bash
-docker compose --profile mobile up --build mobile-builder
+docker compose up --build mobile-builder
 ```
 
 L'APK arrive dans `mobile/artifacts/time-manager.apk`. Le premier build est long (SDK Android, Gradle : compter 15 à 30 minutes et plusieurs Go) ; les suivants réutilisent le cache Docker.

@@ -82,8 +82,10 @@ services:
         condition: service_healthy
     networks: [backend_net]
 
-  # --- Mobile APK builder: heavy, isolated behind a profile ---
-  # Run only when you need it:  docker compose --profile mobile up mobile-builder
+  # --- Mobile app: builds the Android APK, then stops ---
+  # The APK lands in mobile/artifacts/time-manager.apk.
+  # First build is long (Android SDK, Gradle); later ones reuse the Docker cache.
+  # Rebuild only the APK:  docker compose up --build mobile-builder
   mobile-builder:
     build:
       context: ./mobile
@@ -93,7 +95,6 @@ services:
         EXPO_PUBLIC_MOCK: ${MOBILE_MOCK:-0}                  # 1 = demo mode, fake accounts, no backend
         ANDROID_ARCHS: ${MOBILE_ARCHS:-arm64-v8a,x86_64}     # arm64-v8a alone = faster, real phones only
     container_name: tm_mobile_builder
-    profiles: ["mobile"]
     volumes:
       - ./mobile/artifacts:/output               # the .apk lands here
 
