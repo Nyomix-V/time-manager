@@ -12,6 +12,8 @@ type AuthContextValue = {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  /** Connexion avec un jeton déjà délivré par le backend (connexion Microsoft). */
+  signInWithToken: (token: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -33,15 +35,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .finally(() => setIsLoading(false));
   }, [applySession]);
 
-  const signIn = useCallback(
-    async (email: string, password: string) => {
-      const { access_token } = await api.auth.login(email, password);
-      const next = sessionFromToken(access_token);
+  const signInWithToken = useCallback(
+    async (token: string) => {
+      const next = sessionFromToken(token);
       if (!next) throw new Error('Jeton de connexion invalide.');
-      await SecureStore.setItemAsync(TOKEN_KEY, access_token);
+      await SecureStore.setItemAsync(TOKEN_KEY, token);
       applySession(next);
     },
     [applySession],
+  );
+
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      const { access_token } = await api.auth.login(email, password);
+      await signInWithToken(access_token);
+    },
+    [signInWithToken],
   );
 
   const signOut = useCallback(async () => {
@@ -55,7 +64,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => setUnauthorizedHandler(null);
   }, [signOut]);
 
-  const value = useMemo(() => ({ session, isLoading, signIn, signOut }), [session, isLoading, signIn, signOut]);
+  const value = useMemo(
+    () => ({ session, isLoading, signIn, signInWithToken, signOut }),
+    [session, isLoading, signIn, signInWithToken, signOut],
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

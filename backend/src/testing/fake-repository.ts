@@ -7,7 +7,7 @@ import { FindOperator } from 'typeorm';
 type Row = Record<string, any>;
 type Relation = { repo: FakeRepository<any>; key: string };
 type Seed<T> = { [K in keyof T]?: T[K] | null };
-type FindOptions = { where?: Row; order?: Record<string, 'ASC' | 'DESC'>; relations?: Record<string, boolean> };
+type FindOptions = { where?: Row | Row[]; order?: Record<string, 'ASC' | 'DESC'>; relations?: Record<string, boolean> };
 
 let sequence = 0;
 
@@ -41,7 +41,7 @@ export class FakeRepository<T extends Row> {
   async find(options: FindOptions = {}): Promise<T[]> {
     let rows = this.rows
       .map((row, index) => ({ row, index }))
-      .filter(({ row }) => !row.deletedAt && matches(row, options.where ?? {}));
+      .filter(({ row }) => !row.deletedAt && matchesAny(row, options.where ?? {}));
     if (options.order) rows = rows.sort(byOrder(options.order));
     return rows.map(({ row }) => this.withRelations({ ...row }, options.relations));
   }
@@ -95,6 +95,11 @@ function columnsOnly<T extends Row>(entity: T): Partial<T> {
   ) as Partial<T>;
 }
 
+/** An array of conditions means OR, like TypeORM's `where: [{ ... }, { ... }]`. */
+function matchesAny(row: Row, where: Row | Row[]): boolean {
+  return Array.isArray(where) ? where.some((w) => matches(row, w)) : matches(row, where);
+}
+
 function matches(row: Row, where: Row): boolean {
   return Object.entries(where).every(([key, expected]) => {
     if (expected === undefined) return true; // TypeORM ignores undefined conditions
@@ -113,6 +118,8 @@ function matches(row: Row, where: Row): boolean {
       }
     }
     if (expected instanceof Date) return actual instanceof Date && actual.getTime() === expected.getTime();
+    // MySQL's default collation compares text case-insensitively ("Emma@x.fr" = "emma@x.fr").
+    if (typeof expected === 'string' && typeof actual === 'string') return actual.toLowerCase() === expected.toLowerCase();
     return (actual ?? null) === expected;
   });
 }

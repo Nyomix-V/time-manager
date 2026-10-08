@@ -111,16 +111,20 @@ Les routes utilisées sont listées dans [API.md](API.md).
 
 ## État actuel
 
-Tous les écrans des maquettes sont développés et **branchés sur le backend** (ou sur le mode démo), y compris ses règles de sécurité et de calcul de la branche `fix/backend-regles-securite` (PR #3). Ce qui reste à faire côté backend (présence de l'équipe en un appel, historique des plannings, connexion Microsoft…) est listé dans [API.md](API.md).
+Tous les écrans des maquettes sont développés et **branchés sur le backend** (ou sur le mode démo), avec ses règles de sécurité et de calcul. Ce qui reste à faire côté backend (présence de l'équipe en un appel, historique des plannings, envoi des emails…) est listé dans [API.md](API.md).
 
 | Écran | Rôles |
 |---|---|
-| Connexion (Microsoft : bouton désactivé, route à faire) | tous |
+| Connexion : email et mot de passe, compte Microsoft, mot de passe oublié | tous |
 | Pointage avec pauses, planning du jour | sauf admin |
-| Mes heures | employé |
+| Mes heures (semaine, mois ou période choisie) | employé |
 | Absences (demande, historique) | sauf admin |
-| Profil, demandes au responsable, mot de passe | tous |
-| Équipe : présence en direct, KPI, fiche salarié avec absences | manager, directeur |
-| Demandes à valider | manager, directeur |
+| Profil : modifier ses informations, changer son mot de passe, supprimer son compte | tous (suppression : sauf admin) |
+| Équipe : présence en direct, moyennes d'heures et ponctualité sur la période choisie, inscription d'un salarié | manager, directeur |
+| Équipes : création, modification, membres, suppression | manager, directeur |
+| Fiche salarié : heures sur la période choisie, planning, absences, modification, suppression | manager, directeur |
+| Demandes à valider : absences, et demandes de compte envoyées depuis le site | manager, directeur |
+
+L'administrateur gère l'entreprise depuis le site (branches, tous les comptes).
 
 **Sécurité :** le HTTP non chiffré est autorisé (`usesCleartextTraffic` dans `app.json`) pour joindre l'API de développement. En production, passez l'API en HTTPS et retirez ce réglage.

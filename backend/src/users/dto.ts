@@ -2,9 +2,11 @@ import {
   IsEmail,
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 import { Role } from '../entities/enums';
@@ -36,4 +38,15 @@ export class UpdateUserDto {
   @IsOptional() @IsInt() @Min(0) @Max(1439) expectedStartMin?: number;
   @IsOptional() @IsInt() @Min(0) @Max(1440) workMinutesPerDay?: number;
   @IsOptional() @IsInt() @Min(0) @Max(480) breakMinutes?: number;
+}
+
+/**
+ * What anyone may change on their own account (PUT /users/me, subject: "edit their account information").
+ * Role, branch, team and planning stay in the manager's hands.
+ */
+export class UpdateSelfDto {
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(100) firstName?: string;
+  @IsOptional() @IsString() @IsNotEmpty() @MaxLength(100) lastName?: string;
+  @IsOptional() @IsEmail() email?: string;
+  @IsOptional() @IsString() @MaxLength(30) phone?: string | null;
 }

@@ -43,6 +43,19 @@ export type UserUpdate = Partial<
   Pick<User, 'firstName' | 'lastName' | 'email' | 'phone' | 'teamId' | 'workingDays' | 'expectedStartMin' | 'workMinutesPerDay' | 'breakMinutes'>
 >;
 
+/** PUT /users/me : ce que chacun modifie sur son propre compte (UpdateSelfDto). Rôle, équipe et planning restent au manager. */
+export type SelfUpdate = Partial<Pick<User, 'firstName' | 'lastName' | 'email' | 'phone'>>;
+
+/** POST /users : un manager inscrit un salarié de sa branche (CreateUserDto). */
+export type UserCreate = Pick<User, 'firstName' | 'lastName' | 'email' | 'role'> &
+  Partial<Pick<User, 'phone' | 'branchId' | 'teamId' | 'workingDays' | 'expectedStartMin' | 'workMinutesPerDay' | 'breakMinutes'>>;
+
+/** Réponse de POST /users : le compte est « invité » tant que la personne n'a pas choisi son mot de passe. */
+export type CreatedUser = User & { activationToken: string };
+
+/** POST /teams et PUT /teams/:id. */
+export type TeamChanges = { name: string; description?: string; managerId?: string | null };
+
 export type ClockType = 'IN' | 'OUT' | 'BREAK_START' | 'BREAK_END';
 export type Clock = { id: string; userId: string; time: string; type: ClockType };
 

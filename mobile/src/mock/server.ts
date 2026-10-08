@@ -2,7 +2,7 @@
 // backend NestJS (on pointe pour soi, on ne lit et ne décide que dans son périmètre, motif obligatoire
 // pour un refus, journées et retards à l'heure locale, absence validée = retard excusé).
 import type { Absence, AccountRequest, ClockType, KpiRow, PersonRef, Requester, RequestStatus, User } from '@/api/types';
-import { canManage } from '@/domain/permissions';
+import { canManage, creatableRoles } from '@/domain/permissions';
 import { excusedDays, isSameDay, periodStats, planningOf, summarizeDays } from '@/domain/time';
 import { absences, accountRequests, branches, clocks, MOCK_ACCOUNTS, MOCK_PASSWORD, teams, users } from './data';
 
@@ -63,6 +63,25 @@ function findUser(id: string) {
 }
 
 const inBranchScope = (actor: User) => (u: User) => actor.role === 'ADMIN' || u.branchId === actor.branchId;
+
+/** assertSameBranchOrGlobal : sa propre branche (manager, directeur), toutes (admin). */
+function assertSameBranch(actor: User, branchId: string | null) {
+  if (actor.role === 'ADMIN') return;
+  if ((actor.role === 'MANAGER' || actor.role === 'DIRECTEUR') && actor.branchId && actor.branchId === branchId) return;
+  throw new MockError(403, 'Hors de votre branche.');
+}
+
+function findTeam(id: string) {
+  const found = teams.find((t) => t.id === id);
+  if (!found) throw new MockError(404, 'Équipe introuvable.');
+  return found;
+}
+
+const withTeamRelations = (t: (typeof teams)[number]) => ({
+  ...t,
+  manager: users.find((u) => u.id === t.managerId) ?? null,
+  members: users.filter((u) => u.teamId === t.id),
+});
 
 // Relations renvoyées par le backend (relations: { team, branch } et { manager, members }).
 const withRelations = (u: User): User => ({
@@ -125,6 +144,19 @@ const routes: [string, RegExp, Handler][] = [
     if (target.status !== 'ACTIVE') throw new MockError(401, 'Compte non activé : utilisez le lien reçu par email.');
     return { access_token: mockToken(target), user: { id: target.id, email: target.email, role: target.role, branchId: target.branchId ?? null } };
   }],
+  // Même réponse que le compte existe ou non (pas de fuite) ; en démo, aucun email n'est envoyé.
+  ['POST', /^\/auth\/forgot-password$/, () => ({})],
+  // Lien d'activation (ouvert sur le site) : la personne choisit son mot de passe.
+  ['POST', /^\/auth\/activate$/, ({ body }) => {
+    const target = users.find((u) => body?.token === `demo-activation-${u.id}` && u.status === 'INVITED');
+    if (!target) throw new MockError(400, 'Lien invalide ou expiré.');
+    if (!STRONG.test(String(body?.password ?? ''))) {
+      throw new MockError(400, 'Mot de passe trop faible : 12 caractères, une majuscule, un chiffre et un caractère spécial.');
+    }
+    passwords.set(target.id, body.password);
+    target.status = 'ACTIVE';
+    return { activated: true };
+  }],
   ['POST', /^\/auth\/change-password$/, ({ actor, body }) => {
     const me = actor();
     if (!STRONG.test(String(body?.newPassword ?? ''))) {
@@ -147,6 +179,58 @@ const routes: [string, RegExp, Handler][] = [
     assertCanRead(actor(), target);
     return withRelations(target);
   }],
+  ['POST', /^\/users$/, ({ actor, body }) => {
+    const me = actor();
+    requireSupervisor(me);
+    const role = body?.role ?? 'EMPLOYEE';
+    const branchId = body?.branchId ?? null;
+    // UsersService.create : assertCanManageUser sur le rôle et la branche demandés.
+    if (!creatableRoles(me.role).includes(role) || (me.role !== 'ADMIN' && branchId !== me.branchId)) {
+      throw new MockError(403, 'Vous ne pouvez pas gérer cette personne.');
+    }
+    const email = String(body?.email ?? '').trim().toLowerCase();
+    if (users.some((u) => u.email.toLowerCase() === email)) throw new MockError(409, 'Cet email est déjà utilisé.');
+    const created: User = {
+      id: newId('u'),
+      firstName: body.firstName,
+      lastName: body.lastName,
+      email,
+      phone: body.phone ?? null,
+      msOid: null,
+      role,
+      status: 'INVITED',
+      branchId,
+      teamId: body.teamId ?? null,
+      workingDays: body.workingDays ?? '1,2,3,4,5',
+      expectedStartMin: body.expectedStartMin ?? 540,
+      workMinutesPerDay: body.workMinutesPerDay ?? 420,
+      breakMinutes: body.breakMinutes ?? 45,
+    };
+    users.push(created);
+    return { ...withRelations(created), activationToken: `demo-activation-${created.id}` };
+  }],
+  // Son propre compte (déclaré avant /users/:id, comme dans le backend).
+  ['PUT', /^\/users\/me$/, ({ actor, body }) => {
+    const me = actor();
+    for (const field of ['firstName', 'lastName'] as const) {
+      if (body?.[field] === undefined) continue;
+      if (!String(body[field]).trim()) throw new MockError(400, `${field === 'firstName' ? 'Prénom' : 'Nom'} : obligatoire.`);
+      me[field] = String(body[field]).trim();
+    }
+    if (body?.phone !== undefined) me.phone = String(body.phone ?? '').trim() || null;
+    if (body?.email !== undefined) {
+      const email = String(body.email).trim().toLowerCase();
+      if (users.some((u) => u.id !== me.id && u.email.toLowerCase() === email)) throw new MockError(409, 'Cet email est déjà utilisé.');
+      me.email = email;
+    }
+    return withRelations(me);
+  }],
+  ['DELETE', /^\/users\/me$/, ({ actor }) => {
+    const me = actor();
+    if (me.role === 'ADMIN') throw new MockError(400, 'Un administrateur ne peut pas supprimer son propre compte.');
+    users.splice(users.indexOf(me), 1);
+    return { deleted: true };
+  }],
   ['PUT', /^\/users\/([^/]+)$/, ({ actor, params, body }) => {
     const me = actor();
     requireSupervisor(me);
@@ -166,9 +250,50 @@ const routes: [string, RegExp, Handler][] = [
   }],
   ['GET', /^\/teams$/, ({ actor }) => {
     const me = actor();
-    return teams
-      .filter((t) => me.role === 'ADMIN' || t.branchId === me.branchId)
-      .map((t) => ({ ...t, manager: users.find((u) => u.id === t.managerId) ?? null, members: users.filter((u) => u.teamId === t.id) }));
+    return teams.filter((t) => me.role === 'ADMIN' || t.branchId === me.branchId).map(withTeamRelations);
+  }],
+  ['POST', /^\/teams$/, ({ actor, body }) => {
+    const me = actor();
+    requireSupervisor(me);
+    assertSameBranch(me, body?.branchId ?? null);
+    if (!String(body?.name ?? '').trim()) throw new MockError(400, 'Nom : obligatoire.');
+    const team = { id: newId('tm'), name: body.name, description: body.description ?? null, branchId: body.branchId, managerId: body.managerId ?? null };
+    teams.push(team);
+    return withTeamRelations(team);
+  }],
+  ['PUT', /^\/teams\/([^/]+)$/, ({ actor, params, body }) => {
+    const team = findTeam(params[0]);
+    requireSupervisor(actor());
+    assertSameBranch(actor(), team.branchId);
+    for (const field of ['name', 'description', 'managerId'] as const) if (body?.[field] !== undefined) (team as any)[field] = body[field];
+    return withTeamRelations(team);
+  }],
+  ['DELETE', /^\/teams\/([^/]+)$/, ({ actor, params }) => {
+    const team = findTeam(params[0]);
+    requireSupervisor(actor());
+    assertSameBranch(actor(), team.branchId);
+    // Les membres deviennent « sans équipe », puis l'équipe disparaît.
+    for (const u of users) if (u.teamId === team.id) u.teamId = null;
+    teams.splice(teams.indexOf(team), 1);
+    return { deleted: true, teamName: team.name };
+  }],
+  ['POST', /^\/teams\/([^/]+)\/members\/([^/]+)$/, ({ actor, params }) => {
+    const team = findTeam(params[0]);
+    requireSupervisor(actor());
+    assertSameBranch(actor(), team.branchId);
+    const member = findUser(params[1]);
+    if (member.branchId !== team.branchId) throw new MockError(400, "Cette personne n'appartient pas à la branche de l'équipe.");
+    member.teamId = team.id;
+    return { added: true };
+  }],
+  ['DELETE', /^\/teams\/([^/]+)\/members\/([^/]+)$/, ({ actor, params }) => {
+    const team = findTeam(params[0]);
+    requireSupervisor(actor());
+    assertSameBranch(actor(), team.branchId);
+    const member = users.find((u) => u.id === params[1]);
+    if (!member || member.teamId !== team.id) throw new MockError(404, "Cette personne n'est pas dans l'équipe.");
+    member.teamId = null;
+    return { removed: true };
   }],
 
   // ---- Pointages ----
@@ -282,43 +407,11 @@ const routes: [string, RegExp, Handler][] = [
     return decide(actor(), item, body);
   }],
 
-  // ---- Demandes de compte (modification d'information, suppression) ----
-  ['POST', /^\/account-requests$/, ({ actor, body }) => {
-    const me = actor();
-    // Une seule demande en attente à la fois.
-    if (accountRequests.some((r) => r.userId === me.id && r.status === 'PENDING')) {
-      throw new MockError(400, 'Vous avez déjà une demande en attente.');
-    }
-    if (body?.type === 'INFO_CHANGE' && (!['phone', 'firstName', 'lastName'].includes(body?.field) || !body?.newValue)) {
-      throw new MockError(400, 'Demande de modification invalide.');
-    }
-    const created: AccountRequest = {
-      id: newId('ar'),
-      userId: me.id,
-      type: body?.type === 'DELETION' ? 'DELETION' : 'INFO_CHANGE',
-      field: body?.field ?? null,
-      newValue: body?.newValue ?? null,
-      reason: body?.reason ?? null,
-      status: 'PENDING',
-      createdAt: new Date().toISOString(),
-      decidedById: null,
-      decidedAt: null,
-      decisionComment: null,
-    };
-    accountRequests.push(created);
-    return created;
-  }],
+  // ---- Demandes de compte reçues du site (modification d'information, suppression) ----
   ['GET', /^\/account-requests\/pending$/, ({ actor }) => {
     const me = actor();
     requireSupervisor(me);
     return accountRequests.filter((r) => r.status === 'PENDING' && decidable(me, r.userId)).map(withRequester);
-  }],
-  ['GET', /^\/account-requests\/user\/([^/]+)$/, ({ actor, params }) => {
-    assertCanRead(actor(), findUser(params[0]));
-    return accountRequests
-      .filter((r) => r.userId === params[0])
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .map(withDecider);
   }],
   ['PATCH', /^\/account-requests\/([^/]+)\/decision$/, ({ actor, params, body }) => {
     const item = accountRequests.find((r) => r.id === params[0]);
@@ -356,13 +449,18 @@ function decide<T extends { userId: string; status: RequestStatus; decidedById?:
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// Routes sans session (AuthController : connexion, mot de passe oublié, activation).
+const PUBLIC_ROUTES = /^\/auth\/(login|forgot-password|activate)$/;
+
 export async function mockRequest<T>(path: string, method: string, body: unknown, token: string | null): Promise<T> {
   await delay(250); // laisse voir les états de chargement
   const [pathname, search = ''] = path.split('?');
   for (const [routeMethod, pattern, handler] of routes) {
     const match = routeMethod === method ? pathname.match(pattern) : null;
     if (!match) continue;
-    const result = handler({ actor: () => actorFrom(token), params: match.slice(1), query: parseQuery(search), body });
+    // Comme JwtAuthGuard : la session est vérifiée avant tout, sauf sur les routes publiques.
+    const actor = PUBLIC_ROUTES.test(pathname) ? null : actorFrom(token);
+    const result = handler({ actor: () => actor ?? actorFrom(token), params: match.slice(1), query: parseQuery(search), body });
     // Copie : l'écran ne doit jamais modifier les données du faux backend par erreur.
     return JSON.parse(JSON.stringify(result ?? null)) as T;
   }
