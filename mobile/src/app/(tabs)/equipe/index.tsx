@@ -7,16 +7,20 @@ import { api } from '@/api';
 import type { ClockStatus, Team, User } from '@/api/types';
 import { useSession } from '@/auth/AuthProvider';
 import { Avatar, Kpi, Row, StateView } from '@/components/data';
+import { EmployeeCreateSheet } from '@/components/EmployeeCreateSheet';
+import { PeriodPicker, usePeriod } from '@/components/period';
 import { Sheet } from '@/components/Sheet';
-import { Badge, Banner, Card, Screen, layout, text } from '@/components/ui';
+import { Badge, Banner, Card, IconButton, Screen, layout, text } from '@/components/ui';
 import { PRESENCE_LABELS, fullName } from '@/domain/labels';
-import { addDays, formatTime, isSameDay, startOfDay } from '@/domain/time';
+import { creatableRoles, managesTeams } from '@/domain/permissions';
+import { addDays, endOfDay, formatDuration, formatTime, isSameDay, startOfDay } from '@/domain/time';
 import { useQuery } from '@/hooks/useQuery';
 import { colors, radius } from '@/theme/tokens';
 
 // Maquette : docs/maquettes/mobile/m06-manager-equipe.html
 // Salariés de la branche (le backend limite le manager et le directeur à leur branche),
-// avec leur statut en direct, actualisé chaque minute.
+// avec leur statut en direct, actualisé chaque minute, et les moyennes d'heures sur la période choisie
+// (sujet : « averages of the daily and weekly hours of the team over a given period »).
 type Filter = 'all' | 'none' | `team:${string}`;
 
 const STATE_ORDER: ClockStatus['state'][] = ['WORKING', 'ON_BREAK', 'OUT'];
@@ -25,21 +29,26 @@ export default function TeamScreen() {
   const session = useSession();
   const [filter, setFilter] = useState<Filter>('all');
   const [picking, setPicking] = useState(false);
+  const [creating, setCreating] = useState(false);
   const teamId = filter.startsWith('team:') ? filter.slice(5) : undefined;
+  const period = usePeriod('month');
+  const { from, to } = period;
 
   const { data, error, loading, reload, refreshing, refresh, updatedAt } = useQuery(
     async () => {
-      const [users, teams, kpi] = await Promise.all([
+      const [users, teams, kpi, kpiPeriod] = await Promise.all([
         api.users.list(),
         api.teams.list(),
+        // Alertes de retard : toujours sur les 30 derniers jours (seuil de 3).
         api.kpi.report(addDays(startOfDay(new Date()), -30), new Date(), teamId),
+        api.kpi.report(from, endOfDay(to), teamId),
       ]);
       const people = users.filter((u) => u.role !== 'ADMIN' && u.id !== session.userId);
       // Un appel par personne en attendant une route de présence groupée côté backend (voir API.md).
       const statuses = await Promise.all(people.map((u) => api.clocks.status(u.id).catch(() => null)));
-      return { people, teams, kpi, statusById: new Map(people.map((u, i) => [u.id, statuses[i]])) };
+      return { people, teams, kpi, kpiPeriod, statusById: new Map(people.map((u, i) => [u.id, statuses[i]])) };
     },
-    [teamId],
+    [teamId, from.getTime(), to.getTime()],
     { refreshMs: 60_000 },
   );
 
@@ -64,22 +73,44 @@ export default function TeamScreen() {
   const filterOptions = buildFilterOptions(data.people, data.teams, session.role === 'ADMIN');
   const filterLabel = filterOptions.find((o) => o.value === filter)?.label;
 
+  // Moyennes sur la période, parmi les personnes qui ont travaillé (même règle que le résumé du KPI).
+  const worked = data.kpiPeriod.rows.filter((r) => r.workedDays > 0);
+  const avgDailyHours = worked.reduce((sum, r) => sum + r.avgDailyHours, 0) / Math.max(1, worked.length);
+  const totalHours = data.kpiPeriod.rows.reduce((sum, r) => sum + r.totalHours, 0);
+  const scope = teamId ? 'de l’équipe' : 'de la branche';
+  const canCreate = creatableRoles(session.role).length > 0;
+
   return (
-    <Screen title={title} subtitle="30 derniers jours" refreshing={refreshing} onRefresh={refresh}>
+    <Screen
+      title={title}
+      refreshing={refreshing}
+      onRefresh={refresh}
+      right={
+        <View style={layout.row}>
+          {canCreate && <IconButton icon="user-plus" label="Inscrire un salarié" onPress={() => setCreating(true)} />}
+          {managesTeams(session.role) && <IconButton icon="layers" label="Gérer les équipes" onPress={() => router.push('/equipe/equipes')} />}
+        </View>
+      }
+    >
       {alerts.length > 0 && (
         <Banner tone="warning" icon="alert-triangle">
           {alerts.length} salarié{alerts.length > 1 ? 's ont' : ' a'} dépassé 3 retards sur 30 jours : {alerts.map((r) => r.name).join(', ')}.
         </Banner>
       )}
 
+      <PeriodPicker period={period} />
       <View style={layout.grid2}>
-        <Kpi label="Moy. hebdo" value={`${data.kpi.summary.avgWeeklyHours.toFixed(1).replace('.', ',')} h`} hint={teamId ? 'de l’équipe' : 'de la branche'} />
+        <Kpi label="Moy. / jour" value={formatDuration(avgDailyHours * 60)} hint={`par personne, ${scope}`} />
+        <Kpi label="Moy. / semaine" value={formatDuration(data.kpiPeriod.summary.avgWeeklyHours * 60)} hint={`par personne, ${scope}`} />
+      </View>
+      <View style={layout.grid2}>
         <Kpi
           label="Ponctualité"
-          value={`${data.kpi.summary.punctualityPct} %`}
-          hint={`${data.kpi.summary.alerts} alerte${data.kpi.summary.alerts > 1 ? 's' : ''}`}
-          hintTone={data.kpi.summary.alerts ? 'warning' : 'success'}
+          value={`${data.kpiPeriod.summary.punctualityPct} %`}
+          hint="des jours commencés à l’heure"
+          hintTone={data.kpiPeriod.summary.punctualityPct >= 90 ? 'success' : 'warning'}
         />
+        <Kpi label="Total" value={formatDuration(totalHours * 60)} hint={`${worked.length} personne${worked.length > 1 ? 's ont' : ' a'} pointé`} />
       </View>
 
       <Card style={{ gap: 4 }}>
@@ -119,6 +150,15 @@ export default function TeamScreen() {
           })
         )}
       </Card>
+
+      <EmployeeCreateSheet
+        key={`create-${creating}`}
+        visible={creating}
+        session={session}
+        teams={data.teams}
+        onClose={() => setCreating(false)}
+        onCreated={reload}
+      />
 
       <Sheet visible={picking} onClose={() => setPicking(false)} title="Afficher">
         {filterOptions.map((option) => (

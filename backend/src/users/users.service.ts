@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   ForbiddenException,
   NotFoundException,
@@ -9,7 +10,7 @@ import { Repository, FindOptionsWhere } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { Role, UserStatus, TokenType } from '../entities/enums';
 import { AuthService } from '../auth/auth.service';
-import { CreateUserDto, UpdateUserDto } from './dto';
+import { CreateUserDto, UpdateSelfDto, UpdateUserDto } from './dto';
 import {
   AuthUser,
   assertCanManageUser,
@@ -63,7 +64,8 @@ export class UsersService {
     const user = this.users.create({
       firstName: dto.firstName,
       lastName: dto.lastName,
-      email: dto.email,
+      // Un 409 clair au lieu d'un 500 brut quand l'email est déjà pris.
+      email: await this.freeEmail(dto.email, ''),
       phone: dto.phone,
       role: targetRole,
       branchId: dto.branchId,
@@ -74,15 +76,6 @@ export class UsersService {
       workMinutesPerDay: dto.workMinutesPerDay,
       breakMinutes: dto.breakMinutes,
     });
-    // Un 409 clair au lieu d'un 500 brut quand l'email est déjà pris.
-    const existing = await this.users.findOne({
-      where: { email: dto.email },
-      withDeleted: true,
-    });
-    if (existing) {
-      throw new ConflictException('Cet email est déjà utilisé');
-    }
-
     const saved = await this.users.save(user);
 
     // Issue an activation token (valid 48h). In prod this is emailed.
@@ -105,8 +98,43 @@ export class UsersService {
     if (dto.branchId !== undefined && dto.branchId !== target.branchId) {
       assertSameBranchOrGlobal(actor, dto.branchId);
     }
+    if (dto.email !== undefined) dto.email = await this.freeEmail(dto.email, id);
     await this.users.update(id, dto);
     return this.findOne(id);
+  }
+
+  // Anyone, on their own account (subject: "edit their account information").
+  async updateSelf(actor: AuthUser, dto: UpdateSelfDto) {
+    const changes: UpdateSelfDto = {};
+    for (const field of ['firstName', 'lastName'] as const) {
+      if (dto[field] === undefined) continue;
+      const value = dto[field]!.trim();
+      if (!value) throw new BadRequestException(`${field === 'firstName' ? 'Prénom' : 'Nom'} : obligatoire`);
+      changes[field] = value;
+    }
+    if (dto.phone !== undefined) changes.phone = dto.phone?.trim() || null;
+    if (dto.email !== undefined) changes.email = await this.freeEmail(dto.email, actor.id);
+    if (Object.keys(changes).length) await this.users.update(actor.id, changes as Partial<User>);
+    return this.findOne(actor.id);
+  }
+
+  // Anyone deletes their own account (subject: "delete their account"): same soft delete as below.
+  // Not the admin: the company would lose its only global account.
+  async removeSelf(actor: AuthUser) {
+    if (actor.role === Role.ADMIN) {
+      throw new BadRequestException('Un administrateur ne peut pas supprimer son propre compte');
+    }
+    await this.findOne(actor.id);
+    await this.users.softDelete(actor.id);
+    return { deleted: true };
+  }
+
+  /** Normalised email, refused if another account (even deleted) already uses it. */
+  private async freeEmail(email: string, ownerId: string) {
+    const normalised = email.trim().toLowerCase();
+    const existing = await this.users.findOne({ where: { email: normalised }, withDeleted: true });
+    if (existing && existing.id !== ownerId) throw new ConflictException('Cet email est déjà utilisé');
+    return normalised;
   }
 
   // Soft-delete = "deletion safety" + RGPD: the row is hidden, clocks are kept.

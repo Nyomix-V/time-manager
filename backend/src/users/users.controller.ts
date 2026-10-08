@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { Role } from '../entities/enums';
 import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto } from './dto';
+import { CreateUserDto, UpdateSelfDto, UpdateUserDto } from './dto';
 import { JwtAuthGuard, RolesGuard, Roles } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../auth/scope';
@@ -42,6 +42,18 @@ export class UsersController {
   @Roles(Role.MANAGER, Role.DIRECTEUR, Role.ADMIN)
   create(@CurrentUser() actor: AuthUser, @Body() dto: CreateUserDto) {
     return this.users.create(actor, dto);
+  }
+
+  // Everyone, on their own account (subject: "edit their account information", "delete their account").
+  // Declared before ':id' so that "me" is never read as an id.
+  @Put('me')
+  updateSelf(@CurrentUser() actor: AuthUser, @Body() dto: UpdateSelfDto) {
+    return this.users.updateSelf(actor, dto);
+  }
+
+  @Delete('me')
+  removeSelf(@CurrentUser() actor: AuthUser) {
+    return this.users.removeSelf(actor);
   }
 
   @Put(':id')

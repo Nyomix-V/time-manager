@@ -1,9 +1,11 @@
 import { Feather } from '@expo/vector-icons';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/auth/AuthProvider';
+import { signInWithMicrosoft } from '@/auth/microsoft';
+import { ForgotPasswordSheet } from '@/components/ForgotPasswordSheet';
 import { Badge, Button } from '@/components/ui';
 import { MOCK } from '@/lib/config';
 import { MOCK_ACCOUNTS, MOCK_PASSWORD } from '@/mock/data';
@@ -11,11 +13,14 @@ import { colors, radius, space } from '@/theme/tokens';
 
 // Maquette : docs/maquettes/mobile/m01-connexion.html
 export default function LoginScreen() {
-  const { signIn } = useAuth();
+  const { signIn, signInWithToken } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [microsoftLoading, setMicrosoftLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const passwordInput = useRef<TextInput>(null);
 
   async function submit(credentials = { email: email.trim(), password }) {
     setError(null);
@@ -29,9 +34,29 @@ export default function LoginScreen() {
     }
   }
 
+  // Connexion Microsoft : la page de Microsoft s'ouvre dans le navigateur, le backend renvoie ensuite vers l'app avec notre jeton.
+  async function microsoft() {
+    setError(null);
+    if (MOCK) {
+      setError('Mode démo : la connexion Microsoft passe par le vrai backend, elle n’est pas simulée.');
+      return;
+    }
+    setMicrosoftLoading(true);
+    try {
+      const token = await signInWithMicrosoft();
+      if (token) await signInWithToken(token);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Connexion Microsoft impossible.');
+    } finally {
+      setMicrosoftLoading(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.safe}>
+      {/* Le formulaire reste visible et défilable au-dessus du clavier, sur Android aussi : en affichage
+          bord à bord, Android ne redimensionne plus la fenêtre quand le clavier s'ouvre. */}
+      <KeyboardAvoidingView behavior="padding" style={styles.safe}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.logo}>
             <Feather name="clock" size={26} color={colors.text} />
@@ -66,8 +91,14 @@ export default function LoginScreen() {
             </View>
           )}
 
-          {/* La connexion Microsoft attend l'implémentation côté backend (routes /auth/microsoft). */}
-          <Button label="Se connecter avec Microsoft" variant="secondary" disabled onPress={() => {}} />
+          <Button
+            label="Se connecter avec Microsoft"
+            variant="secondary"
+            icon="log-in"
+            loading={microsoftLoading}
+            disabled={loading}
+            onPress={microsoft}
+          />
           <Text style={styles.divider}>ou avec votre email</Text>
 
           <View style={styles.field}>
@@ -85,6 +116,10 @@ export default function LoginScreen() {
               keyboardType="email-address"
               textContentType="emailAddress"
               accessibilityLabelledBy="email-label"
+              // « Suivant » sur le clavier passe au mot de passe, sans avoir à toucher le champ.
+              returnKeyType="next"
+              submitBehavior="submit"
+              onSubmitEditing={() => passwordInput.current?.focus()}
             />
           </View>
           <View style={styles.field}>
@@ -92,13 +127,15 @@ export default function LoginScreen() {
               Mot de passe
             </Text>
             <TextInput
+              ref={passwordInput}
               style={styles.input}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
               autoComplete="password"
               textContentType="password"
-              onSubmitEditing={() => submit()}
+              returnKeyType="go"
+              onSubmitEditing={() => email && password && submit()}
               accessibilityLabelledBy="password-label"
             />
           </View>
@@ -110,7 +147,9 @@ export default function LoginScreen() {
           )}
 
           <Button label="Se connecter" onPress={() => submit()} loading={loading} disabled={!email || !password} large />
+          <Button label="Mot de passe oublié ?" variant="ghost" onPress={() => setForgotOpen(true)} />
         </ScrollView>
+        <ForgotPasswordSheet key={`forgot-${forgotOpen}`} visible={forgotOpen} initialEmail={email.trim()} onClose={() => setForgotOpen(false)} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

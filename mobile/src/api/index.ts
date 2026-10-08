@@ -8,11 +8,14 @@ import type {
   Clock,
   ClockStatus,
   ClockType,
-  EditableField,
+  CreatedUser,
+  SelfUpdate,
   KpiReport,
   RequestStatus,
   Team,
+  TeamChanges,
   User,
+  UserCreate,
   UserUpdate,
 } from './types';
 
@@ -32,17 +35,32 @@ export const api = {
       apiRequest<{ access_token: string }>('/auth/login', { method: 'POST', body: { email, password } }),
     changePassword: (currentPassword: string, newPassword: string) =>
       apiRequest<{ changed: true }>('/auth/change-password', { method: 'POST', body: { currentPassword, newPassword } }),
+    /** Toujours la même réponse, que le compte existe ou non. `token` n'est renvoyé que par un backend de développement. */
+    forgotPassword: (email: string) => apiRequest<{ token?: string }>('/auth/forgot-password', { method: 'POST', body: { email } }),
   },
 
   users: {
     /** Salariés de la branche (toute l'entreprise pour l'admin), avec leur équipe. */
     list: (filters: { teamId?: string } = {}) => apiRequest<User[]>('/users', { query: filters }),
     get: (id: string) => apiRequest<User>(`/users/${id}`),
+    create: (user: UserCreate) => apiRequest<CreatedUser>('/users', { method: 'POST', body: user }),
+    /** Ses propres informations : chacun les modifie lui-même. */
+    updateMe: (changes: SelfUpdate) => apiRequest<User>('/users/me', { method: 'PUT', body: changes }),
+    /** Supprime son propre compte (suppression douce côté backend : les pointages restent, sans nom). */
+    removeMe: () => apiRequest<{ deleted: true }>('/users/me', { method: 'DELETE' }),
     update: (id: string, changes: UserUpdate) => apiRequest<User>(`/users/${id}`, { method: 'PUT', body: changes }),
     remove: (id: string) => apiRequest<{ deleted: true }>(`/users/${id}`, { method: 'DELETE' }),
   },
 
-  teams: { list: () => apiRequest<Team[]>('/teams') },
+  teams: {
+    /** Équipes de la branche, avec manager et membres. */
+    list: () => apiRequest<Team[]>('/teams'),
+    create: (branchId: string, team: TeamChanges) => apiRequest<Team>('/teams', { method: 'POST', body: { ...team, branchId } }),
+    update: (id: string, team: Partial<TeamChanges>) => apiRequest<Team>(`/teams/${id}`, { method: 'PUT', body: team }),
+    remove: (id: string) => apiRequest<{ deleted: true }>(`/teams/${id}`, { method: 'DELETE' }),
+    addMember: (id: string, userId: string) => apiRequest<{ added: true }>(`/teams/${id}/members/${userId}`, { method: 'POST' }),
+    removeMember: (id: string, userId: string) => apiRequest<{ removed: true }>(`/teams/${id}/members/${userId}`, { method: 'DELETE' }),
+  },
 
   clocks: {
     /** Pointages de la personne (sur la période si précisée), du plus ancien au plus récent. */
@@ -68,13 +86,10 @@ export const api = {
     decide: (id: string, decision: Decision) => apiRequest<Absence>(`/absences/${id}/decision`, { method: 'PATCH', body: decision }),
   },
 
+  // Demandes de modification ou de suppression envoyées par le site (ou plus anciennes) :
+  // dans l'app, chacun modifie et supprime directement son compte (users.updateMe, users.removeMe).
   accountRequests: {
-    listForUser: (userId: string) => apiRequest<AccountRequest[]>(`/account-requests/user/${userId}`),
     listPending: () => apiRequest<AccountRequest[]>('/account-requests/pending'),
-    requestChange: (field: EditableField, newValue: string) =>
-      apiRequest<AccountRequest>('/account-requests', { method: 'POST', body: { type: 'INFO_CHANGE', field, newValue } }),
-    requestDeletion: (reason: string) =>
-      apiRequest<AccountRequest>('/account-requests', { method: 'POST', body: { type: 'DELETION', reason } }),
     decide: (id: string, decision: Decision) =>
       apiRequest<AccountRequest>(`/account-requests/${id}/decision`, { method: 'PATCH', body: decision }),
   },
