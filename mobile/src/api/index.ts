@@ -9,7 +9,7 @@ import type {
   ClockStatus,
   ClockType,
   CreatedUser,
-  EditableField,
+  SelfUpdate,
   KpiReport,
   RequestStatus,
   Team,
@@ -44,6 +44,10 @@ export const api = {
     list: (filters: { teamId?: string } = {}) => apiRequest<User[]>('/users', { query: filters }),
     get: (id: string) => apiRequest<User>(`/users/${id}`),
     create: (user: UserCreate) => apiRequest<CreatedUser>('/users', { method: 'POST', body: user }),
+    /** Ses propres informations : chacun les modifie lui-même. */
+    updateMe: (changes: SelfUpdate) => apiRequest<User>('/users/me', { method: 'PUT', body: changes }),
+    /** Supprime son propre compte (suppression douce côté backend : les pointages restent, sans nom). */
+    removeMe: () => apiRequest<{ deleted: true }>('/users/me', { method: 'DELETE' }),
     update: (id: string, changes: UserUpdate) => apiRequest<User>(`/users/${id}`, { method: 'PUT', body: changes }),
     remove: (id: string) => apiRequest<{ deleted: true }>(`/users/${id}`, { method: 'DELETE' }),
   },
@@ -82,13 +86,10 @@ export const api = {
     decide: (id: string, decision: Decision) => apiRequest<Absence>(`/absences/${id}/decision`, { method: 'PATCH', body: decision }),
   },
 
+  // Demandes de modification ou de suppression envoyées par le site (ou plus anciennes) :
+  // dans l'app, chacun modifie et supprime directement son compte (users.updateMe, users.removeMe).
   accountRequests: {
-    listForUser: (userId: string) => apiRequest<AccountRequest[]>(`/account-requests/user/${userId}`),
     listPending: () => apiRequest<AccountRequest[]>('/account-requests/pending'),
-    requestChange: (field: EditableField, newValue: string) =>
-      apiRequest<AccountRequest>('/account-requests', { method: 'POST', body: { type: 'INFO_CHANGE', field, newValue } }),
-    requestDeletion: (reason: string) =>
-      apiRequest<AccountRequest>('/account-requests', { method: 'POST', body: { type: 'DELETION', reason } }),
     decide: (id: string, decision: Decision) =>
       apiRequest<AccountRequest>(`/account-requests/${id}/decision`, { method: 'PATCH', body: decision }),
   },

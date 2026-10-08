@@ -43,6 +43,9 @@ export type UserUpdate = Partial<
   Pick<User, 'firstName' | 'lastName' | 'email' | 'phone' | 'teamId' | 'workingDays' | 'expectedStartMin' | 'workMinutesPerDay' | 'breakMinutes'>
 >;
 
+/** PUT /users/me : ce que chacun modifie sur son propre compte (UpdateSelfDto). Rôle, équipe et planning restent au manager. */
+export type SelfUpdate = Partial<Pick<User, 'firstName' | 'lastName' | 'email' | 'phone'>>;
+
 /** POST /users : un manager inscrit un salarié de sa branche (CreateUserDto). */
 export type UserCreate = Pick<User, 'firstName' | 'lastName' | 'email' | 'role'> &
   Partial<Pick<User, 'phone' | 'branchId' | 'teamId' | 'workingDays' | 'expectedStartMin' | 'workMinutesPerDay' | 'breakMinutes'>>;

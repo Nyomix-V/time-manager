@@ -119,11 +119,11 @@ Tous les écrans des maquettes sont développés et **branchés sur le backend**
 | Pointage avec pauses, planning du jour | sauf admin |
 | Mes heures (semaine, mois ou période choisie) | employé |
 | Absences (demande, historique) | sauf admin |
-| Profil, demandes au responsable, mot de passe | tous |
+| Profil : modifier ses informations, changer son mot de passe, supprimer son compte | tous (suppression : sauf admin) |
 | Équipe : présence en direct, moyennes d'heures et ponctualité sur la période choisie, inscription d'un salarié | manager, directeur |
 | Équipes : création, modification, membres, suppression | manager, directeur |
 | Fiche salarié : heures sur la période choisie, planning, absences, modification, suppression | manager, directeur |
-| Demandes à valider | manager, directeur |
+| Demandes à valider : absences, et demandes de compte envoyées depuis le site | manager, directeur |
 
 L'administrateur gère l'entreprise depuis le site (branches, tous les comptes).
 

@@ -10,13 +10,13 @@ L'app appelle le backend NestJS du dépôt (`backend/`). Toutes les routes sont 
 | Pointage | `GET /users/:id` (planning), `GET /clocks/:id?from` (pointages du jour), `POST /clocks/:id/arrive` · `break/start` · `break/end` · `depart` |
 | Mes heures | `GET /users/:id`, `GET /clocks/:id?from&to`, `GET /absences/user/:id` |
 | Absences | `POST /absences`, `GET /absences/user/:id` |
-| Profil | `GET /users/:id`, `GET /account-requests/user/:id`, `POST /account-requests`, `POST /auth/change-password` |
+| Profil | `GET /users/:id`, `PUT /users/me` (prénom, nom, email, téléphone), `DELETE /users/me`, `POST /auth/change-password` |
 | Équipe | `GET /users`, `GET /teams`, `GET /kpi/report?from&to&teamId` (30 derniers jours pour les alertes, et période choisie), `GET /clocks/:id/status` (une fois par salarié), `POST /users` |
 | Équipes | `GET /teams`, `GET /users`, `POST /teams`, `PUT /teams/:id`, `DELETE /teams/:id`, `POST` · `DELETE /teams/:id/members/:userId` |
 | Fiche salarié | `GET /users/:id`, `GET /clocks/:id?from&to`, `GET /absences/user/:id`, `GET /teams`, `PUT /users/:id`, `DELETE /users/:id` |
 | Demandes | `GET /absences/pending`, `GET /account-requests/pending`, `PATCH /absences/:id/decision`, `PATCH /account-requests/:id/decision` |
 
-Vérifié le 8 octobre 2026 contre le backend de `main`, en mode démo et contre le vrai backend, avec le même script de contrat : formats, règles de sécurité, refus sans motif, nom du décideur, KPI, inscription d'un salarié, gestion des équipes, mot de passe oublié.
+Vérifié le 8 octobre 2026 contre le backend de `main`, en mode démo et contre le vrai backend, avec le même script de contrat : formats, règles de sécurité, refus sans motif, nom du décideur, KPI, inscription d'un salarié, gestion des équipes, mot de passe oublié, modification et suppression de son propre compte (le jeton d'un compte supprimé est refusé aussitôt).
 
 ### Connexion Microsoft
 
