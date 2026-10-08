@@ -6,9 +6,11 @@ import {
   JoinColumn,
   Index,
 } from 'typeorm';
-import { ClockStatus } from './enums';
+import { ClockType } from './enums';
 import { User } from './user.entity';
 
+// One row per clock event. Day worked time is computed from the ordered
+// sequence IN -> (BREAK_START -> BREAK_END)* -> OUT (see WorkingTimesService).
 @Entity('clocks')
 @Index(['userId', 'time'])
 export class Clock {
@@ -21,8 +23,8 @@ export class Clock {
   @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   time: Date;
 
-  @Column({ type: 'enum', enum: ClockStatus })
-  status: ClockStatus;
+  @Column({ type: 'enum', enum: ClockType })
+  type: ClockType;
 
   @ManyToOne(() => User, (user) => user.clocks, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })

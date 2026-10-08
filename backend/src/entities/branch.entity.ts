@@ -7,7 +7,9 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
+import { Team } from './team.entity';
 
+// A branch is a division of the company (RH, Finance, IT…). It holds teams.
 @Entity('branches')
 export class Branch {
   @PrimaryGeneratedColumn('uuid')
@@ -19,10 +21,6 @@ export class Branch {
   @Column({ nullable: true })
   description?: string;
 
-  // Expected arrival time, minutes from midnight (540 = 09:00). Drives "retard".
-  @Column({ default: 540 })
-  expectedStartMin: number;
-
   @CreateDateColumn()
   createdAt: Date;
 
@@ -31,4 +29,7 @@ export class Branch {
 
   @OneToMany(() => User, (user) => user.branch)
   users: User[];
+
+  @OneToMany(() => Team, (team) => team.branch)
+  teams: Team[];
 }
