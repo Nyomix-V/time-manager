@@ -1,13 +1,14 @@
 import { Body, Controller, Post, HttpCode, UseGuards } from '@nestjs/common';
-import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards';
 import { CurrentUser } from './current-user.decorator';
 import { AuthUser } from './scope';
 
+// No length rule on login: a wrong password, even a short one, is just "incorrect".
 class LoginDto {
   @IsEmail() email: string;
-  @IsString() @MinLength(6) password: string;
+  @IsString() @IsNotEmpty() password: string;
 }
 
 class ForgotDto {
