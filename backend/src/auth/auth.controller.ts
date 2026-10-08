@@ -1,7 +1,3 @@
-<<<<<<< Updated upstream
-import { Body, Controller, Post, HttpCode, UseGuards } from '@nestjs/common';
-import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
-=======
 import {
   Body,
   Controller,
@@ -13,8 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { IsEmail, IsString, Matches, MinLength } from 'class-validator';
->>>>>>> Stashed changes
+import { IsEmail, IsNotEmpty, IsString, Matches } from 'class-validator';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards';
 import { CurrentUser } from './current-user.decorator';
