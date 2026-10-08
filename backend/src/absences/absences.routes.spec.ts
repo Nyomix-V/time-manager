@@ -55,7 +55,8 @@ describe('Absences routes', () => {
   });
 
   it('rejects fields the employee may not set (no self-approval)', async () => {
-    await as('empA').post('/absences', { ...medical, status: 'APPROVED' }).expect(400);
+    const res = await as('empA').post('/absences', { ...medical, status: 'APPROVED' }).expect(400);
+    expect(res.body.message).toEqual(['Champ non autorisé : Décision']);
     await as('empA').post('/absences', { ...medical, userId: 'empA2' }).expect(400);
     expect(absences.rows).toHaveLength(0);
   });
