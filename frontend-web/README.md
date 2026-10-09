@@ -22,10 +22,9 @@ Avec Docker, depuis la racine du projet :
 
 ```bash
 docker compose up --build
-docker exec tm_backend npm run seed     # comptes de test, mot de passe : password123
 ```
 
-Puis ouvrir <http://localhost:8080>. Comptes : `employee@trinity.io`, `manager@trinity.io`, `directeur@trinity.io`, `admin@trinity.io`.
+Puis ouvrir <http://localhost:8080>. Au premier démarrage, le backend crée les comptes de test (mot de passe : `password123`) : `employee@trinity.io`, `manager@trinity.io`, `directeur@trinity.io`, `admin@trinity.io`.
 
 Sans Docker (le back doit tourner sur le port 3000) :
 

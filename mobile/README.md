@@ -12,27 +12,26 @@ cp .env.example .env      # puis réglez EXPO_PUBLIC_API_URL
 npx expo start
 ```
 
-- **Émulateur Android** : touche `a` dans le terminal d'Expo. L'API est alors à `http://10.0.2.2:8080/api` (via le proxy) ou `http://10.0.2.2:3000` (backend en direct).
-- **Téléphone réel** : installez l'app **Expo Go** et scannez le QR code. Le téléphone doit être sur le même Wi-Fi que le PC, et `EXPO_PUBLIC_API_URL` doit pointer vers l'IP du PC (`http://192.168.x.x:3000`).
+- **Émulateur Android** : touche `a` dans le terminal d'Expo, puis `adb reverse tcp:8080 tcp:8080` pour que l'adresse par défaut (`http://localhost:8080/api`) mène au PC.
+- **Téléphone réel** : installez l'app **Expo Go** et scannez le QR code. Branché en USB, la même commande `adb reverse` suffit ; en Wi-Fi, `EXPO_PUBLIC_API_URL` doit pointer vers l'IP du PC (`http://192.168.x.x:8080/api`).
 
 ### Avec le vrai backend
 
 À la racine du projet :
 
 ```bash
-docker compose up -d database backend
-docker compose exec backend npm run seed
+docker compose up -d reverse-proxy
 ```
 
-Comptes créés par le seed (mot de passe `password123`) : `employee@trinity.io`, `manager@trinity.io`, `directeur@trinity.io`, `admin@trinity.io`.
+Au premier démarrage, la base est vide : le backend y crée les comptes de démo (mot de passe `password123`) : `employee@trinity.io`, `manager@trinity.io`, `directeur@trinity.io`, `admin@trinity.io`. `docker compose exec backend npm run seed` recrée ceux qui ont été supprimés.
 
-Le plus simple pour un téléphone branché en USB : faire pointer son `localhost:3000` vers celui du PC, puis construire l'APK avec cette adresse.
+Téléphone branché en USB ou émulateur : faire pointer son `localhost:8080` vers celui du PC. C'est l'adresse par défaut de l'APK, il n'y a rien d'autre à régler.
 
 ```bash
-adb reverse tcp:3000 tcp:3000
+adb reverse tcp:8080 tcp:8080
 ```
 
-Dans le `.env` à la racine : `PUBLIC_API_URL=http://localhost:3000` et `MOBILE_MOCK=0`, puis construire l'APK (voir plus bas). La redirection `adb reverse` est à refaire à chaque fois que le téléphone est rebranché.
+La redirection `adb reverse` est à refaire à chaque fois que le téléphone est rebranché. Pour un téléphone en Wi-Fi, construisez l'APK avec `PUBLIC_API_URL=http://<IP du PC>:8080/api` (voir plus bas).
 
 Les routes utilisées et ce qui manque encore côté backend sont dans [API.md](API.md).
 
@@ -66,13 +65,13 @@ Ajoutez toujours une dépendance avec `npx expo install <paquet>` (pas `npm inst
 docker compose up --build mobile-builder
 ```
 
-L'APK arrive dans `mobile/artifacts/time-manager.apk` et se télécharge sur http://localhost:8080/apk/time-manager.apk (pratique pour l'installer depuis le navigateur du téléphone, sur le même réseau). Le premier build est long (SDK Android, Gradle : compter 15 à 30 minutes et plusieurs Go) ; les suivants réutilisent le cache Docker.
+L'APK arrive dans `mobile/artifacts/time-manager.apk` et se télécharge sur http://localhost:8080/apk/time-manager.apk (depuis le navigateur d'un téléphone sur le même réseau : `http://<IP du PC>:8080/apk/time-manager.apk`). Le premier build est long (SDK Android, Gradle : compter 15 à 30 minutes et plusieurs Go) ; les suivants réutilisent le cache Docker.
 
 Les réglages sont **figés dans l'APK** au moment du build. Ils se mettent dans le `.env` à la racine du projet :
 
 | Variable | Défaut | Rôle |
 |---|---|---|
-| `PUBLIC_API_URL` | `http://10.0.2.2:8080/api` | Adresse de l'API (`10.0.2.2` = le PC vu depuis l'émulateur) |
+| `PUBLIC_API_URL` | `http://localhost:8080/api` | Adresse de l'API. La valeur par défaut marche sur l'émulateur et sur un téléphone en USB après `adb reverse tcp:8080 tcp:8080` ; en Wi-Fi : `http://<IP du PC>:8080/api` |
 | `MOBILE_MOCK` | `0` | `1` = APK en mode démo |
 | `MOBILE_ARCHS` | `arm64-v8a,x86_64` | `arm64-v8a` seul = build plus rapide, téléphones réels uniquement |
 
