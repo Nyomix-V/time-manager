@@ -96,7 +96,8 @@ services:
       context: ./mobile
       args:
         # Baked into the APK at build time (a runtime env var would be ignored).
-        EXPO_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://10.0.2.2:8080/api}
+        # localhost + "adb reverse tcp:8080 tcp:8080": works on the emulator and on a USB phone.
+        EXPO_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080/api}
         EXPO_PUBLIC_MOCK: ${MOBILE_MOCK:-0}                  # 1 = demo mode, fake accounts, no backend
         ANDROID_ARCHS: ${MOBILE_ARCHS:-arm64-v8a,x86_64}     # arm64-v8a alone = faster, real phones only
     container_name: tm_mobile_builder

@@ -55,8 +55,8 @@ RUN npm ci
 COPY . .
 
 # L'adresse de l'API est figée dans l'APK au moment du bundle JavaScript.
-# 10.0.2.2 = la machine hôte vue depuis l'émulateur Android.
-ARG EXPO_PUBLIC_API_URL=http://10.0.2.2:8080/api
+# localhost : le téléphone (ou l'émulateur) joint le PC avec « adb reverse tcp:8080 tcp:8080 ».
+ARG EXPO_PUBLIC_API_URL=http://localhost:8080/api
 ENV EXPO_PUBLIC_API_URL=${EXPO_PUBLIC_API_URL}
 # 1 = mode démo (faux comptes, aucun appel au backend).
 ARG EXPO_PUBLIC_MOCK=0
