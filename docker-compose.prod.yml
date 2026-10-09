@@ -40,6 +40,8 @@ services:
       MS_CLIENT_ID: ${MS_CLIENT_ID}
       MS_CLIENT_SECRET: ${MS_CLIENT_SECRET}
       MS_TENANT_ID: ${MS_TENANT_ID}
+      MS_REDIRECT_URI: ${MS_REDIRECT_URI}          # https://<domaine>/api/auth/microsoft/callback
+      FRONTEND_URL: ${FRONTEND_URL}                # https://<domaine> : retour après la connexion Microsoft
     depends_on:
       database:
         condition: service_healthy
@@ -50,9 +52,9 @@ services:
   web-build:
     build:
       context: ./frontend-web
-      target: prod                               # outputs /app/dist
+      target: prod                               # copies the built files into the volume, then exits
     volumes:
-      - web_dist:/app/dist
+      - web_dist:/out
     networks: [frontend_net]
 
   reverse-proxy:
@@ -65,7 +67,11 @@ services:
       - ./reverse-proxy/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
       - web_dist:/usr/share/nginx/html:ro        # serves the built web app
       # - ./reverse-proxy/certs:/etc/nginx/certs:ro   # TLS certs (prod)
-    depends_on: [backend, web-build]
+    depends_on:
+      backend:
+        condition: service_started
+      web-build:
+        condition: service_completed_successfully   # wait until the bundle is copied
     networks: [frontend_net]
 
 networks:
