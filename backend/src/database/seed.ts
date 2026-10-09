@@ -9,6 +9,8 @@ import { Role, UserStatus, ClockType } from '../entities/enums';
 
 // Seeds a small but realistic org: branches, teams, users (all roles), and a
 // day of clocks (with a break) for the demo employee.
+// --if-empty: only on a database without any account (dev compose runs it at each start),
+// so a demo account deleted on purpose does not come back at the next restart.
 async function main() {
   AppDataSource.setOptions({ migrationsRun: true, synchronize: true }); // dev: create tables if needed
   await AppDataSource.initialize();
@@ -17,6 +19,13 @@ async function main() {
   const teams = AppDataSource.getRepository(Team);
   const users = AppDataSource.getRepository(User);
   const clocks = AppDataSource.getRepository(Clock);
+
+  if (process.argv.includes('--if-empty') && (await users.count({ withDeleted: true })) > 0) {
+    console.log('Seed skipped: the database already has accounts.');
+    await AppDataSource.destroy();
+    return;
+  }
+
   const pw = await bcrypt.hash('password123', 10);
 
   const upsertBranch = async (name: string, description: string) =>

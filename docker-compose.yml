@@ -38,6 +38,8 @@ services:
       MS_TENANT_ID: ${MS_TENANT_ID:-common}
       MS_REDIRECT_URI: ${MS_REDIRECT_URI:-http://localhost:8080/api/auth/microsoft/callback}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+    # Empty database (first start): creates the demo accounts, then starts with hot reload.
+    command: sh -c "npm run seed:if-empty; npm run start:dev"
     volumes:
       - ./backend:/app                           # hot reload in dev
       - /app/node_modules
