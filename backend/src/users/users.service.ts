@@ -64,7 +64,8 @@ export class UsersService {
     const user = this.users.create({
       firstName: dto.firstName,
       lastName: dto.lastName,
-      email: dto.email,
+      // Un 409 clair au lieu d'un 500 brut quand l'email est déjà pris.
+      email: await this.freeEmail(dto.email, ''),
       phone: dto.phone,
       role: targetRole,
       branchId: dto.branchId,
@@ -75,15 +76,6 @@ export class UsersService {
       workMinutesPerDay: dto.workMinutesPerDay,
       breakMinutes: dto.breakMinutes,
     });
-    // Un 409 clair au lieu d'un 500 brut quand l'email est déjà pris.
-    const existing = await this.users.findOne({
-      where: { email: dto.email },
-      withDeleted: true,
-    });
-    if (existing) {
-      throw new ConflictException('Email already in use');
-    }
-
     const saved = await this.users.save(user);
 
     // Issue an activation token (valid 48h). In prod this is emailed.

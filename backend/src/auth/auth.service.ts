@@ -78,7 +78,9 @@ export class AuthService {
     const user = await this.users.findOne({ where: { email } });
     if (!user) return {}; // no leak
     const token = await this.issueToken(user.id, TokenType.PASSWORD_RESET, 30);
-    return { token }; // dev convenience; prod would email it instead
+    // No email is sent yet: in development only, the token comes back so the apps can show the link.
+    // Never in production: anyone could reset anyone's password knowing their email.
+    return process.env.NODE_ENV === 'production' ? {} : { token };
   }
 
   async resetPassword(token: string, newPassword: string) {
@@ -136,7 +138,13 @@ export class AuthService {
   }
 
   // Step 1: the URL we send the user to, to sign in with Microsoft.
-  buildMicrosoftAuthUrl(): string {
+  // Which client started the flow travels in `state` ("mobile.<random>" / "web.<random>"),
+  // the only value Microsoft sends back unchanged to the callback.
+  static isMobileState(state?: string | null): boolean {
+    return !!state && state.startsWith('mobile.');
+  }
+
+  buildMicrosoftAuthUrl(client: 'web' | 'mobile' = 'web'): string {
     const c = this.msConfig();
     if (!c.clientId) {
       throw new BadRequestException('Microsoft SSO not configured (MS_CLIENT_ID)');
@@ -147,7 +155,7 @@ export class AuthService {
       redirect_uri: c.redirectUri,
       response_mode: 'query',
       scope: c.scope,
-      state: crypto.randomBytes(8).toString('hex'),
+      state: `${client}.${crypto.randomBytes(8).toString('hex')}`,
     });
     return `${c.authority}/authorize?${params.toString()}`;
   }
