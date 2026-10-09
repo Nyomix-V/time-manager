@@ -6,7 +6,7 @@
 #    build       -> npm ci, expo prebuild, gradle assembleRelease
 #    artifact    -> image légère qui ne contient que l'APK
 #  Lancement :  docker compose up (avec le reste), ou seul : docker compose up --build mobile-builder
-#  Résultat  :  mobile/artifacts/time-manager.apk
+#  Résultat  :  mobile/artifacts/time-manager.apk, téléchargeable sur http://localhost:8080/apk/time-manager.apk
 # =============================================================
 
 # ---- android-sdk ----

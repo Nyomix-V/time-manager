@@ -65,6 +65,7 @@ services:
       - "8080:80"                                # <- the ONLY public port
     volumes:
       - ./reverse-proxy/nginx.dev.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./mobile/artifacts:/usr/share/nginx/apk:ro   # APK download: http://localhost:8080/apk/time-manager.apk
     depends_on: [backend, web]
     networks: [frontend_net]
 
@@ -85,7 +86,7 @@ services:
     networks: [backend_net]
 
   # --- Mobile app: builds the Android APK, then stops ---
-  # The APK lands in mobile/artifacts/time-manager.apk.
+  # The APK lands in mobile/artifacts/ and is downloadable at http://localhost:8080/apk/time-manager.apk
   # First build is long (Android SDK, Gradle); later ones reuse the Docker cache.
   # Rebuild only the APK:  docker compose up --build mobile-builder
   mobile-builder:

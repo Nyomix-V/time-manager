@@ -66,7 +66,7 @@ Ajoutez toujours une dépendance avec `npx expo install <paquet>` (pas `npm inst
 docker compose up --build mobile-builder
 ```
 
-L'APK arrive dans `mobile/artifacts/time-manager.apk`. Le premier build est long (SDK Android, Gradle : compter 15 à 30 minutes et plusieurs Go) ; les suivants réutilisent le cache Docker.
+L'APK arrive dans `mobile/artifacts/time-manager.apk` et se télécharge sur http://localhost:8080/apk/time-manager.apk (pratique pour l'installer depuis le navigateur du téléphone, sur le même réseau). Le premier build est long (SDK Android, Gradle : compter 15 à 30 minutes et plusieurs Go) ; les suivants réutilisent le cache Docker.
 
 Les réglages sont **figés dans l'APK** au moment du build. Ils se mettent dans le `.env` à la racine du projet :
 
